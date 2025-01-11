@@ -31,7 +31,6 @@ public:
     {
         Create(parent, id, title, pos, size, style, name);
     }
-
     bool Create(wxWindow *parent, wxWindowID id = wxID_ANY, const wxString& title = "Include Files", const wxPoint& pos =
         wxDefaultPosition, const wxSize& size = wxDefaultSize,
         long style = wxDEFAULT_DIALOG_STYLE, const wxString &name = wxDialogNameStr);
@@ -66,7 +65,7 @@ private:
 
     wxString m_value;
     NodeProperty* m_prop { nullptr };
-    int m_language = GEN_LANG_CPLUSPLUS;
+    GenLang m_language = GEN_LANG_CPLUSPLUS;
 };
 
 // ************* End of generated code ***********

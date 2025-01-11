@@ -16,8 +16,8 @@
 
 wxObject* ListViewGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxListView(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                 DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxListView(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                 DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->as_string(prop_mode) == "wxLC_REPORT" && node->hasValue(prop_column_labels))
     {
@@ -57,7 +57,7 @@ bool ListViewGenerator::ConstructionCode(Code& code)
     // Note that the default style is not specified, so that it will always be generated. That makes the generated code
     // easier to understand since you know exactly which type of list view is being created instead of having to know what
     // the default is.
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -119,7 +119,7 @@ bool ListViewGenerator::SettingsCode(Code& code)
 }
 
 bool ListViewGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/listctrl.h>", set_src, set_hdr);
     return true;

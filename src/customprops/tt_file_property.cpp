@@ -75,7 +75,6 @@ bool ttFileProperty::DisplayEditorDialog(wxPropertyGrid* pg, wxVariant& value)
 
         case prop_python_file:
         case prop_python_combined_file:
-
             if (folder && folder->hasValue(prop_folder_python_output_folder))
                 root_path = folder->as_string(prop_folder_python_output_folder);
             else if (Project.getProjectNode()->hasValue(prop_python_output_folder))
@@ -88,7 +87,6 @@ bool ttFileProperty::DisplayEditorDialog(wxPropertyGrid* pg, wxVariant& value)
 
         case prop_ruby_file:
         case prop_ruby_combined_file:
-
             if (folder && folder->hasValue(prop_folder_ruby_output_folder))
                 root_path = folder->as_string(prop_folder_ruby_output_folder);
             else if (Project.getProjectNode()->hasValue(prop_ruby_output_folder))
@@ -99,6 +97,61 @@ bool ttFileProperty::DisplayEditorDialog(wxPropertyGrid* pg, wxVariant& value)
             wildcard = "Ruby Files|*.rb;*.rbw";
             break;
 
+        case prop_fortran_file:
+            if (folder && folder->hasValue(prop_folder_fortran_output_folder))
+                root_path = folder->as_string(prop_folder_fortran_output_folder);
+            else if (Project.getProjectNode()->hasValue(prop_fortran_output_folder))
+                root_path = Project.getProjectNode()->as_string(prop_fortran_output_folder);
+            else
+                root_path = Project.getProjectPath();
+            title = "Fortran filename";
+            wildcard = "Fortran Files|*.f90;*.f95;*.f03;*.f08";
+            break;
+
+        case prop_haskell_file:
+            if (folder && folder->hasValue(prop_folder_haskell_output_folder))
+                root_path = folder->as_string(prop_folder_haskell_output_folder);
+            else if (Project.getProjectNode()->hasValue(prop_haskell_output_folder))
+                root_path = Project.getProjectNode()->as_string(prop_haskell_output_folder);
+            else
+                root_path = Project.getProjectPath();
+            title = "Haskell filename";
+            wildcard = "Haskell Files|*.hs;*.lhs";
+            break;
+
+        case prop_lua_file:
+            if (folder && folder->hasValue(prop_folder_lua_output_folder))
+                root_path = folder->as_string(prop_folder_lua_output_folder);
+            else if (Project.getProjectNode()->hasValue(prop_lua_output_folder))
+                root_path = Project.getProjectNode()->as_string(prop_lua_output_folder);
+            else
+                root_path = Project.getProjectPath();
+            title = "Lua filename";
+            wildcard = "Lua Files|*.lua";
+            break;
+
+        case prop_perl_file:
+            if (folder && folder->hasValue(prop_folder_perl_output_folder))
+                root_path = folder->as_string(prop_folder_perl_output_folder);
+            else if (Project.getProjectNode()->hasValue(prop_perl_output_folder))
+                root_path = Project.getProjectNode()->as_string(prop_perl_output_folder);
+            else
+                root_path = Project.getProjectPath();
+            title = "Perl filename";
+            wildcard = "Perl Files|*.pl;*.pm";
+            break;
+
+        case prop_rust_file:
+            if (folder && folder->hasValue(prop_folder_rust_output_folder))
+                root_path = folder->as_string(prop_folder_rust_output_folder);
+            else if (Project.getProjectNode()->hasValue(prop_rust_output_folder))
+                root_path = Project.getProjectNode()->as_string(prop_rust_output_folder);
+            else
+                root_path = Project.getProjectPath();
+            title = "Rust filename";
+            wildcard = "Rust Files|*.rust";
+            break;
+
         case prop_cmake_file:
         case prop_folder_cmake_file:
             root_path = Project.getProjectPath();
@@ -107,9 +160,9 @@ bool ttFileProperty::DisplayEditorDialog(wxPropertyGrid* pg, wxVariant& value)
             break;
 
         // Currently this is for a wxFrame window
-        case prop_derived_header:
+        case prop_subclass_header:
             root_path = Project.getProjectPath();
-            title = "Derived Header";
+            title = "Subclass Header";
             wildcard = "Header Files|*.h;*.hh;*.hpp;*.hxx";
             break;
 

@@ -51,14 +51,19 @@ int WriteCMakeFile(Node* parent_node, std::vector<tt_string>& updated_files, std
 class BaseCodeGenerator
 {
 public:
-    BaseCodeGenerator(int language, Node* form_node);
+    BaseCodeGenerator(GenLang language, Node* form_node);
 
     void SetHdrWriteCode(WriteCode* cw) { m_header = cw; }
     void SetSrcWriteCode(WriteCode* cw) { m_source = cw; }
 
     void GenerateCppClass(PANEL_PAGE panel_type = NOT_PANEL);
+    void GenerateFortranClass(PANEL_PAGE panel_type = NOT_PANEL);
+    void GenerateHaskellClass(PANEL_PAGE panel_type = NOT_PANEL);
+    void GenerateLuaClass(PANEL_PAGE panel_type = NOT_PANEL);
+    void GeneratePerlClass(PANEL_PAGE panel_type = NOT_PANEL);
     void GeneratePythonClass(PANEL_PAGE panel_type = NOT_PANEL);
     void GenerateRubyClass(PANEL_PAGE panel_type = NOT_PANEL);
+    void GenerateRustClass(PANEL_PAGE panel_type = NOT_PANEL);
 
     // GenerateDerivedClass() is in gen_derived.cpp
 
@@ -141,8 +146,11 @@ protected:
 
     void GenSrcEventBinding(Node* class_node, EventVector& events);
     void GenHdrEvents();
+    void GenCppEventHandlers(EventVector& events);
+    void GenPerlEventHandlers(EventVector& events);
     void GenPythonEventHandlers(EventVector& events);
     void GenRubyEventHandlers(EventVector& events);
+    void GenRustEventHandlers(EventVector& events);
 
     // Generates all the code lines for validator_variables initialized in the header file
     void GenCppValVarsBase(const NodeDeclaration* info, Node* node, std::set<std::string>& code_lines);
@@ -230,7 +238,7 @@ private:
 
     PANEL_PAGE m_panel_type { NOT_PANEL };
 
-    int m_language { GEN_LANG_CPLUSPLUS };
+    GenLang m_language { GEN_LANG_CPLUSPLUS };
 
     bool m_is_derived_class { true };
 

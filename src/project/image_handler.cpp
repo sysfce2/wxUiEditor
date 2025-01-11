@@ -122,14 +122,20 @@ bool ImageHandler::CheckNode(Node* node)
     Node* node_form = node->getForm();
 
     auto node_position = m_project_node->getChildPosition(node_form);
+    tt_string art_directory;
+    if (Project.getProjectNode()->hasValue(prop_art_directory))
+        art_directory = Project.getProjectNode()->as_string(prop_art_directory);
 
     for (auto& iter: node->getPropsVector())
     {
         if ((iter.type() == type_image || iter.type() == type_animation) && iter.hasValue())
         {
             tt_view_vector parts(iter.as_string(), BMP_PROP_SEPARATOR, tt::TRIM::both);
-            if (parts[IndexType] != "Embed" || parts.size() <= IndexImage || parts[IndexImage].filename().empty())
+            if (parts[IndexType] != "Embed" || parts.size() <= IndexImage || parts[IndexImage].filename().empty() ||
+                parts[IndexImage] == art_directory)
+            {
                 continue;
+            }
 
             auto* embed = FindEmbedded(parts[IndexImage].filename());
             ASSERT(embed)
@@ -436,7 +442,7 @@ bool ImageHandler::AddNewEmbeddedImage(tt_string path, Node* form)
                     }
                     else
                     {
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
+#if defined(_DEBUG)
                         size_t org_size = (to_size_t) stream.GetLength();
                         auto png_size = read_stream->GetBufferSize();
     #ifdef __cpp_lib_format
@@ -960,7 +966,7 @@ EmbeddedImage* ImageHandler::AddEmbeddedBundleImage(tt_string path, Node* form, 
                     }
                     else
                     {
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
+#if defined(_DEBUG)
                         size_t org_size = (to_size_t) stream.GetLength();
                         auto png_size = read_stream->GetBufferSize();
     #ifdef __cpp_lib_format
@@ -1417,7 +1423,7 @@ bool ImageHandler::AddSvgBundleImage(tt_string path, Node* form)
     }
     embed->size = size;
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
+#if defined(_DEBUG)
     wxFile file_original(path.make_wxString(), wxFile::read);
     if (file_original.IsOpened())
     {

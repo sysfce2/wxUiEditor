@@ -1,12 +1,14 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   wxFrame generator
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2022 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
 #include <wx/frame.h>              // wxFrame class interface
 #include <wx/propgrid/propgrid.h>  // wxPropertyGrid
+
+#include <frozen/set.h>
 
 #include "gen_base.h"    // BaseCodeGenerator -- Generate Src and Hdr files for Base Class
 #include "gen_common.h"  // GeneratorLibrary -- Generator classes
@@ -40,11 +42,11 @@ bool FrameFormGenerator::ConstructionCode(Code& code)
         code.Eol().Tab().Add("def __init__(self, parent, id=").as_string(prop_id);
         code.Indent(3);
         code.Comma().Str("title=").QuotedString(prop_title).Comma().Add("pos=").Pos(prop_pos);
-        code.Comma().Add("size=").WxSize(prop_size);
+        code.Comma().Add("size=").WxSize(prop_size, code::no_scaling);
         code.Comma().CheckLineLength(sizeof("style=") + code.node()->as_string(prop_style).size() + 4);
         code.Add("style=").Style().Comma();
         size_t name_len =
-            code.hasValue(prop_window_name) ? code.node()->as_string(prop_window_name).size() : sizeof("wx.DialogNameStr");
+            code.hasValue(prop_window_name) ? code.node()->as_string(prop_window_name).size() : sizeof("wx.FrameNameStr");
         code.CheckLineLength(sizeof("name=") + name_len + 4);
         code.Str("name=");
         if (code.hasValue(prop_window_name))
@@ -90,9 +92,63 @@ bool FrameFormGenerator::ConstructionCode(Code& code)
             code.GetCode().Replace("\t\t\t\t", spaces, true);
         }
     }
+    else if (code.is_lua())
+    {
+        code.Eol().NodeName().Str(" = {}\n");
+        code.Eol().Str("function ").NodeName().Str(":create(parent, id, title, pos, size, style, name)");
+        code.Indent();
+        code.Eol().Str("parent = parent or wx.NULL");
+        code.Eol().Str("id = id or ").as_string(prop_id);
+        code.Eol().Str("title = title or ").QuotedString(prop_title);
+        code.Eol().Str("pos = pos or ").Pos(prop_pos);
+        code.Eol().Str("size = size or ").WxSize(prop_size);
+        code.Eol().Str("style = style or ").Style();
+        code.Eol().Str("name = name or ");
+        if (code.hasValue(prop_window_name))
+            code.QuotedString(prop_window_name);
+        else
+            code += "\"frame\"";
+        code.Eol().Eol().Str("this = wx.wxFrame(parent, id, title, pos, size, style, name)");
+    }
+    else if (code.is_perl())
+    {
+        code += "sub new {";
+        code.Indent();
+        code.Eol() += "my ($class, $parent, $id, $title, $pos, $size, $style, $name) = @_;";
+        code.Eol() += "$parent = undef unless defined $parent;";
+        code.Eol().Str("$id = ").as_string(prop_id).Str(" unless defined $id;");
+        code.Eol().Str("$title = ").QuotedString(prop_title).Str(" unless defined $title;");
+        code.Eol().Str("$pos = ").Pos().Str(" unless defined $pos;");
+        code.Eol().Str("$size = ").WxSize(prop_size).Str(" unless defined $size;");
+        code.Eol().Str("$style = ").Style().Str(" unless defined $style;");
+
+        code.Eol().Str("$name = ");
+        if (code.hasValue(prop_window_name))
+            code.QuotedString(prop_window_name);
+        else
+            code += "\"frame\"";
+        code.Str(" unless defined $name;");
+
+        code.Eol().Eol() += "my $self = $class->SUPER::new($parent, $id, $title, $pos, $size, $style, $name);";
+    }
+    else if (code.is_rust())
+    {
+        code.Str("#[derive(Clone)]").Eol().Str("struct ").NodeName();
+        code.OpenBrace();
+        code.Str("base: wx::WeakRef<wx::Frame>").Eol();
+        code.CloseBrace().Eol();
+        code.Str("impl ").NodeName();
+        code.OpenBrace();
+        code.Str("fn new(");
+        code.Str(
+            "parent: &wx::Window, id: i32, title: &str, pos: wx::Point, size: wx::Size, style: i32, name: &str) -> Self");
+        code.OpenBrace();
+        code.Str("let frame = wx::Frame::builder(parent, id, title, pos, size, style, name).build();").Eol();
+        return true;
+    }
     else
     {
-        code.AddComment("Unknown language");
+        code.AddComment("Unknown language", true);
     }
 
     code.ResetIndent();
@@ -103,6 +159,24 @@ bool FrameFormGenerator::ConstructionCode(Code& code)
 
 bool FrameFormGenerator::SettingsCode(Code& code)
 {
+    if (code.is_lua())
+    {
+        code.ResetIndent();
+        code.ResetBraces();
+    }
+    if (!code.node()->isPropValue(prop_variant, "normal"))
+    {
+        code.Eol(eol_if_empty).FormFunction("SetWindowVariant(");
+        if (code.node()->isPropValue(prop_variant, "small"))
+            code.Add("wxWINDOW_VARIANT_SMALL");
+        else if (code.node()->isPropValue(prop_variant, "mini"))
+            code.Add("wxWINDOW_VARIANT_MINI");
+        else
+            code.Add("wxWINDOW_VARIANT_LARGE");
+
+        code.EndFunction();
+    }
+
     if (code.is_cpp())
     {
         if (auto icon_code = GenerateIconCode(code.node()->as_string(prop_icon)); icon_code.size())
@@ -113,33 +187,63 @@ bool FrameFormGenerator::SettingsCode(Code& code)
     }
     else
     {
-        // TODO: [Randalphwa - 12-31-2022] Add Python code for setting icon
+        // TODO: [Randalphwa - 12-31-2022] Add Python and Ruby code for setting icon
+    }
+
+    if (isScalingEnabled(code.node(), prop_pos) || isScalingEnabled(code.node(), prop_size))
+    {
+        code.AddComment("Don't scale pos and size until after the window has been created.");
     }
 
     if (code.is_cpp())
     {
         code.Eol(eol_if_needed) += "if (!";
-        if (code.node()->hasValue(prop_derived_class))
-            code.as_string(prop_derived_class);
+        if (code.node()->hasValue(prop_subclass))
+            code.as_string(prop_subclass);
         else
             code += "wxFrame";
-        code += "::Create(parent, id, title, pos, size, style, name))";
-        code.Eol().Tab().Str("return false;");
+        code += "::Create(";
+        if (code.node()->hasValue(prop_subclass_params))
+        {
+            code += code.node()->as_string(prop_subclass_params);
+            code.RightTrim();
+            if (code.back() != ',')
+                code.Comma();
+            else
+                code += ' ';
+        }
+        code += "parent, id, title, pos, size, style, name))";
+        code.Eol().Tab() += "return false;\n";
     }
     else if (code.is_python())
     {
         code.Eol(eol_if_needed).Str("if not self.Create(parent, id, title, pos, size, style, name):");
-        code.Eol().Tab().Str("return");
+        code.Eol().Tab().Str("return\n");
     }
     else if (code.is_ruby())
     {
         code.Eol(eol_if_needed).Str("super(parent, id, title, pos, size, style)\n");
-        // REVIEW: [Randalphwa - 07-17-2023] The following doesn't work with an error that Wx::Panel.create doesn't exist.
-        // code.Eol(eol_if_needed).Str("return false unless Wx::Panel.create(parent, id, pos, size, style, name)");
+    }
+    else if (code.is_lua())
+    {
+        // Lua doesn't check the result of creating the window
     }
     else
     {
         return false;
+    }
+
+    if (isScalingEnabled(code.node(), prop_pos, code.get_language()) ||
+        isScalingEnabled(code.node(), prop_size, code.get_language()))
+    {
+        code.Eol(eol_if_needed).BeginConditional().Str("pos != ").AddConstant("wxDefaultPosition");
+        code.AddConditionalOr().Str("size != ").AddConstant("wxDefaultSize");
+        code.EndConditional().OpenBrace(true);
+        code.FormFunction("SetSize(");
+        code.FormFunction("FromDIP(pos).x").Comma().FormFunction("FromDIP(pos).y").Comma().Eol();
+        code.FormFunction("FromDIP(size).x").Comma().FormFunction("FromDIP(size).y").Comma();
+        code.Add("wxSIZE_USE_EXISTING").EndFunction();
+        code.CloseBrace(true);
     }
 
     Node* frame = code.node();
@@ -147,18 +251,21 @@ bool FrameFormGenerator::SettingsCode(Code& code)
     const auto max_size = frame->as_wxSize(prop_maximum_size);
     if (min_size != wxDefaultSize)
     {
-        code.Eol().FormFunction("SetMinSize(").WxSize(prop_minimum_size).EndFunction();
+        code.Eol().FormFunction("SetMinSize(").WxSize(prop_minimum_size, code::force_scaling).EndFunction();
     }
     if (max_size != wxDefaultSize)
     {
-        code.Eol().FormFunction("SetMaxSize(").WxSize(prop_maximum_size).EndFunction();
+        code.Eol().FormFunction("SetMaxSize(").WxSize(prop_maximum_size, code::force_scaling).EndFunction();
     }
 
     if (code.hasValue(prop_window_extra_style))
     {
         code.Eol(eol_if_needed).FormFunction("SetExtraStyle(").FormFunction("GetExtraStyle");
         if (!code.is_ruby())
+        {
+            // In Ruby, don't add () to the end of a function call if there are no parameters.
             code.Str("()");
+        }
         code.Str(" | ").Add(prop_window_extra_style).EndFunction();
     }
 
@@ -207,7 +314,13 @@ bool FrameFormGenerator::AfterChildrenCode(Code& code)
     auto& center = code.node()->as_string(prop_center);
     if (center.size() && !center.is_sameas("no"))
     {
-        code.Eol(eol_if_needed).FormFunction("Centre(").Add(center).EndFunction();
+        code.Eol(eol_if_needed).FormFunction("Centre(").AddConstant(center).EndFunction();
+    }
+
+    if (code.is_rust())
+    {
+        code.Eol(eol_if_needed).NodeName();
+        code.OpenBrace().Str("base: frame.to_weak_ref()").CloseBrace();
     }
 
     return true;
@@ -234,7 +347,7 @@ bool FrameFormGenerator::HeaderCode(Code& code)
     if (position == wxDefaultPosition)
         code.Str("wxDefaultPosition");
     else
-        code.Pos(prop_pos, no_dlg_units);
+        code.Pos(prop_pos, no_dpi_scaling);
 
     code.Comma().Str("const wxSize& size = ");
 
@@ -242,7 +355,7 @@ bool FrameFormGenerator::HeaderCode(Code& code)
     if (size == wxDefaultSize)
         code.Str("wxDefaultSize");
     else
-        code.WxSize(prop_size, no_dlg_units);
+        code.WxSize(prop_size, no_dpi_scaling);
 
     auto& style = node->as_string(prop_style);
     auto& win_style = node->as_string(prop_window_style);
@@ -287,14 +400,14 @@ bool FrameFormGenerator::HeaderCode(Code& code)
     if (position == wxDefaultPosition)
         code.Str("wxDefaultPosition");
     else
-        code.Pos(prop_pos, no_dlg_units);
+        code.Pos(prop_pos, no_dpi_scaling);
 
     code.Comma().Str("const wxSize& size = ");
 
     if (size == wxDefaultSize)
         code.Str("wxDefaultSize");
     else
-        code.WxSize(prop_size, no_dlg_units);
+        code.WxSize(prop_size, no_dpi_scaling);
 
     if (style.empty() && win_style.empty())
         code.Comma().Str("long style = 0");
@@ -332,9 +445,9 @@ bool FrameFormGenerator::HeaderCode(Code& code)
 
 bool FrameFormGenerator::BaseClassNameCode(Code& code)
 {
-    if (code.hasValue(prop_derived_class))
+    if (code.hasValue(prop_subclass))
     {
-        code.as_string(prop_derived_class);
+        code.as_string(prop_subclass);
     }
     else
     {
@@ -346,13 +459,17 @@ bool FrameFormGenerator::BaseClassNameCode(Code& code)
 
 int FrameFormGenerator::GenXrcObject(Node* node, pugi::xml_node& object, size_t xrc_flags)
 {
-    object.append_attribute("class").set_value("wxFrame");
-    object.append_attribute("name").set_value(node->as_string(prop_class_name));
+    // We use item so that the macros in base_generator.h work, and the code looks the same as other
+    // widget XRC generatorsl
+    auto item = object;
 
-    if (node->hasValue(prop_title))
+    GenXrcObjectAttributes(node, item, "wxFrame");
+    if (!node->isPropValue(prop_variant, "normal"))
     {
-        object.append_child("title").text().set(node->as_string(prop_title));
+        ADD_ITEM_PROP(prop_variant, "variant")
     }
+    ADD_ITEM_PROP(prop_title, "title")
+
     if (node->hasValue(prop_center))
     {
         if (node->as_string(prop_center) == "wxVERTICAL" || node->as_string(prop_center) == "wxHORIZONTAL" ||
@@ -421,7 +538,7 @@ void FrameFormGenerator::RequiredHandlers(Node* node, std::set<std::string>& han
 }
 
 bool FrameFormGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                     int /* language */)
+                                     GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/frame.h>", set_src, set_hdr);
 
@@ -454,4 +571,71 @@ bool FrameFormGenerator::AllowPropertyChange(wxPropertyGridEvent* event, NodePro
     }
 
     return true;
+}
+
+// defined in code.cpp
+extern constexpr auto set_perl_constants = frozen::make_set<std::string_view>;
+
+bool FrameFormGenerator::GetImports(Node* node, std::set<std::string>& set_imports, GenLang language)
+{
+    if (language == GEN_LANG_PERL)
+    {
+        tt_string constants;
+
+        auto set_constants = [&]()
+        {
+            if (constants.size())
+            {
+                // remove the leading space
+                constants.erase(0, 1);
+                constants.insert(0, "use Wx qw(");
+                constants += ");";
+                set_imports.emplace(constants);
+                constants.clear();
+            }
+        };
+
+        if (node->as_string(prop_style) == "wxDEFAULT_FRAME_STYLE")
+            constants += " wxDEFAULT_FRAME_STYLE";
+        if (node->as_string(prop_style).contains("wxCAPTION"))
+            constants += " wxCAPTION";
+        if (node->as_string(prop_style).contains("wxCLOSE_BOX"))
+            constants += " wxCLOSE_BOX";
+        if (node->as_string(prop_style).contains("wxFRAME_TOOL_WINDOW"))
+            constants += " wxFRAME_TOOL_WINDOW";
+        if (node->as_string(prop_style).contains("wxFRAME_NO_TASKBAR"))
+            constants += " wxFRAME_NO_TASKBAR";
+        if (node->as_string(prop_style).contains("wxFRAME_FLOAT_ON_PARENT"))
+            constants += " wxFRAME_FLOAT_ON_PARENT";
+        if (node->as_string(prop_style).contains("wxFRAME_SHAPED"))
+            constants += " wxFRAME_SHAPED";
+        if (node->as_string(prop_style).contains("wxICONIZE"))
+            constants += " wxICONIZE";
+        if (node->as_string(prop_style).contains("wxMINIMIZE_BOX"))
+            constants += " wxMINIMIZE_BOX";
+        if (node->as_string(prop_style).contains("wxMAXIMIZE_BOX"))
+            constants += " wxMAXIMIZE_BOX";
+        if (node->as_string(prop_style).contains("wxRESIZE_BORDER"))
+            constants += " wxRESIZE_BORDER";
+        if (node->as_string(prop_style).contains("wxSYSTEM_MENU"))
+            constants += " wxSYSTEM_MENU";
+        if (node->as_string(prop_style).contains("wxCLIP_CHILDREN"))
+            constants += " wxCLIP_CHILDREN";
+        if (node->as_string(prop_style).contains("wxSTAY_ON_TOP"))
+            constants += " wxSTAY_ON_TOP";
+        if (node->as_string(prop_extra_style).contains("wxFRAME_EX_CONTEXTHELP"))
+            constants += " wxFRAME_EX_CONTEXTHELP";
+        if (node->as_string(prop_extra_style).contains("wxFRAME_EX_METAL"))
+            constants += " wxFRAME_EX_METAL";
+        set_constants();
+
+        if (node->as_string(prop_center) != "no")
+            constants += " wxBOTH wxHORIZONTAL wxVERTICAL";
+        set_constants();
+
+        set_imports.emplace("use base qw(Wx::Frame);");
+        return true;
+    }
+
+    return false;
 }

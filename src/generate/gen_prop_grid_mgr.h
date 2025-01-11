@@ -17,9 +17,9 @@ public:
     bool ConstructionCode(Code&) override;
 
     bool GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                     int /* language */) override;
+                     GenLang /* language */) override;
 
-    bool GetRubyImports(Node*, std::set<std::string>& /* set_imports */) override;
+    bool GetImports(Node*, std::set<std::string>& /* set_imports */, GenLang language) override;
 
 protected:
     void OnPageChanged(wxPropertyGridEvent& event);

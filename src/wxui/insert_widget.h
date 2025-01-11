@@ -11,6 +11,7 @@
 
 #include <wx/bitmap.h>
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -30,7 +31,6 @@ public:
     {
         Create(parent, id, title, pos, size, style, name);
     }
-
     bool Create(wxWindow *parent, wxWindowID id = wxID_ANY, const wxString& title = "Insert Widget", const wxPoint& pos =
         wxDefaultPosition, const wxSize& size = wxDefaultSize,
         long style = wxDEFAULT_DIALOG_STYLE, const wxString &name = wxDialogNameStr);
@@ -41,6 +41,7 @@ protected:
 
     // Event handlers
 
+    void OnChangeLimit(wxCommandEvent& event);
     void OnInit(wxInitDialogEvent& event);
     void OnKeyDown(wxKeyEvent& event);
     void OnListBoxDblClick(wxCommandEvent& event);
@@ -51,6 +52,7 @@ private:
 
     // Class member variables
 
+    wxCheckBox* m_limit_to_children;
     wxListBox* m_listbox;
     wxStdDialogButtonSizer* m_stdBtn;
     wxTextCtrl* m_text_name;

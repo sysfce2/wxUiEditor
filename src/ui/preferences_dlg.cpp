@@ -15,6 +15,8 @@
 #include <wx/valgen.h>
 #include <wx/valtext.h>
 
+#include "../wxui/ui_images.h"
+
 #include "preferences_dlg.h"
 
 bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title,
@@ -24,8 +26,21 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
         return false;
 
     auto* dlg_sizer = new wxBoxSizer(wxVERTICAL);
+    dlg_sizer->SetMinSize(750, -1);
 
     auto* notebook = new wxNotebook(this, wxID_ANY);
+    {
+        wxWithImages::Images bundle_list;
+        bundle_list.push_back(wxue_img::bundle_cpp_logo_svg(24, 24));
+        bundle_list.push_back(wxue_img::bundle_python_logo_only_svg(24, 24));
+        bundle_list.push_back(wxue_img::bundle_ruby_logo_svg(24, 24));
+        bundle_list.push_back(wxue_img::bundle_haskell_logo_svg(24, 24));
+        bundle_list.push_back(wxue_img::bundle_lua_logo_svg(24, 24));
+        bundle_list.push_back(wxue_img::bundle_perl_logo_svg(24, 24));
+        bundle_list.push_back(wxue_img::bundle_rust_logo_svg(24, 24));
+        bundle_list.push_back(wxue_img::bundle_wxlogo_svg(24, 24));
+        notebook->SetImages(bundle_list);
+    }
     dlg_sizer->Add(notebook, wxSizerFlags(1).Expand().Border(wxALL));
 
     auto* page_general = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -58,6 +73,7 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     box_sizer3->Add(m_check_load_last, wxSizerFlags(1).Border(wxALL));
 
     m_check_fullpath = new wxCheckBox(page_general, wxID_ANY, "Full project path in title bar");
+    m_check_fullpath->SetValue(true);
     box_sizer3->Add(m_check_fullpath, wxSizerFlags(1).Border(wxALL));
 
     auto* checkBox_wakatime = new wxCheckBox(page_general, wxID_ANY, "Enable WakaTime");
@@ -74,6 +90,11 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     m_check_svg_bitmaps = new wxCheckBox(page_general, wxID_ANY, "Default SVG bitmaps");
     m_check_svg_bitmaps->SetToolTip("If checked, new bitmaps will default to SVG files");
     box_sizer4->Add(m_check_svg_bitmaps, wxSizerFlags().Border(wxALL));
+
+    m_check_prefer_comments = new wxCheckBox(page_general, wxID_ANY, "Generate explanatory comments");
+    m_check_prefer_comments->SetValue(true);
+    m_check_prefer_comments->SetToolTip("When checked, explanatory comments will sometimes be added to the generated code.");
+    box_sizer4->Add(m_check_prefer_comments, wxSizerFlags().Border(wxALL));
 
     box_sizer2->Add(box_sizer4, wxSizerFlags().Border(wxALL));
 
@@ -95,6 +116,7 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     m_choice_icon_size->Append("28");
     m_choice_icon_size->Append("30");
     m_choice_icon_size->Append("32");
+    m_choice_icon_size->SetStringSelection("18");
     box_sizer8->Add(m_choice_icon_size, wxSizerFlags().Border(wxALL));
 
     m_general_page_sizer->Add(box_sizer8, wxSizerFlags().Border(wxALL));
@@ -109,7 +131,7 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     page_general->SetSizerAndFit(m_general_page_sizer);
 
     auto* page_cpp = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    notebook->AddPage(page_cpp, "C++");
+    notebook->AddPage(page_cpp, "C++", false, 0);
 
     auto* page_sizer_2 = new wxBoxSizer(wxVERTICAL);
 
@@ -135,12 +157,12 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     auto* box_sizer_5 = new wxBoxSizer(wxHORIZONTAL);
 
     auto* static_text = new wxStaticText(page_cpp, wxID_ANY, "wxWidgets version");
-    box_sizer_5->Add(static_text, wxSizerFlags().Border(wxALL));
+    box_sizer_5->Add(static_text, wxSizerFlags().Center().Border(wxALL));
 
     m_choice_cpp_version = new wxChoice(page_cpp, wxID_ANY);
-    m_choice_cpp_version->Append("3.1");
-    m_choice_cpp_version->Append("3.2");
-    m_choice_cpp_version->Append("3.3");
+    m_choice_cpp_version->Append("3.1.0");
+    m_choice_cpp_version->Append("3.2.0");
+    m_choice_cpp_version->Append("3.3.0");
     m_choice_cpp_version->SetStringSelection("3.2");
     m_choice_cpp_version->SetToolTip("Code requiring a newer version then this will be placed in a conditional block.");
     box_sizer_5->Add(m_choice_cpp_version, wxSizerFlags().Border(wxALL));
@@ -152,7 +174,7 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     auto* staticText_7 = new wxStaticText(page_cpp, wxID_ANY, "wxWidgets &keyword color:");
     grid_sizer3->Add(staticText_7, wxSizerFlags().CenterVertical().Border(wxALL));
 
-    m_colour_cpp = new wxColourPickerCtrl(page_cpp, wxID_ANY, wxColour("#FF00FF"));
+    m_colour_cpp = new wxColourPickerCtrl(page_cpp, wxID_ANY, wxColour("#C76605"));
     grid_sizer3->Add(m_colour_cpp, wxSizerFlags().Border(wxALL));
 
     auto* staticText9 = new wxStaticText(page_cpp, wxID_ANY, "&C++ keyword color:");
@@ -183,7 +205,7 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     page_cpp->SetSizerAndFit(page_sizer_2);
 
     auto* page_python = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    notebook->AddPage(page_python, "Python");
+    notebook->AddPage(page_python, "Python", false, 1);
 
     auto* page_sizer_3 = new wxBoxSizer(wxVERTICAL);
 
@@ -204,11 +226,11 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     auto* box_sizer7 = new wxBoxSizer(wxHORIZONTAL);
 
     auto* static_text3 = new wxStaticText(page_python, wxID_ANY, "wxPython version");
-    box_sizer7->Add(static_text3, wxSizerFlags().Border(wxALL));
+    box_sizer7->Add(static_text3, wxSizerFlags().Center().Border(wxALL));
 
     m_choice_python_version = new wxChoice(page_python, wxID_ANY);
-    m_choice_python_version->Append("4.2");
-    m_choice_python_version->SetStringSelection("4.2");
+    m_choice_python_version->Append("4.2.0");
+    m_choice_python_version->SetStringSelection("4.2.0");
     m_choice_python_version->SetToolTip("Code requiring a newer version then this will be placed in a conditional block.");
     box_sizer7->Add(m_choice_python_version, wxSizerFlags().Border(wxALL));
 
@@ -250,7 +272,7 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     page_python->SetSizerAndFit(page_sizer_3);
 
     auto* page_ruby = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    notebook->AddPage(page_ruby, "Ruby");
+    notebook->AddPage(page_ruby, "Ruby", false, 2);
 
     auto* page_sizer_4 = new wxBoxSizer(wxVERTICAL);
 
@@ -271,11 +293,13 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     auto* box_sizer6 = new wxBoxSizer(wxHORIZONTAL);
 
     auto* static_text2 = new wxStaticText(page_ruby, wxID_ANY, "wxRuby version");
-    box_sizer6->Add(static_text2, wxSizerFlags().Border(wxALL));
+    box_sizer6->Add(static_text2, wxSizerFlags().Center().Border(wxALL));
 
     m_choice_ruby_version = new wxChoice(page_ruby, wxID_ANY);
-    m_choice_ruby_version->Append("0.9");
-    m_choice_ruby_version->SetStringSelection("0.9");
+    m_choice_ruby_version->Append("1.0.0");
+    m_choice_ruby_version->Append("1.2.0");
+    m_choice_ruby_version->Append("1.2.1");
+    m_choice_ruby_version->SetStringSelection("1.2.1");
     m_choice_ruby_version->SetToolTip("Code requiring a newer version then this will be placed in a conditional block.");
     box_sizer6->Add(m_choice_ruby_version, wxSizerFlags().Border(wxALL));
 
@@ -310,8 +334,254 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     page_sizer_4->Add(grid_sizer4, wxSizerFlags().Border(wxALL));
     page_ruby->SetSizerAndFit(page_sizer_4);
 
+    auto* page_haskell = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+    notebook->AddPage(page_haskell, "Haskell", false, 3);
+
+    auto* page_sizer3 = new wxBoxSizer(wxVERTICAL);
+
+    auto* box_sizer9 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* staticText14 = new wxStaticText(page_haskell, wxID_ANY, "&Line Length");
+    staticText14->Wrap(200);
+    box_sizer9->Add(staticText14, wxSizerFlags().Center().Border(wxALL));
+
+    auto* text_haskell_line_length = new wxTextCtrl(page_haskell, wxID_ANY, "80");
+    text_haskell_line_length->SetValidator(wxTextValidator(wxFILTER_DIGITS, &m_haskell_line_length));
+    text_haskell_line_length->SetToolTip(
+    "Most generated code will not exceed this length. This will be the initial value when a new project is created.");
+    box_sizer9->Add(text_haskell_line_length, wxSizerFlags().Border(wxALL));
+
+    page_sizer3->Add(box_sizer9, wxSizerFlags().Border(wxALL));
+
+    auto* box_sizer10 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* static_text5 = new wxStaticText(page_haskell, wxID_ANY, "wxHaskell version");
+    box_sizer10->Add(static_text5, wxSizerFlags().Center().Border(wxALL));
+
+    m_choice_haskell_version = new wxChoice(page_haskell, wxID_ANY);
+    m_choice_haskell_version->Append("1-0-0");
+    m_choice_haskell_version->SetStringSelection("1-0-0");
+    m_choice_haskell_version->SetToolTip("Code requiring a newer version then this will be placed in a conditional block.");
+    box_sizer10->Add(m_choice_haskell_version, wxSizerFlags().Border(wxALL));
+
+    page_sizer3->Add(box_sizer10, wxSizerFlags().Border(wxALL));
+
+    auto* grid_sizer5 = new wxGridSizer(2, 0, 0);
+
+    auto* staticText18 = new wxStaticText(page_haskell, wxID_ANY, "wxWidgets &keyword color:");
+    grid_sizer5->Add(staticText18, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_haskell = new wxColourPickerCtrl(page_haskell, wxID_ANY, wxColour("#FF00FF"));
+    grid_sizer5->Add(m_colour_haskell, wxSizerFlags().Border(wxALL));
+
+    auto* staticText19 = new wxStaticText(page_haskell, wxID_ANY, "&Comment color:");
+    grid_sizer5->Add(staticText19, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_haskell_comment = new wxColourPickerCtrl(page_haskell, wxID_ANY, wxColour("#008000"));
+    grid_sizer5->Add(m_colour_haskell_comment, wxSizerFlags().Border(wxALL));
+
+    auto* staticText20 = new wxStaticText(page_haskell, wxID_ANY, "&Number color:");
+    grid_sizer5->Add(staticText20, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_haskell_number = new wxColourPickerCtrl(page_haskell, wxID_ANY, wxColour("#FF0000"));
+    grid_sizer5->Add(m_colour_haskell_number, wxSizerFlags().Border(wxALL));
+
+    auto* staticText21 = new wxStaticText(page_haskell, wxID_ANY, "&String color:");
+    grid_sizer5->Add(staticText21, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_haskell_string = new wxColourPickerCtrl(page_haskell, wxID_ANY, wxColour("#008000"));
+    grid_sizer5->Add(m_colour_haskell_string, wxSizerFlags().Border(wxALL));
+
+    page_sizer3->Add(grid_sizer5, wxSizerFlags().Border(wxALL));
+    page_haskell->SetSizerAndFit(page_sizer3);
+
+    auto* page_lua = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+    notebook->AddPage(page_lua, "Lua", false, 4);
+
+    auto* page_sizer4 = new wxBoxSizer(wxVERTICAL);
+
+    auto* box_sizer11 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* staticText22 = new wxStaticText(page_lua, wxID_ANY, "&Line Length");
+    staticText22->Wrap(200);
+    box_sizer11->Add(staticText22, wxSizerFlags().Center().Border(wxALL));
+
+    auto* text_lua_line_length = new wxTextCtrl(page_lua, wxID_ANY, "100");
+    text_lua_line_length->SetValidator(wxTextValidator(wxFILTER_DIGITS, &m_lua_line_length));
+    text_lua_line_length->SetToolTip(
+    "Most generated code will not exceed this length. This will be the initial value when a new project is created.");
+    box_sizer11->Add(text_lua_line_length, wxSizerFlags().Border(wxALL));
+
+    page_sizer4->Add(box_sizer11, wxSizerFlags().Border(wxALL));
+
+    auto* box_sizer12 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* static_text6 = new wxStaticText(page_lua, wxID_ANY, "wxLua version");
+    box_sizer12->Add(static_text6, wxSizerFlags().Center().Border(wxALL));
+
+    m_choice_ruby_version3 = new wxChoice(page_lua, wxID_ANY);
+    m_choice_ruby_version3->Append("3.0.0");
+    m_choice_ruby_version3->Append("3.2.0");
+    m_choice_ruby_version3->SetStringSelection("3.2.0");
+    m_choice_ruby_version3->SetToolTip("Code requiring a newer version then this will be placed in a conditional block.");
+    box_sizer12->Add(m_choice_ruby_version3, wxSizerFlags().Border(wxALL));
+
+    page_sizer4->Add(box_sizer12, wxSizerFlags().Border(wxALL));
+
+    auto* grid_sizer6 = new wxGridSizer(2, 0, 0);
+
+    auto* staticText23 = new wxStaticText(page_lua, wxID_ANY, "wxWidgets &keyword color:");
+    grid_sizer6->Add(staticText23, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_lua = new wxColourPickerCtrl(page_lua, wxID_ANY, wxColour("#FF00FF"));
+    grid_sizer6->Add(m_colour_lua, wxSizerFlags().Border(wxALL));
+
+    auto* staticText24 = new wxStaticText(page_lua, wxID_ANY, "&Comment color:");
+    grid_sizer6->Add(staticText24, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_lua_comment = new wxColourPickerCtrl(page_lua, wxID_ANY, wxColour("#008000"));
+    grid_sizer6->Add(m_colour_lua_comment, wxSizerFlags().Border(wxALL));
+
+    auto* staticText25 = new wxStaticText(page_lua, wxID_ANY, "&Number color:");
+    grid_sizer6->Add(staticText25, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_lua_number = new wxColourPickerCtrl(page_lua, wxID_ANY, wxColour("#FF0000"));
+    grid_sizer6->Add(m_colour_lua_number, wxSizerFlags().Border(wxALL));
+
+    auto* staticText26 = new wxStaticText(page_lua, wxID_ANY, "&String color:");
+    grid_sizer6->Add(staticText26, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_lua_string = new wxColourPickerCtrl(page_lua, wxID_ANY, wxColour("#008000"));
+    grid_sizer6->Add(m_colour_lua_string, wxSizerFlags().Border(wxALL));
+
+    page_sizer4->Add(grid_sizer6, wxSizerFlags().Border(wxALL));
+    page_lua->SetSizerAndFit(page_sizer4);
+
+    auto* page_perl = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+    notebook->AddPage(page_perl, "Perl", false, 5);
+
+    auto* page_sizer5 = new wxBoxSizer(wxVERTICAL);
+
+    auto* box_sizer13 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* staticText27 = new wxStaticText(page_perl, wxID_ANY, "&Line Length");
+    staticText27->Wrap(200);
+    box_sizer13->Add(staticText27, wxSizerFlags().Center().Border(wxALL));
+
+    auto* text_perl_line_length = new wxTextCtrl(page_perl, wxID_ANY, "80");
+    text_perl_line_length->SetValidator(wxTextValidator(wxFILTER_DIGITS, &m_perl_line_length));
+    text_perl_line_length->SetToolTip(
+    "Most generated code will not exceed this length. This will be the initial value when a new project is created.");
+    box_sizer13->Add(text_perl_line_length, wxSizerFlags().Border(wxALL));
+
+    page_sizer5->Add(box_sizer13, wxSizerFlags().Border(wxALL));
+
+    auto* box_sizer14 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* static_text7 = new wxStaticText(page_perl, wxID_ANY, "wxPerl version");
+    box_sizer14->Add(static_text7, wxSizerFlags().Center().Border(wxALL));
+
+    m_choice_perl_version = new wxChoice(page_perl, wxID_ANY);
+    m_choice_perl_version->Append("0.91");
+    m_choice_perl_version->Append("3.2.0");
+    m_choice_perl_version->SetStringSelection("3.2.0");
+    m_choice_perl_version->SetToolTip("Code requiring a newer version then this will be placed in a conditional block.");
+    box_sizer14->Add(m_choice_perl_version, wxSizerFlags().Border(wxALL));
+
+    page_sizer5->Add(box_sizer14, wxSizerFlags().Border(wxALL));
+
+    auto* grid_sizer7 = new wxGridSizer(2, 0, 0);
+
+    auto* staticText28 = new wxStaticText(page_perl, wxID_ANY, "wxWidgets &keyword color:");
+    grid_sizer7->Add(staticText28, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_perl = new wxColourPickerCtrl(page_perl, wxID_ANY, wxColour("#FF00FF"));
+    grid_sizer7->Add(m_colour_perl, wxSizerFlags().Border(wxALL));
+
+    auto* staticText29 = new wxStaticText(page_perl, wxID_ANY, "&Comment color:");
+    grid_sizer7->Add(staticText29, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_perl_comment = new wxColourPickerCtrl(page_perl, wxID_ANY, wxColour("#008000"));
+    grid_sizer7->Add(m_colour_perl_comment, wxSizerFlags().Border(wxALL));
+
+    auto* staticText30 = new wxStaticText(page_perl, wxID_ANY, "&Number color:");
+    grid_sizer7->Add(staticText30, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_perl_number = new wxColourPickerCtrl(page_perl, wxID_ANY, wxColour("#FF0000"));
+    grid_sizer7->Add(m_colour_perl_number, wxSizerFlags().Border(wxALL));
+
+    auto* staticText31 = new wxStaticText(page_perl, wxID_ANY, "&String color:");
+    grid_sizer7->Add(staticText31, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_perl_string = new wxColourPickerCtrl(page_perl, wxID_ANY, wxColour("#008000"));
+    grid_sizer7->Add(m_colour_perl_string, wxSizerFlags().Border(wxALL));
+
+    page_sizer5->Add(grid_sizer7, wxSizerFlags().Border(wxALL));
+    page_perl->SetSizerAndFit(page_sizer5);
+
+    auto* page_php = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+    notebook->AddPage(page_php, "Rust", false, 6);
+
+    auto* page_sizer6 = new wxBoxSizer(wxVERTICAL);
+
+    auto* box_sizer15 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* staticText32 = new wxStaticText(page_php, wxID_ANY, "&Line Length");
+    staticText32->Wrap(200);
+    box_sizer15->Add(staticText32, wxSizerFlags().Center().Border(wxALL));
+
+    auto* text_php_line_length = new wxTextCtrl(page_php, wxID_ANY, "80");
+    text_php_line_length->SetValidator(wxTextValidator(wxFILTER_DIGITS, &m_perl_line_length2));
+    text_php_line_length->SetToolTip(
+    "Most generated code will not exceed this length. This will be the initial value when a new project is created.");
+    box_sizer15->Add(text_php_line_length, wxSizerFlags().Border(wxALL));
+
+    page_sizer6->Add(box_sizer15, wxSizerFlags().Border(wxALL));
+
+    auto* box_sizer16 = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* static_text8 = new wxStaticText(page_php, wxID_ANY, "wxPHP version");
+    box_sizer16->Add(static_text8, wxSizerFlags().Center().Border(wxALL));
+
+    m_choice_php_version = new wxChoice(page_php, wxID_ANY);
+    m_choice_php_version->Append("3.0.51");
+    m_choice_php_version->SetStringSelection("3.0.51");
+    m_choice_php_version->SetToolTip("Code requiring a newer version then this will be placed in a conditional block.");
+    box_sizer16->Add(m_choice_php_version, wxSizerFlags().Border(wxALL));
+
+    page_sizer6->Add(box_sizer16, wxSizerFlags().Border(wxALL));
+
+    auto* grid_sizer8 = new wxGridSizer(2, 0, 0);
+
+    auto* staticText33 = new wxStaticText(page_php, wxID_ANY, "wxWidgets &keyword color:");
+    grid_sizer8->Add(staticText33, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_php = new wxColourPickerCtrl(page_php, wxID_ANY, wxColour("#FF00FF"));
+    grid_sizer8->Add(m_colour_php, wxSizerFlags().Border(wxALL));
+
+    auto* staticText34 = new wxStaticText(page_php, wxID_ANY, "&Comment color:");
+    grid_sizer8->Add(staticText34, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_php_comment = new wxColourPickerCtrl(page_php, wxID_ANY, wxColour("#008000"));
+    grid_sizer8->Add(m_colour_php_comment, wxSizerFlags().Border(wxALL));
+
+    auto* staticText35 = new wxStaticText(page_php, wxID_ANY, "&Number color:");
+    grid_sizer8->Add(staticText35, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_php_number = new wxColourPickerCtrl(page_php, wxID_ANY, wxColour("#FF0000"));
+    grid_sizer8->Add(m_colour_php_number, wxSizerFlags().Border(wxALL));
+
+    auto* staticText36 = new wxStaticText(page_php, wxID_ANY, "&String color:");
+    grid_sizer8->Add(staticText36, wxSizerFlags().CenterVertical().Border(wxALL));
+
+    m_colour_php_string = new wxColourPickerCtrl(page_php, wxID_ANY, wxColour("#008000"));
+    grid_sizer8->Add(m_colour_php_string, wxSizerFlags().Border(wxALL));
+
+    page_sizer6->Add(grid_sizer8, wxSizerFlags().Border(wxALL));
+    page_php->SetSizerAndFit(page_sizer6);
+
     auto* page_xrc = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    notebook->AddPage(page_xrc, "XRC");
+    notebook->AddPage(page_xrc, "XRC", false, 7);
 
     auto* page_sizer2 = new wxBoxSizer(wxVERTICAL);
 
@@ -345,7 +615,24 @@ bool PreferencesDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers
@@ -386,6 +673,7 @@ void PreferencesDlg::OnInit(wxInitDialogEvent& event)
     m_check_dark_mode->SetValue(UserPrefs.is_DarkMode());
     m_check_high_contrast->SetValue(UserPrefs.is_HighContrast());
     m_check_fullpath->SetValue(UserPrefs.is_FullPathTitle());
+    m_check_prefer_comments->SetValue(UserPrefs.is_AddComments());
     m_check_svg_bitmaps->SetValue(UserPrefs.is_SvgImages());
 
     m_check_cpp_snake_case->SetValue(UserPrefs.is_CppSnakeCase());
@@ -494,6 +782,7 @@ void PreferencesDlg::OnOK(wxCommandEvent& WXUNUSED(event))
         (m_check_dark_mode->GetValue() ? Prefs::PENDING_DARK_MODE_ON : Prefs::PENDING_DARK_MODE_OFF));
     UserPrefs.set_HighContrast(m_check_high_contrast->GetValue());
     UserPrefs.set_FullPathTitle(m_check_fullpath->GetValue());
+    UserPrefs.set_AddComments(m_check_prefer_comments->GetValue());
     UserPrefs.set_SvgImages(m_check_svg_bitmaps->GetValue());
 
     UserPrefs.set_CppSnakeCase(m_check_cpp_snake_case->GetValue());
@@ -501,118 +790,122 @@ void PreferencesDlg::OnOK(wxCommandEvent& WXUNUSED(event))
     UserPrefs.set_RightPropGrid(m_check_right_propgrid->GetValue());
     UserPrefs.set_WakaTimeEnabled(m_isWakaTimeEnabled);
 
-    {  // C++ colors
+    if (auto panel = wxGetFrame().GetCppPanel(); panel)
+    {
         if (UserPrefs.get_CppColour() != m_colour_cpp->GetColour())
         {
             UserPrefs.set_CppColour(m_colour_cpp->GetColour());
-            wxGetFrame().GetCppPanel()->SetColor(wxSTC_C_WORD2, m_colour_cpp->GetColour());
+            panel->SetColor(wxSTC_C_WORD, m_colour_cpp->GetColour());
         }
 
         if (UserPrefs.get_CppCommentColour() != m_colour_cpp_comment->GetColour())
         {
             UserPrefs.set_CppCommentColour(m_colour_cpp_comment->GetColour());
-            wxGetFrame().GetCppPanel()->SetColor(wxSTC_C_COMMENTLINE, m_colour_cpp_comment->GetColour());
+            panel->SetColor(wxSTC_C_COMMENTLINE, m_colour_cpp_comment->GetColour());
         }
 
         if (UserPrefs.get_CppKeywordColour() != m_colour_cpp_keyword->GetColour())
         {
             UserPrefs.set_CppKeywordColour(m_colour_cpp_keyword->GetColour());
-            wxGetFrame().GetCppPanel()->SetColor(wxSTC_C_WORD, m_colour_cpp_keyword->GetColour());
+            panel->SetColor(wxSTC_C_WORD2, m_colour_cpp_keyword->GetColour());
         }
 
         if (UserPrefs.get_CppNumberColour() != m_colour_cpp_number->GetColour())
         {
             UserPrefs.set_CppNumberColour(m_colour_cpp_number->GetColour());
-            wxGetFrame().GetCppPanel()->SetColor(wxSTC_C_NUMBER, m_colour_cpp_number->GetColour());
+            panel->SetColor(wxSTC_C_NUMBER, m_colour_cpp_number->GetColour());
         }
 
         if (UserPrefs.get_CppStringColour() != m_colour_cpp_string->GetColour())
         {
             UserPrefs.set_CppStringColour(m_colour_cpp_string->GetColour());
-            wxGetFrame().GetCppPanel()->SetColor(wxSTC_C_STRING, m_colour_cpp_string->GetColour());
+            panel->SetColor(wxSTC_C_STRING, m_colour_cpp_string->GetColour());
         }
     }
 
-    {  // Python colors
+    if (auto panel = wxGetFrame().GetPythonPanel(); panel)
+    {
         if (UserPrefs.get_PythonColour() != m_colour_python->GetColour())
         {
             UserPrefs.set_PythonColour(m_colour_python->GetColour());
-            wxGetFrame().GetPythonPanel()->SetColor(wxSTC_P_WORD2, m_colour_python->GetColour());
-        }
-
-        if (UserPrefs.get_PythonCommentColour() != m_colour_python_comment->GetColour())
-        {
-            UserPrefs.set_PythonCommentColour(m_colour_python_comment->GetColour());
-            wxGetFrame().GetPythonPanel()->SetColor(wxSTC_P_COMMENTLINE, m_colour_python_comment->GetColour());
+            panel->SetColor(wxSTC_P_WORD, m_colour_python->GetColour());
         }
 
         if (UserPrefs.get_PythonKeywordColour() != m_colour_python_keyword->GetColour())
         {
             UserPrefs.set_PythonKeywordColour(m_colour_python_keyword->GetColour());
-            wxGetFrame().GetPythonPanel()->SetColor(wxSTC_P_WORD, m_colour_python_keyword->GetColour());
+            panel->SetColor(wxSTC_P_WORD2, m_colour_python_keyword->GetColour());
+        }
+
+        if (UserPrefs.get_PythonCommentColour() != m_colour_python_comment->GetColour())
+        {
+            UserPrefs.set_PythonCommentColour(m_colour_python_comment->GetColour());
+            panel->SetColor(wxSTC_P_COMMENTLINE, m_colour_python_comment->GetColour());
         }
 
         if (UserPrefs.get_PythonNumberColour() != m_colour_python_number->GetColour())
         {
             UserPrefs.set_PythonNumberColour(m_colour_python_number->GetColour());
-            wxGetFrame().GetPythonPanel()->SetColor(wxSTC_P_NUMBER, m_colour_python_number->GetColour());
+            panel->SetColor(wxSTC_P_NUMBER, m_colour_python_number->GetColour());
         }
 
         if (UserPrefs.get_PythonStringColour() != m_colour_python_string->GetColour())
         {
             UserPrefs.set_PythonStringColour(m_colour_python_string->GetColour());
-            wxGetFrame().GetPythonPanel()->SetColor(wxSTC_P_STRING, m_colour_python_string->GetColour());
+            panel->SetColor(wxSTC_P_STRING, m_colour_python_string->GetColour());
         }
     }
 
-    {  // Ruby colors
+    if (auto panel = wxGetFrame().GetRubyPanel(); panel)
+    {
         if (UserPrefs.get_RubyColour() != m_colour_ruby->GetColour())
         {
             UserPrefs.set_RubyColour(m_colour_ruby->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_WORD, m_colour_ruby->GetColour());
+            panel->SetColor(wxSTC_RB_WORD, m_colour_ruby->GetColour());
         }
 
         if (UserPrefs.get_RubyCommentColour() != m_colour_ruby_comment->GetColour())
         {
             UserPrefs.set_RubyCommentColour(m_colour_ruby_comment->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_COMMENTLINE, m_colour_ruby_comment->GetColour());
+            panel->SetColor(wxSTC_RB_COMMENTLINE, m_colour_ruby_comment->GetColour());
         }
 
         if (UserPrefs.get_RubyNumberColour() != m_colour_ruby_number->GetColour())
         {
             UserPrefs.set_RubyNumberColour(m_colour_ruby_number->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_NUMBER, m_colour_ruby_number->GetColour());
+            panel->SetColor(wxSTC_RB_NUMBER, m_colour_ruby_number->GetColour());
         }
 
         if (UserPrefs.get_RubyStringColour() != m_colour_ruby_string->GetColour())
         {
             UserPrefs.set_RubyStringColour(m_colour_ruby_string->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_STRING, m_colour_ruby_string->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_STRING_Q, m_colour_ruby_string->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_STRING_QQ, m_colour_ruby_string->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_STRING_QX, m_colour_ruby_string->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_STRING_QR, m_colour_ruby_string->GetColour());
-            wxGetFrame().GetRubyPanel()->SetColor(wxSTC_RB_STRING_QW, m_colour_ruby_string->GetColour());
+            panel->SetColor(wxSTC_RB_STRING, m_colour_ruby_string->GetColour());
+            panel->SetColor(wxSTC_RB_STRING_Q, m_colour_ruby_string->GetColour());
+            panel->SetColor(wxSTC_RB_STRING_QQ, m_colour_ruby_string->GetColour());
+            panel->SetColor(wxSTC_RB_STRING_QX, m_colour_ruby_string->GetColour());
+            panel->SetColor(wxSTC_RB_STRING_QR, m_colour_ruby_string->GetColour());
+            panel->SetColor(wxSTC_RB_STRING_QW, m_colour_ruby_string->GetColour());
         }
     }
 
-    {  // XRC colors
+    if (auto panel = wxGetFrame().GetXrcPanel(); panel)
+    {
         if (UserPrefs.get_XrcAttributeColour() != m_colour_xrc_attribute->GetColour())
         {
             UserPrefs.set_XrcAttributeColour(m_colour_xrc_attribute->GetColour());
-            wxGetFrame().GetXrcPanel()->SetColor(wxSTC_H_ATTRIBUTE, m_colour_xrc_attribute->GetColour());
+            panel->SetColor(wxSTC_H_ATTRIBUTE, m_colour_xrc_attribute->GetColour());
         }
 
         if (UserPrefs.get_XrcDblStringColour() != m_colour_xrc_string->GetColour())
         {
             UserPrefs.set_XrcDblStringColour(m_colour_xrc_string->GetColour());
-            wxGetFrame().GetXrcPanel()->SetColor(wxSTC_H_DOUBLESTRING, m_colour_xrc_string->GetColour());
+            panel->SetColor(wxSTC_H_DOUBLESTRING, m_colour_xrc_string->GetColour());
         }
 
         if (UserPrefs.get_XrcTagColour() != m_colour_xrc_tag->GetColour())
         {
             UserPrefs.set_XrcTagColour(m_colour_xrc_tag->GetColour());
-            wxGetFrame().GetXrcPanel()->SetColor(wxSTC_H_TAG, m_colour_xrc_tag->GetColour());
+            panel->SetColor(wxSTC_H_TAG, m_colour_xrc_tag->GetColour());
         }
     }
 

@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   wxBoxSizer generator
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -55,11 +55,19 @@ bool BoxSizerGenerator::AfterChildrenCode(Code& code)
 {
     if (code.IsTrue(prop_hide_children))
     {
-        code.NodeName().Function("ShowItems(").False().EndFunction();
+        if (code.is_perl())
+        {
+            code.AddComment("Perl does not support ShowItems()", true);
+        }
+        else
+        {
+            code.NodeName().Function("ShowItems(").False().EndFunction();
+        }
     }
 
     auto parent = code.m_node->getParent();
-    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm))
+    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm) &&
+        !parent->isGen(gen_wxPopupTransientWindow))
     {
         code.Eol(eol_if_empty);
 
@@ -72,7 +80,7 @@ bool BoxSizerGenerator::AfterChildrenCode(Code& code)
         }
         else
         {
-            if (GetParentName(code.node()) != "this")
+            if (GetParentName(code.node(), code.get_language()) != "this")
             {
                 code.ValidParentName().Function("SetSizerAndFit(");
             }
@@ -91,7 +99,7 @@ bool BoxSizerGenerator::AfterChildrenCode(Code& code)
 }
 
 bool BoxSizerGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/sizer.h>", set_src, set_hdr);
     return true;

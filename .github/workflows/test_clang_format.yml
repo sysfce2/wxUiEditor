@@ -1,28 +1,31 @@
 name: Verify clang-format
 
 on:
-  pull_request:
-    paths-ignore:
-      - src/art_src
-      - src/tests
-      - src/xml
-      - src/import/rapidjson
-      - tests
-      - docs
-      - import_tests
-      - .github
   workflow_dispatch:
 
+# on:
+  # pull_request:
+    # paths-ignore:
+      # - src/art_src
+      # - src/tests
+      # - src/xml
+      # - src/import/rapidjson
+      # - tests
+      # - docs
+      # - import_tests
+      # - .github
+  # workflow_dispatch:
+
 jobs:
-  build:
+  clangFormat:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    - uses: DoozyX/clang-format-lint-action@v0.15
+    - uses: DoozyX/clang-format-lint-action@v0.18
       with:
         source: './src'
         exclude: file
         extensions: 'h,cpp'
-        clangFormatVersion: 15
+        clangFormatVersion: 18
         style: file

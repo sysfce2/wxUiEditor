@@ -98,7 +98,7 @@ bool CustomControl::ConstructionCode(Code& code)
     tt_string parameters(code.view(prop_parameters));
     if (parameters.starts_with('('))
         parameters.erase(0, 1);
-    parameters.Replace("${parent}", code.node()->getParentName(), tt::REPLACE::all);
+    parameters.Replace("${parent}", code.node()->getParentName(code.get_language()), tt::REPLACE::all);
     if (code.is_cpp())
     {
         parameters.Replace("self", "this", tt::REPLACE::all);
@@ -205,7 +205,7 @@ int CustomControl::GenXrcObject(Node* node, pugi::xml_node& object, size_t /* xr
     return result;
 }
 
-bool CustomControl::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr, int language)
+bool CustomControl::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr, GenLang language)
 {
     if (node->hasValue(prop_header) && language == GEN_LANG_CPLUSPLUS)
     {
@@ -240,8 +240,8 @@ bool CustomControl::GetIncludes(Node* node, std::set<std::string>& set_src, std:
     {
         if (node->hasValue(prop_namespace))
         {
-            set_hdr.insert(tt_string("namespace ") << node->as_string(prop_namespace) << "\n{\n\t"
-                                                   << "class " << node->as_string(prop_class_name) << ";\n}");
+            set_hdr.insert(tt_string("namespace ") << node->as_string(prop_namespace) << "\n{\n\t" << "class "
+                                                   << node->as_string(prop_class_name) << ";\n}");
         }
         else
             set_hdr.insert(tt_string() << "class " << node->as_string(prop_class_name) << ';');

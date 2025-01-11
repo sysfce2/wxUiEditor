@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   wxStaticBoxSizer with wxCheckBox generator
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -10,6 +10,7 @@
 #include <wx/statbox.h>
 
 #include "gen_common.h"       // GeneratorLibrary -- Generator classes
+#include "mainapp.h"          // App -- Main application class
 #include "node.h"             // Node class
 #include "project_handler.h"  // ProjectHandler class
 
@@ -23,11 +24,8 @@ wxObject* StaticCheckboxBoxSizerGenerator::CreateMockup(Node* node, wxObject* pa
 
     // When testing, always display the checkbox, otherwise if Python is preferred, then don't
     // display the checkbox since Python doesn't support it.
-#if defined(INTERNAL_TESTING)
-    if (Project.hasValue(prop_code_preference))
-#else
-    if (Project.as_string(prop_code_preference) != "Python")
-#endif
+    if (Project.getCodePreference() != GEN_LANG_PYTHON ||
+        (Project.hasValue(prop_code_preference) && wxGetApp().isTestingMenuEnabled()))
     {
         long style_value = 0;
         if (node->as_string(prop_style).contains("wxALIGN_RIGHT"))
@@ -210,7 +208,8 @@ bool StaticCheckboxBoxSizerGenerator::AfterChildrenCode(Code& code)
     }
 
     auto parent = code.node()->getParent();
-    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm))
+    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm) &&
+        !parent->isGen(gen_wxPopupTransientWindow))
     {
         code.Eol(eol_if_needed);
         if (parent->isGen(gen_wxRibbonPanel))
@@ -219,7 +218,7 @@ bool StaticCheckboxBoxSizerGenerator::AfterChildrenCode(Code& code)
         }
         else
         {
-            if (GetParentName(code.node()) != "this")
+            if (GetParentName(code.node(), code.get_language()) != "this")
             {
                 code.ParentName().Add(".");
                 code.Function("SetSizerAndFit(");
@@ -239,7 +238,7 @@ bool StaticCheckboxBoxSizerGenerator::AfterChildrenCode(Code& code)
 }
 
 bool StaticCheckboxBoxSizerGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                                  int /* language */)
+                                                  GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/sizer.h>", set_src, set_hdr);
     InsertGeneratorInclude(node, "#include <wx/statbox.h>", set_src, set_hdr);
@@ -283,6 +282,7 @@ int StaticCheckboxBoxSizerGenerator::GenXrcObject(Node* node, pugi::xml_node& ob
     auto checkbox = item.append_child("windowlabel");
     auto child = checkbox.append_child("object");
     child.append_attribute("class").set_value("wxCheckBox");
+    child.append_attribute("name").set_value(node->as_string(prop_checkbox_var_name));
     child.append_child("label").text().set(node->as_string(prop_label));
     if (node->as_bool(prop_checked))
         child.append_child("checked").text().set("1");
@@ -295,7 +295,7 @@ void StaticCheckboxBoxSizerGenerator::RequiredHandlers(Node* /* node */, std::se
     handlers.emplace("wxSizerXmlHandler");
 }
 
-std::optional<tt_string> StaticCheckboxBoxSizerGenerator::GetWarning(Node* node, int language)
+std::optional<tt_string> StaticCheckboxBoxSizerGenerator::GetWarning(Node* node, GenLang language)
 {
     switch (language)
     {

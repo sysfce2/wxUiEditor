@@ -83,6 +83,10 @@
 
     //  warning: attribute declaration must precede definition
     #pragma clang diagnostic ignored "-Wignored-attributes"
+
+    // warning: unused typedef 'complete'
+    #pragma clang diagnostic ignored "-Wunused-local-typedef"
+
 #endif
 
 #include <map>
@@ -109,6 +113,19 @@
     #define wxBITMAP_TYPE_SVG static_cast<wxBitmapType>(wxBITMAP_TYPE_ANY - 1)
 #endif
 
+// REVIEW: [Randalphwa - 01-10-2025] Currently, there are no plans to support these languages,
+// however there is some code throughout the codebase that would make it possible to start
+// supporting them at some point in the future.
+#if defined(_DEBUG)
+
+    #define GENERATE_FORTRAN_CODE 0
+    #define GENERATE_HASKELL_CODE 0
+    #define GENERATE_LUA_CODE     0
+#endif  // _DEBUG
+
+// Set this to 1 if you set any of the languages above to 1
+#define GENERATE_NEW_LANG_CODE 0
+
 enum class MoveDirection
 {
     Up = 1,
@@ -117,17 +134,26 @@ enum class MoveDirection
     Right
 };
 
-// This is used to determine the type of file that is being generated. It is created as bit
-// flags so that code like that in ImportFormbuilder can track multiple languages. However the
-// Code class only supports a single language, and passing in multiple languages will cause it
-// to fail to generate any language.
-enum
+// This is used to determine the type of file that is being generated. Note that the Code class only
+// supports a single language at a time, and passing in multiple languages will cause it to fail to
+// generate any language. As bit flags, this can be used by generators to indicate which languages
+// the generator supports.
+enum GenLang
 {
     GEN_LANG_NONE = 0,
     GEN_LANG_CPLUSPLUS = 1,
-    GEN_LANG_PYTHON = 1 << 1,
-    GEN_LANG_RUBY = 1 << 2,
-    GEN_LANG_XRC = 1 << 3,
+    GEN_LANG_PERL = 1 << 2,
+    GEN_LANG_PYTHON = 1 << 3,
+    GEN_LANG_RUBY = 1 << 4,
+    GEN_LANG_RUST = 1 << 5,
+
+    // REVIEW: [Randalphwa - 01-10-2025] These languages are currently not supported
+    GEN_LANG_FORTRAN = 1 << 6,
+    GEN_LANG_HASKELL = 1 << 7,
+    GEN_LANG_LUA = 1 << 8,
+
+    GEN_LANG_XRC = 1 << 9,
+    GEN_LANG_LAST = GEN_LANG_XRC,
 };
 
 // Used to index fields in a bitmap property
@@ -141,7 +167,7 @@ enum PropIndex
 
 namespace xrc
 {
-    enum : size_t
+    enum
     {
         all_unsupported = 0,
         min_size_supported = 1 << 0,
@@ -149,7 +175,7 @@ namespace xrc
         hidden_supported = 1 << 2,
     };
 
-    enum : size_t
+    enum
     {
         no_flags = 0,
         add_comments = 1 << 0,  // add comments about unsupported properties
@@ -164,14 +190,14 @@ using view_map = std::map<tt_string_view, std::string_view, std::less<>>;
 // When chaniging txtVersion, you also need to change the version in wxUiEditor.rc and
 // wxUiEditor.exe.manifest and ../CMakeLists.txt
 
-constexpr const char* txtVersion = "wxUiEditor 1.2.1.0";
-constexpr const char* txtCopyRight = "Copyright (c) 2019-2024 KeyWorks Software";
+constexpr const char* txtVersion = "wxUiEditor 1.2.9.0";
+constexpr const char* txtCopyRight = "Copyright (c) 2019-2025 KeyWorks Software";
 constexpr const char* txtAppname = "wxUiEditor";
 
 // This is the highest project number supported by this build of wxUiEditor. It should be
 // updated after every release, if there are any changes to the project format that might
 // require a newer version.
-constexpr const int curSupportedVer = 20;
+constexpr const int curSupportedVer = 21;
 
 // This is the default minimum required version for all generators. It is the version used by
 // the 1.0.0 release.
@@ -183,6 +209,7 @@ constexpr const int minRequiredVer = 15;
 // 1.1.2 == version 18
 // 1.2.0 == version 19 (1.2.0)
 // 1.2.1 == version 20 (1.2.1)
+// 1.3.0 == version 21 (1.3.0)
 
 // Use when you need to return an empty const tt_string&
 extern tt_string tt_empty_cstr;
@@ -190,40 +217,11 @@ extern tt_string tt_empty_cstr;
 // Character used to separate the fields in a bitmap property
 constexpr const char BMP_PROP_SEPARATOR = ';';
 
+void MSG_INFO(const std::string& msg);
+void MSG_WARNING(const std::string& msg);
+void MSG_ERROR(const std::string& msg);
+
 //////////////////////////////////////// macros ////////////////////////////////////////
-
-#if defined(NDEBUG) && !defined(INTERNAL_TESTING)
-
-    #define MSG_INFO(msg)
-    #define MSG_EVENT(msg)
-    #define MSG_WARNING(msg)
-    #define MSG_ERROR(msg)
-
-#else
-
-// These messages can be individually enabled/disabled in the Preferences dialog (Debug tab).
-// Note that none of these are displayed in a Release build.
-
-    #include "internal/msg_logging.h"  // MsgLogging -- Message logging class
-
-    #define MSG_INFO(msg)                   \
-        {                                   \
-            g_pMsgLogging->AddInfoMsg(msg); \
-        }
-    #define MSG_EVENT(msg)                   \
-        {                                    \
-            g_pMsgLogging->AddEventMsg(msg); \
-        }
-    #define MSG_WARNING(msg)                   \
-        {                                      \
-            g_pMsgLogging->AddWarningMsg(msg); \
-        }
-    #define MSG_ERROR(msg)                   \
-        {                                    \
-            g_pMsgLogging->AddErrorMsg(msg); \
-        }
-
-#endif  // defined(NDEBUG) && !defined(INTERNAL_TESTING)
 
 #include "assertion_dlg.h"  // Assertion Dialog
 #include "to_casts.h"       // to_int -- Smart Numeric Casts

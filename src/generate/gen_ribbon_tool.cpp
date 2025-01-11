@@ -20,8 +20,7 @@
 
 wxObject* RibbonToolBarGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxRibbonToolBar((wxRibbonPanel*) parent, wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                      DlgSize(parent, node, prop_size));
+    auto widget = new wxRibbonToolBar((wxRibbonPanel*) parent, wxID_ANY, DlgPoint(node, prop_pos), DlgSize(node, prop_size));
     if (node->as_int(prop_min_rows) != 1 || node->as_string(prop_max_rows) != "-1")
     {
         auto min_rows = node->as_int(prop_min_rows);
@@ -82,7 +81,7 @@ bool RibbonToolBarGenerator::SettingsCode(Code& code)
 }
 
 bool RibbonToolBarGenerator::GetIncludes(Node* /* node */, std::set<std::string>& /* set_src */,
-                                         std::set<std::string>& set_hdr, int /* language */)
+                                         std::set<std::string>& set_hdr, GenLang /* language */)
 {
     // Normally we'd use the access property to determin if the header should be in the source or header file. However,
     // the two events used by this component are also in this header file and the tools themselves are fairly useless
@@ -96,6 +95,25 @@ bool RibbonToolBarGenerator::GetIncludes(Node* /* node */, std::set<std::string>
 int RibbonToolBarGenerator::GenXrcObject(Node* /* node */, pugi::xml_node& /* object */, size_t /* xrc_flags */)
 {
     return BaseGenerator::xrc_not_supported;
+}
+
+std::optional<tt_string> RibbonToolBarGenerator::GetWarning(Node* node, GenLang language)
+{
+    switch (language)
+    {
+        case GEN_LANG_XRC:
+            {
+                tt_string msg;
+                if (auto form = node->getForm(); form && form->hasValue(prop_class_name))
+                {
+                    msg << form->as_string(prop_class_name) << ": ";
+                }
+                msg << " XRC currently does not support wxRibbonToolBar ";
+                return msg;
+            }
+        default:
+            return {};
+    }
 }
 
 //////////////////////////////////////////  RibbonToolGenerator  //////////////////////////////////////////

@@ -16,8 +16,8 @@
 
 wxObject* RibbonBarFormGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxRibbonBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                  DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxRibbonBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                  DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->as_string(prop_theme) == "Default")
         widget->SetArtProvider(new wxRibbonDefaultArtProvider);
@@ -97,7 +97,7 @@ bool RibbonBarFormGenerator::HeaderCode(Code& code)
     if (position == wxDefaultPosition)
         code.Str("wxDefaultPosition");
     else
-        code.Pos(prop_pos, no_dlg_units);
+        code.Pos(prop_pos, no_dpi_scaling);
 
     code.Comma().Str("const wxSize& size = ");
 
@@ -105,7 +105,7 @@ bool RibbonBarFormGenerator::HeaderCode(Code& code)
     if (size == wxDefaultSize)
         code.Str("wxDefaultSize");
     else
-        code.WxSize(prop_size, no_dlg_units);
+        code.WxSize(prop_size, no_dpi_scaling);
 
     auto& style = node->as_string(prop_style);
     auto& win_style = node->as_string(prop_window_style);
@@ -139,9 +139,9 @@ bool RibbonBarFormGenerator::HeaderCode(Code& code)
 
 bool RibbonBarFormGenerator::BaseClassNameCode(Code& code)
 {
-    if (code.hasValue(prop_derived_class))
+    if (code.hasValue(prop_subclass))
     {
-        code.as_string(prop_derived_class);
+        code.as_string(prop_subclass);
     }
     else
     {
@@ -183,7 +183,7 @@ void RibbonBarFormGenerator::GenEvent(Code& code, NodeEvent* event, const std::s
 }
 
 bool RibbonBarFormGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                         int /* language */)
+                                         GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/ribbon/art.h>", set_src, set_hdr);
     InsertGeneratorInclude(node, "#include <wx/ribbon/bar.h>", set_src, set_hdr);
@@ -192,18 +192,25 @@ bool RibbonBarFormGenerator::GetIncludes(Node* node, std::set<std::string>& set_
     return true;
 }
 
-bool RibbonBarFormGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool RibbonBarFormGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/rbn'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/rbn'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }
 
 //////////////////////////////////////////  RibbonBarGenerator  //////////////////////////////////////////
 
 wxObject* RibbonBarGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxRibbonBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                  DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxRibbonBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                  DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->as_string(prop_theme) == "Default")
         widget->SetArtProvider(new wxRibbonDefaultArtProvider);
@@ -238,7 +245,7 @@ bool RibbonBarGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName();
     code.CreateClass().ValidParentName().Comma().as_string(prop_id);
-    code.PosSizeFlags(false, "wxRIBBON_BAR_DEFAULT_STYLE");
+    code.PosSizeFlags(code::allow_scaling, false, "wxRIBBON_BAR_DEFAULT_STYLE");
 
     return true;
 }
@@ -267,7 +274,7 @@ bool RibbonBarGenerator::SettingsCode(Code& code)
 }
 
 bool RibbonBarGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                     int /* language */)
+                                     GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/ribbon/art.h>", set_src, set_hdr);
     InsertGeneratorInclude(node, "#include <wx/ribbon/bar.h>", set_src, set_hdr);
@@ -313,8 +320,15 @@ void RibbonBarGenerator::RequiredHandlers(Node* /* node */, std::set<std::string
     handlers.emplace("wxRibbonXmlHandler");
 }
 
-bool RibbonBarGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool RibbonBarGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/rbn'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/rbn'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }

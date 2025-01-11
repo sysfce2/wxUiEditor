@@ -83,7 +83,7 @@ bool IDEditorDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     m_comboPrefixes = new wxComboBox(m_cstm_id_box->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
         0, nullptr, wxCB_READONLY|wxCB_SORT);
     m_comboPrefixes->Enable(false);
-    m_comboPrefixes->SetMinSize(ConvertDialogToPixels(wxSize(75, -1)));
+    m_comboPrefixes->SetMinSize(FromDIP(wxSize(150, -1)));
     m_comboPrefixes->SetToolTip("The prefix list is edited in the Project\'s id_prefixes property.");
     grid_bag_sizer->Add(m_comboPrefixes, wxGBPosition(1, 1), wxGBSpan(1, 1), wxALL, 5);
 
@@ -94,7 +94,7 @@ bool IDEditorDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     m_comboSuffix = new wxComboBox(m_cstm_id_box->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
         0, nullptr, wxCB_READONLY|wxCB_SORT);
     m_comboSuffix->Enable(false);
-    m_comboSuffix->SetMinSize(ConvertDialogToPixels(wxSize(75, -1)));
+    m_comboSuffix->SetMinSize(FromDIP(wxSize(150, -1)));
     m_comboSuffix->SetToolTip("The suffix list is edited in the Project\'s id_suffixes property.");
     grid_bag_sizer->Add(m_comboSuffix, wxGBPosition(1, 3), wxGBSpan(1, 1), wxALL, 5);
 
@@ -115,7 +115,24 @@ bool IDEditorDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers

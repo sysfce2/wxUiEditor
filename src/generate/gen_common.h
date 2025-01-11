@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
-// Purpose:   Common component functions
+// Purpose:   Common code generation functions
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -45,7 +45,7 @@ void InsertGeneratorInclude(Node* node, const std::string& include, std::set<std
 
 // This is *NOT* the same as getNodeName() -- this will handle wxStaticBox and
 // wxCollapsiblePane parents as well as "normal" parents
-tt_string GetParentName(Node* node);
+tt_string GetParentName(Node* node, GenLang language);
 
 // Used for controls that need to call SetBitmap(bitmap). Returns true if wxVector generated.
 //
@@ -64,10 +64,6 @@ tt_string GenerateBitmapCode(const tt_string& description);
 // Returns true if the returned string contains a wxVector. For 3.1 code, this will start
 // with "#if wxCHECK_VERSION(3, 1, 6)" and caller must supply #else and #endif.
 bool GenerateBundleCode(const tt_string& description, tt_string& code);
-
-// Will generate "wxDefaultPosition" if prop_pos is -1;-1
-void GenPos(Node* node, tt_string& code);
-void GenSize(Node* node, tt_string& code);
 
 // Returns the integer value of all style properties for the node. Includes style,
 // window_style, tab_position etc.
@@ -89,11 +85,6 @@ void GenValidatorSettings(Code& code);
 // Generates code for any class inheriting from wxTopLevelWindow -- this will generate
 // everything needed to set the window's icon.
 tt_string GenerateIconCode(const tt_string& description);
-
-// Generates wxSize(x,y) or ConvertDialogToPixels(wxSize(x,y))
-//
-// wxSize will be converted to dialog units if the size contains a 'd' character.
-tt_string GenerateWxSize(Node* node, PropName prop);
 
 // Creates a string using either wxSystemSettings::GetColour(name) or wxColour(r, g, b).
 // Generates wxNullColour if the property is empty.
@@ -136,3 +127,13 @@ tt_string MakeRubyPath(Node* node);
 
 // Generates code to load a bitmap from Art, SVG, or up to three bitmap files.
 bool RubyBundleCode(Code& code, GenEnum::PropName prop);
+
+struct GenResults;
+// Common function to generate all files for a specific language
+bool GenerateLanguageFiles(GenResults& results, std::vector<tt_string>* pClassList, GenLang language);
+
+// Called by GenerateLanguageFiles and in OnGenSingle...() to generate a single form
+bool GenerateLanguageForm(Node* form, GenResults& results, std::vector<tt_string>* pClassList, GenLang language);
+
+void OnGenerateSingleLanguage(GenLang language);
+void OnGenerateLanguage(GenLang language);

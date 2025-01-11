@@ -162,7 +162,7 @@ tt_string ProjectHandler::ArtDirectory() const
     return result;
 }
 
-tt_string ProjectHandler::getBaseDirectory(Node* node, int language) const
+tt_string ProjectHandler::getBaseDirectory(Node* node, GenLang language) const
 {
     if (!node || node == m_project_node.get())
     {
@@ -187,7 +187,7 @@ tt_string ProjectHandler::getBaseDirectory(Node* node, int language) const
     return path;
 }
 
-std::pair<tt_string, bool> ProjectHandler::GetOutputPath(Node* form, int language) const
+std::pair<tt_string, bool> ProjectHandler::GetOutputPath(Node* form, GenLang language) const
 {
     ASSERT(form->isForm() || form->isFolder());
 
@@ -207,12 +207,25 @@ std::pair<tt_string, bool> ProjectHandler::GetOutputPath(Node* form, int languag
                 form = folder->getParent();
             }
         }
+        else if (language == GEN_LANG_PERL && folder->hasValue(prop_folder_perl_output_folder))
+            result = folder->as_string(prop_folder_perl_output_folder);
         else if (language == GEN_LANG_PYTHON && folder->hasValue(prop_folder_python_output_folder))
             result = folder->as_string(prop_folder_python_output_folder);
         else if (language == GEN_LANG_RUBY && folder->hasValue(prop_folder_ruby_output_folder))
             result = folder->as_string(prop_folder_ruby_output_folder);
+        else if (language == GEN_LANG_RUST && folder->hasValue(prop_folder_rust_output_folder))
+            result = folder->as_string(prop_folder_rust_output_folder);
         else if (language == GEN_LANG_XRC && folder->hasValue(prop_folder_xrc_directory))
             result = folder->as_string(prop_folder_xrc_directory);
+
+#if GENERATE_NEW_LANG_CODE
+        else if (language == GEN_LANG_FORTRAN && folder->hasValue(prop_folder_fortran_output_folder))
+            result = folder->as_string(prop_folder_fortran_output_folder);
+        else if (language == GEN_LANG_HASKELL && folder->hasValue(prop_folder_haskell_output_folder))
+            result = folder->as_string(prop_folder_haskell_output_folder);
+        else if (language == GEN_LANG_LUA && folder->hasValue(prop_folder_lua_output_folder))
+            result = folder->as_string(prop_folder_lua_output_folder);
+#endif  // GENERATE_NEW_LANG_CODE
     }
 
     // Even if the node has a folder parent, there may not be a directory set for it, so check
@@ -224,12 +237,25 @@ std::pair<tt_string, bool> ProjectHandler::GetOutputPath(Node* form, int languag
             if (m_project_node->hasValue(prop_base_directory))
                 result = m_project_node->as_string(prop_base_directory);
         }
+        else if (language == GEN_LANG_PERL && m_project_node->hasValue(prop_perl_output_folder))
+            result = m_project_node->as_string(prop_perl_output_folder);
         else if (language == GEN_LANG_PYTHON && m_project_node->hasValue(prop_python_output_folder))
             result = m_project_node->as_string(prop_python_output_folder);
         else if (language == GEN_LANG_RUBY && m_project_node->hasValue(prop_ruby_output_folder))
             result = m_project_node->as_string(prop_ruby_output_folder);
+        else if (language == GEN_LANG_RUST && m_project_node->hasValue(prop_rust_output_folder))
+            result = m_project_node->as_string(prop_rust_output_folder);
         else if (language == GEN_LANG_XRC && m_project_node->hasValue(prop_xrc_directory))
             result = m_project_node->as_string(prop_xrc_directory);
+
+#if GENERATE_NEW_LANG_CODE
+        else if (language == GEN_LANG_FORTRAN && m_project_node->hasValue(prop_fortran_output_folder))
+            result = m_project_node->as_string(prop_fortran_output_folder);
+        else if (language == GEN_LANG_HASKELL && m_project_node->hasValue(prop_haskell_output_folder))
+            result = m_project_node->as_string(prop_haskell_output_folder);
+        else if (language == GEN_LANG_LUA && m_project_node->hasValue(prop_lua_output_folder))
+            result = m_project_node->as_string(prop_lua_output_folder);
+#endif  // GENERATE_NEW_LANG_CODE
     }
 
     if (result.empty())
@@ -250,8 +276,28 @@ std::pair<tt_string, bool> ProjectHandler::GetOutputPath(Node* form, int languag
         case GEN_LANG_RUBY:
             base_file = form->as_string(prop_ruby_file);
             break;
+        case GEN_LANG_FORTRAN:
+            base_file = form->as_string(prop_fortran_file);
+            break;
+        case GEN_LANG_HASKELL:
+            base_file = form->as_string(prop_haskell_file);
+            break;
+        case GEN_LANG_LUA:
+            base_file = form->as_string(prop_lua_file);
+            break;
+        case GEN_LANG_PERL:
+            base_file = form->as_string(prop_perl_file);
+            break;
+        case GEN_LANG_RUST:
+            base_file = form->as_string(prop_rust_file);
+            break;
+
         case GEN_LANG_XRC:
             base_file = form->as_string(prop_xrc_file);
+            break;
+
+        default:
+            FAIL_MSG(tt_string() << "Unknown language: " << language);
             break;
     }
 
@@ -291,7 +337,7 @@ std::pair<tt_string, bool> ProjectHandler::GetOutputPath(Node* form, int languag
 
 // Note that this will return a directory for GEN_LANG_PYTHON and GEN_LANG_XRC even though we currently
 // don't generate derived files for those languages.
-tt_string ProjectHandler::getDerivedDirectory(Node* node, int language) const
+tt_string ProjectHandler::getDerivedDirectory(Node* node, GenLang language) const
 {
     tt_string result;
 
@@ -349,7 +395,7 @@ Node* ProjectHandler::getFirstFormChild(Node* node) const
     return nullptr;
 }
 
-int ProjectHandler::getCodePreference(Node* node) const
+GenLang ProjectHandler::getCodePreference(Node* node) const
 {
     tt_string value = Project.as_string(prop_code_preference);
     if (node)
@@ -364,16 +410,66 @@ int ProjectHandler::getCodePreference(Node* node) const
         }
     }
 
+    // Note: Be sure this list matches the languages in ../xml/project.xml
+
     if (value == "C++")
         return GEN_LANG_CPLUSPLUS;
+    else if (value == "Perl")
+        return GEN_LANG_PERL;
     else if (value == "Python")
         return GEN_LANG_PYTHON;
     else if (value == "Ruby")
         return GEN_LANG_RUBY;
+    else if (value == "Rust")
+        return GEN_LANG_RUST;
     else if (value == "XRC")
         return GEN_LANG_XRC;
+
+#if GENERATE_NEW_LANG_CODE
+    else if (value == "Fortran")
+        return GEN_LANG_FORTRAN;
+    else if (value == "Haskell")
+        return GEN_LANG_HASKELL;
+    else if (value == "Lua")
+        return GEN_LANG_LUA;
+#endif  // GENERATE_NEW_LANG_CODE
+
     else
         return GEN_LANG_CPLUSPLUS;
+}
+
+size_t ProjectHandler::getGenerateLanguages() const
+{
+    // Always set the project's code preference to the list
+    size_t languages = static_cast<size_t>(getCodePreference(m_project_node.get()));
+
+    tt_string value = Project.as_string(prop_generate_languages);
+
+    // Note: Be sure this list matches the languages in ../xml/project.xml
+
+    if (value.contains("C++", tt::CASE::either))
+        languages |= GEN_LANG_CPLUSPLUS;
+    if (value.contains("Perl", tt::CASE::either))
+        languages |= GEN_LANG_PERL;
+    if (value.contains("Python", tt::CASE::either))
+        languages |= GEN_LANG_PYTHON;
+    if (value.contains("Ruby", tt::CASE::either))
+        languages |= GEN_LANG_RUBY;
+    if (value.contains("Rust", tt::CASE::either))
+        languages |= GEN_LANG_RUST;
+    if (value.contains("XRC", tt::CASE::either))
+        languages |= GEN_LANG_XRC;
+
+#if GENERATE_NEW_LANG_CODE
+    if (value.contains("Fortran", tt::CASE::either))
+        languages |= GEN_LANG_FORTRAN;
+    if (value.contains("Haskell", tt::CASE::either))
+        languages |= GEN_LANG_HASKELL;
+    if (value.contains("Lua", tt::CASE::either))
+        languages |= GEN_LANG_LUA;
+#endif  // GENERATE_NEW_LANG_CODE
+
+    return languages;
 }
 
 size_t ProjectHandler::getOutputType(int flags) const
@@ -436,8 +532,78 @@ size_t ProjectHandler::getOutputType(int flags) const
                     }
                     result |= OUTPUT_RUBY;
                 }
-                if (not(flags & OUT_FLAG_IGNORE_XRC) && child->hasValue(prop_xrc_file))
+                if (child->hasValue(prop_fortran_file))
                 {
+                    if (child->isGen(gen_Images) || child->isGen(gen_Data))
+                    {
+                        if (child->as_string(prop_fortran_file) == child->getPropDefaultValue(prop_fortran_file) &&
+                            getCodePreference(form) != GEN_LANG_FORTRAN)
+                        {
+                            continue;
+                        }
+                    }
+                    result |= OUTPUT_FORTRAN;
+                }
+                if (child->hasValue(prop_haskell_file))
+                {
+                    if (child->isGen(gen_Images) || child->isGen(gen_Data))
+                    {
+                        if (child->as_string(prop_haskell_file) == child->getPropDefaultValue(prop_haskell_file) &&
+                            getCodePreference(form) != GEN_LANG_HASKELL)
+                        {
+                            continue;
+                        }
+                    }
+                    result |= OUTPUT_HASKELL;
+                }
+                if (child->hasValue(prop_lua_file))
+                {
+                    if (child->isGen(gen_Images) || child->isGen(gen_Data))
+                    {
+                        if (child->as_string(prop_lua_file) == child->getPropDefaultValue(prop_lua_file) &&
+                            getCodePreference(form) != GEN_LANG_LUA)
+                        {
+                            continue;
+                        }
+                    }
+                    result |= OUTPUT_LUA;
+                }
+                if (child->hasValue(prop_perl_file))
+                {
+                    if (child->isGen(gen_Images) || child->isGen(gen_Data))
+                    {
+                        if (child->as_string(prop_perl_file) == child->getPropDefaultValue(prop_perl_file) &&
+                            getCodePreference(form) != GEN_LANG_PERL)
+                        {
+                            continue;
+                        }
+                    }
+                    result |= OUTPUT_PERL;
+                }
+                if (child->hasValue(prop_rust_file))
+                {
+                    if (child->isGen(gen_Images) || child->isGen(gen_Data))
+                    {
+                        if (child->as_string(prop_rust_file) == child->getPropDefaultValue(prop_rust_file) &&
+                            getCodePreference(form) != GEN_LANG_RUST)
+                        {
+                            continue;
+                        }
+                    }
+                    result |= OUTPUT_RUST;
+                }
+                if (child->hasValue(prop_xrc_file))
+                {
+                    if (child->isGen(gen_Images) || child->isGen(gen_Data))
+                    {
+                        // Note that we do *not* ignore this if getCodePreference(form) !=
+                        // GEN_LANG_XRC. If the language is using XRC for the UI, then the XRC must
+                        // be generated as well.
+                        if (child->as_string(prop_xrc_file) == child->getPropDefaultValue(prop_xrc_file))
+                        {
+                            continue;
+                        }
+                    }
                     result |= OUTPUT_XRC;
                 }
             }
@@ -598,12 +764,116 @@ Node* ProjectHandler::getDataForm()
     return m_DataForm;
 }
 
-int ProjectHandler::get_WidgetsMinorVersion()
+int ProjectHandler::getLangVersion(GenLang language) const
 {
-    tt_string_view version = m_project_node->as_string(prop_wxWidgets_version);
-    if (version.empty())
-        return 1;
-    ASSERT(version.find('.') != tt::npos);
-    version = version.substr(version.find('.') + 1);
-    return tt::atoi(version);
+    tt_string_view version = tt::emptystring;
+
+    switch (language)
+    {
+        case GEN_LANG_CPLUSPLUS:
+            version = m_project_node->as_string(prop_wxWidgets_version);
+            break;
+
+        case GEN_LANG_PERL:
+            version = m_project_node->as_string(prop_wxPerl_version);
+            break;
+
+        case GEN_LANG_PYTHON:
+            version = m_project_node->as_string(prop_wxPython_version);
+            break;
+
+        case GEN_LANG_RUBY:
+            version = m_project_node->as_string(prop_wxRuby_version);
+            break;
+
+        case GEN_LANG_RUST:
+            version = m_project_node->as_string(prop_wxRust_version);
+            break;
+
+        case GEN_LANG_XRC:
+            version = m_project_node->as_string(prop_wxWidgets_version);
+            break;
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            version = m_project_node->as_string(prop_wxFortran_version);
+            break;
+
+        case GEN_LANG_HASKELL:
+            version = m_project_node->as_string(prop_wxHaskell_version);
+            break;
+
+        case GEN_LANG_LUA:
+            version = m_project_node->as_string(prop_wxLua_version);
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+        default:
+            FAIL_MSG(tt_string() << "Unknown language: " << language);
+            break;
+    }
+
+    int major = 1;
+    int minor = 0;
+    int patch = 0;
+
+    if (version.size())
+    {
+        if (version.contains("."))
+        {
+            tt_string_vector parts(version, '.');
+            if (parts.size() > 0)
+                major = tt::atoi(parts[0]);
+            if (parts.size() > 1)
+                minor = tt::atoi(parts[1]);
+            if (parts.size() > 2)
+                patch = tt::atoi(parts[2]);
+        }
+        else if (version.contains("-"))
+        {
+            tt_string_vector parts(version, '-');
+            if (parts.size() > 0)
+                major = tt::atoi(parts[0]);
+            if (parts.size() > 1)
+                minor = tt::atoi(parts[1]);
+            if (parts.size() > 2)
+                patch = tt::atoi(parts[2]);
+        }
+        else
+        {
+            major = tt::atoi(version);
+            for (size_t pos = 0; pos < version.size(); ++pos)
+            {
+                if (!tt::is_digit(version[pos]))
+                {
+                    while (pos < version.size() && !tt::is_digit(version[pos]))
+                    {
+                        ++pos;
+                    }
+                    version.remove_prefix(pos);
+                }
+            }
+            if (version.size())
+            {
+                minor = tt::atoi(version);
+            }
+            for (size_t pos = 0; pos < version.size(); ++pos)
+            {
+                if (!tt::is_digit(version[pos]))
+                {
+                    while (pos < version.size() && !tt::is_digit(version[pos]))
+                    {
+                        ++pos;
+                    }
+                    version.remove_prefix(pos);
+                }
+            }
+            if (version.size())
+            {
+                patch = tt::atoi(version);
+            }
+        }
+    }
+
+    return major * 10000 + minor * 100 + patch;
 }

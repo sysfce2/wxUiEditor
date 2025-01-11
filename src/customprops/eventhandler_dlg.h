@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Dialog for editing event handlers
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2021-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2021-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -55,6 +55,26 @@ public:
     // C++ is not enabled and another language specified a value.
     static tt_string GetCppValue(tt_string_view value);
 
+    // This will return a string as if Fortran was the only value specified even if the original
+    // value had values for multiple languages. Note that this *will* return a value even if
+    // Ruby is not enabled and another language specified a value.
+    static tt_string GetFortranValue(tt_string_view value);
+
+    // This will return a string as if Haskell was the only value specified even if the original
+    // value had values for multiple languages. Note that this *will* return a value even if
+    // Ruby is not enabled and another language specified a value.
+    static tt_string GetHaskellValue(tt_string_view value);
+
+    // This will return a string as if Lua was the only value specified even if the original
+    // value had values for multiple languages. Note that this *will* return a value even if
+    // Ruby is not enabled and another language specified a value.
+    static tt_string GetLuaValue(tt_string_view value);
+
+    // This will return a string as if Perl was the only value specified even if the original
+    // value had values for multiple languages. Note that this *will* return a value even if
+    // Perl is not enabled and another language specified a value.
+    static tt_string GetPerlValue(tt_string_view value);
+
     // This will return a string as if Python was the only value specified even if the original
     // value had values for multiple languages. Note that this *will* return a value even if
     // Python is not enabled and another language specified a value.
@@ -64,6 +84,11 @@ public:
     // value had values for multiple languages. Note that this *will* return a value even if
     // Ruby is not enabled and another language specified a value.
     static tt_string GetRubyValue(tt_string_view value);
+
+    // This will return a string as if Rust was the only value specified even if the original
+    // value had values for multiple languages. Note that this *will* return a value even if
+    // Ruby is not enabled and another language specified a value.
+    static tt_string GetRustValue(tt_string_view value);
 
 protected:
     // This is used to colorize member variables in the C++ lambda
@@ -86,23 +111,50 @@ protected:
     void OnUsePythonLambda(wxCommandEvent& event) override;
     void OnUseRubyFunction(wxCommandEvent& event) override;
     void OnUseRubyLambda(wxCommandEvent& WXUNUSED(event)) override;
+    void OnUseRustFunction(wxCommandEvent& event) override;
+    void OnDefault(wxCommandEvent& event) override;
+    void OnNone(wxCommandEvent& event) override;
 
     wxString m_value;
 
 private:
     NodeEvent* m_event;
 
-    size_t m_python_page;
-    size_t m_ruby_page;
+    int m_perl_page;
+    int m_python_page;
+    int m_ruby_page;
+    int m_rust_page;
 
-    size_t m_output_type;   // see ../project/project_handler.h for OUTPUT_TYPE_ defines
-    int m_code_preference;  // This will be one of the GEN_LANG values
+#if GENERATE_NEW_LANG_CODE
+    int m_fortran_page;
+    int m_haskell_page;
+    int m_lua_page;
+#endif  // GENERATE_NEW_LANG_CODE
+
+    size_t m_gen_languages;     // set by Project.getGenerateLanguages()
+    GenLang m_code_preference;  // This will be one of the GEN_LANG values
 
     bool m_is_cpp_enabled { false };
+    bool m_is_perl_enabled { false };
     bool m_is_python_enabled { false };
     bool m_is_ruby_enabled { false };
+    bool m_is_rust_enabled { false };
+
+#if GENERATE_NEW_LANG_CODE
+    bool m_is_fortran_enabled { false };
+    bool m_is_haskell_enabled { false };
+    bool m_is_lua_enabled { false };
+#endif  // GENERATE_NEW_LANG_CODE
 
     bool m_is_cpp_lambda { false };
+    bool m_is_perl_lambda { false };
     bool m_is_python_lambda { false };
     bool m_is_ruby_lambda { false };
+    bool m_is_rust_lambda { false };
+
+#if GENERATE_NEW_LANG_CODE
+    bool m_is_fortran_lambda { false };
+    bool m_is_haskell_lambda { false };
+    bool m_is_lua_lambda { false };
+#endif  // GENERATE_NEW_LANG_CODE
 };

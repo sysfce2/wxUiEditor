@@ -1,9 +1,11 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Custom Event handling
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../LICENSE
 /////////////////////////////////////////////////////////////////////////////
+
+#include <wx/wupdlock.h>  // wxWindowUpdateLocker prevents window redrawing
 
 #include "cstm_event.h"
 
@@ -30,6 +32,13 @@ wxDEFINE_EVENT(EVT_GridBagAction, CustomEvent);
 
 void MainFrame::FireProjectLoadedEvent()
 {
+    // The Project loaded event can be fired even if just the language is changed which can cause
+    // the property grid to add or remove language categories. The easiest way to deal with the
+    // potential redraw issue is simply to freeze the entire main window frame until all event
+    // handlers have been processed.
+
+    wxWindowUpdateLocker freeze(this);
+
     ProjectLoaded();
 
     CustomEvent event(EVT_ProjectUpdated, Project.getProjectNode());
@@ -72,6 +81,7 @@ void MainFrame::FireCreatedEvent(Node* node)
     {
         handler->ProcessEvent(node_event);
     }
+    UpdateWakaTime();
 }
 
 void MainFrame::FireDeletedEvent(Node* node)
@@ -81,6 +91,7 @@ void MainFrame::FireDeletedEvent(Node* node)
     {
         handler->ProcessEvent(node_event);
     }
+    UpdateWakaTime();
 }
 
 void MainFrame::FirePropChangeEvent(NodeProperty* prop)
@@ -90,6 +101,7 @@ void MainFrame::FirePropChangeEvent(NodeProperty* prop)
     {
         handler->ProcessEvent(node_event);
     }
+    UpdateWakaTime();
 }
 
 void MainFrame::FireMultiPropEvent(ModifyProperties* undo_cmd)
@@ -99,6 +111,7 @@ void MainFrame::FireMultiPropEvent(ModifyProperties* undo_cmd)
     {
         handler->ProcessEvent(node_event);
     }
+    UpdateWakaTime();
 }
 
 void MainFrame::FireProjectUpdatedEvent()
@@ -126,6 +139,7 @@ void MainFrame::FireParentChangedEvent(ChangeParentAction* undo_cmd)
     {
         handler->ProcessEvent(event);
     }
+    UpdateWakaTime();
 }
 
 void MainFrame::FirePositionChangedEvent(ChangePositionAction* undo_cmd)
@@ -135,6 +149,7 @@ void MainFrame::FirePositionChangedEvent(ChangePositionAction* undo_cmd)
     {
         handler->ProcessEvent(event);
     }
+    UpdateWakaTime();
 }
 
 void MainFrame::FireGridBagActionEvent(GridBagAction* undo_cmd)
@@ -144,6 +159,7 @@ void MainFrame::FireGridBagActionEvent(GridBagAction* undo_cmd)
     {
         handler->ProcessEvent(event);
     }
+    UpdateWakaTime();
 }
 
 Node* CustomEvent::getNode()

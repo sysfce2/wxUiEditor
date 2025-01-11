@@ -93,7 +93,7 @@ bool WxCrafter::Import(const tt_string& filename, bool write_doc)
         return false;
     }
 
-    m_project = NodeCreation.createNode(gen_Project, nullptr);
+    m_project = NodeCreation.createNode(gen_Project, nullptr).first;
 
     try
     {
@@ -183,12 +183,12 @@ void WxCrafter::ProcessForm(const Value& form)
     getGenName = GetGenName(value);
     if (getGenName == gen_unknown)
     {
-        MSG_ERROR(tt_string("Unrecognized window type: ") << value.GetInt())
+        MSG_ERROR(tt_string("Unrecognized window type: ") << value.GetInt());
         m_errors.emplace("Unrecognized window type!");
         return;
     }
 
-    auto new_node = NodeCreation.createNode(getGenName, m_project.get());
+    auto new_node = NodeCreation.createNode(getGenName, m_project.get()).first;
     m_project->adoptChild(new_node);
 
     if (!m_generate_ids)
@@ -332,7 +332,7 @@ void WxCrafter::ProcessChild(Node* parent, const Value& object)
         getGenName = gen_auitool;
     }
 
-    auto new_node = NodeCreation.createNode(getGenName, parent);
+    auto new_node = NodeCreation.createNode(getGenName, parent).first;
     if (!new_node)
     {
         m_errors.emplace(tt_string() << map_GenNames.at(getGenName) << " cannot be a child of " << parent->declName());
@@ -382,7 +382,7 @@ void WxCrafter::ProcessChild(Node* parent, const Value& object)
         {
             // We always supply one page even if it's empty so that wxPropertyGridManager::Clear() will work correctly
             getGenName = gen_propGridPage;
-            auto child_node = NodeCreation.createNode(getGenName, new_node.get());
+            auto child_node = NodeCreation.createNode(getGenName, new_node.get()).first;
             if (!child_node)
             {
                 m_errors.emplace(tt_string()
@@ -1038,10 +1038,10 @@ GenEnum::PropName WxCrafter::UnknownProperty(Node* node, const Value& value, tt_
 
 void WxCrafter::KnownProperty(Node* node, const Value& value, GenEnum::PropName prop_name)
 {
-    if (node->isGen(gen_wxPopupTransientWindow))
+    if (node->isGen(gen_wxPopupWindow))
     {
         if (prop_name == prop_size || prop_name == prop_minimum_size || prop_name == prop_title)
-            return;  // wxCrafter writes these, but doesn't use them (nor do we)
+            return;  // wxCrafter writes these, but doesn't use them (wxUiEditor does support size and minimum_size)
     }
 
     if (node->isGen(gen_ribbonTool) || node->isGen(gen_ribbonSeparator) || node->isGen(gen_ribbonButton))
@@ -1208,16 +1208,14 @@ void WxCrafter::KnownProperty(Node* node, const Value& value, GenEnum::PropName 
                     prop_name = prop_maxValue;
                 else if (prop_name == prop_tooltip && node->isGen(gen_propGridItem))
                     prop_name = prop_help;
-                else
+                else if (wxGetApp().isTestingMenuEnabled())
                 {
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
                     if ((prop_value.IsString() && prop_value.GetStringLength()) ||
                         (prop_value.IsBool() && prop_value.GetBool()))
                     {
                         MSG_INFO(tt_string() << node->declName() << " doesn't have a property called "
                                              << GenEnum::map_PropNames[prop_name]);
                     }
-#endif
                 }
             }
             if (prop_value.IsBool())

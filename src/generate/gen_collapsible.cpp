@@ -23,9 +23,9 @@ wxObject* CollapsiblePaneGenerator::CreateMockup(Node* node, wxObject* parent)
     // ALWAYS add wxCP_NO_TLW_RESIZE to the Mockup version, otherwise the entire wxUiEditor main window will be
     // resized when the pane is collapsed or expanded.
 
-    auto widget = new wxCollapsiblePane(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
-                                        DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size),
-                                        GetStyleInt(node) | wxCP_NO_TLW_RESIZE);
+    auto widget =
+        new wxCollapsiblePane(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
+                              DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node) | wxCP_NO_TLW_RESIZE);
 
     if (getMockup()->IsShowingHidden())
         widget->Collapse(false);
@@ -58,7 +58,7 @@ bool CollapsiblePaneGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id).Comma().QuotedString(prop_label);
-    code.PosSizeFlags(true, "wxCP_DEFAULT_STYLE");
+    code.PosSizeFlags(code::allow_scaling, true, "wxCP_DEFAULT_STYLE");
 
     return true;
 }
@@ -77,7 +77,7 @@ bool CollapsiblePaneGenerator::SettingsCode(Code& code)
 }
 
 bool CollapsiblePaneGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                           int /* language */)
+                                           GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/collpane.h>", set_src, set_hdr);
     return true;

@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Set/Get wxUiEditor preferences
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -26,6 +26,7 @@ void Prefs::ReadConfig()
     m_sizers_always_expand = config->ReadBool("always_expand", true);
     m_var_prefix = config->ReadBool("var_prefix", true);
     m_fullpath_title = config->ReadBool("fullpath_title", false);
+    m_add_comments = config->ReadBool("add_comments", false);
     m_svg_images = config->ReadBool("svg_images", false);
 
     m_enable_wakatime = config->ReadBool("enable_wakatime", true);
@@ -37,7 +38,11 @@ void Prefs::ReadConfig()
 
     m_cpp_widgets_version = config->Read("cpp_widgets_version", "3.2");
     m_python_version = config->Read("python_version", "4.2");
-    m_ruby_version = config->Read("ruby_version", "0.9");
+    m_ruby_version = config->Read("ruby_version", "1.2");
+    if (m_ruby_version == "0.9")  // we no longer support the wxRuby3 beta
+    {
+        m_ruby_version = "1.2";
+    }
 
     m_colour_cpp = config->Read("cpp_colour", "#FF00FF");
     m_colour_cpp_comment = config->Read("cpp_comment_colour", "#008000");
@@ -56,6 +61,36 @@ void Prefs::ReadConfig()
     m_colour_ruby_number = config->Read("ruby_number_colour", "#FF0000");
     m_colour_ruby_string = config->Read("ruby_string_colour", "#008000");
 
+    m_colour_fortran = config->Read("fortran_colour", "#FF00FF");
+    m_colour_fortran_comment = config->Read("fortran_comment_colour", "#008000");
+    m_colour_fortran_keyword = config->Read("fortran_keyword_colour", "#0000FF");
+    m_colour_fortran_number = config->Read("fortran_number_colour", "#FF0000");
+    m_colour_fortran_string = config->Read("fortran_string_colour", "#008000");
+
+    m_colour_haskell = config->Read("haskell_colour", "#FF00FF");
+    m_colour_haskell_comment = config->Read("haskell_comment_colour", "#008000");
+    m_colour_haskell_keyword = config->Read("haskell_keyword_colour", "#0000FF");
+    m_colour_haskell_number = config->Read("haskell_number_colour", "#FF0000");
+    m_colour_haskell_string = config->Read("haskell_string_colour", "#008000");
+
+    m_colour_lua = config->Read("lua_colour", "#FF00FF");
+    m_colour_lua_comment = config->Read("lua_comment_colour", "#008000");
+    m_colour_lua_keyword = config->Read("lua_keyword_colour", "#0000FF");
+    m_colour_lua_number = config->Read("lua_number_colour", "#FF0000");
+    m_colour_lua_string = config->Read("lua_string_colour", "#008000");
+
+    m_colour_perl = config->Read("perl_colour", "#FF00FF");
+    m_colour_perl_comment = config->Read("perl_comment_colour", "#008000");
+    m_colour_perl_keyword = config->Read("perl_keyword_colour", "#0000FF");
+    m_colour_perl_number = config->Read("perl_number_colour", "#FF0000");
+    m_colour_perl_string = config->Read("perl_string_colour", "#008000");
+
+    m_colour_rust = config->Read("rust_colour", "#FF00FF");
+    m_colour_rust_comment = config->Read("rust_comment_colour", "#008000");
+    m_colour_rust_keyword = config->Read("rust_keyword_colour", "#0000FF");
+    m_colour_rust_number = config->Read("rust_number_colour", "#FF0000");
+    m_colour_rust_string = config->Read("rust_string_colour", "#008000");
+
     m_colour_xrc_attribute = config->Read("xrc_colour", "#FF00FF");
     m_colour_xrc_dblstring = config->Read("xrc_dblstring_colour", "#008000");
     m_colour_xrc_tag = config->Read("xrc_tag_colour", "#0000FF");
@@ -63,6 +98,11 @@ void Prefs::ReadConfig()
     m_cpp_line_length = config->Read("cpp_line_length", 110);
     m_python_line_length = config->Read("python_line_length", 90);
     m_ruby_line_length = config->Read("ruby_line_length", 80);
+    m_fortran_line_length = config->Read("fortran_line_length", 100);
+    m_haskell_line_length = config->Read("haskell_line_length", 80);
+    m_lua_line_length = config->Read("lua_line_length", 100);
+    m_perl_line_length = config->Read("perl_line_length", 80);
+    m_rust_line_length = config->Read("rust_line_length", 80);
 
     m_icon_size = config->Read("icon_size", 20);
 
@@ -80,6 +120,7 @@ void Prefs::WriteConfig()
     config->Write("always_expand", m_sizers_always_expand);
     config->Write("var_prefix", m_var_prefix);
     config->Write("fullpath_title", m_fullpath_title);
+    config->Write("add_comments", m_add_comments);
     config->Write("svg_images", m_svg_images);
 
     config->Write("enable_wakatime", m_enable_wakatime);
@@ -134,6 +175,21 @@ wxColour Prefs::GetColour(wxSystemColour index)
 {
     if (!is_DarkMode())
     {
+        switch (index)
+        {
+            case wxSYS_COLOUR_WINDOW:
+                if (is_HighContrast())
+                    return *wxWHITE;
+                break;
+
+            case wxSYS_COLOUR_WINDOWTEXT:
+                if (is_HighContrast())
+                    return *wxBLACK;
+                break;
+
+            default:
+                break;
+        }
         return wxSystemSettings::GetColour(index);
     }
 
@@ -148,10 +204,9 @@ wxColour Prefs::GetColour(wxSystemColour index)
         case wxSYS_COLOUR_APPWORKSPACE:
         case wxSYS_COLOUR_INFOBK:
         case wxSYS_COLOUR_LISTBOX:
-        case wxSYS_COLOUR_WINDOW:
         case wxSYS_COLOUR_BTNFACE:
             if (is_HighContrast())
-                return wxColour(0, 0, 0);
+                return *wxBLACK;
             else
                 return wxColour(0x202020);
 
@@ -162,8 +217,22 @@ wxColour Prefs::GetColour(wxSystemColour index)
         case wxSYS_COLOUR_LISTBOXHIGHLIGHTTEXT:
         case wxSYS_COLOUR_LISTBOXTEXT:
         case wxSYS_COLOUR_MENUTEXT:
+            if (is_HighContrast())
+                return *wxWHITE;
+            else
+                return wxColour(0xe0e0e0);
+
+        case wxSYS_COLOUR_WINDOW:
+            if (is_HighContrast())
+                return *wxBLACK;
+            else
+                return wxColour(0x202020);
+
         case wxSYS_COLOUR_WINDOWTEXT:
-            return wxColour(0xe0e0e0);
+            if (is_HighContrast())
+                return *wxWHITE;
+            else
+                return wxColour(0xe0e0e0);
 
         case wxSYS_COLOUR_HOTLIGHT:
             return wxColour(0x474747);

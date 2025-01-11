@@ -125,8 +125,6 @@ R"===(//////////////////////////////////////////////////////////////////////////
 
 // clang-format on
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-
 void MainFrame::OnGenSingleCpp(wxCommandEvent& WXUNUSED(event))
 {
     auto form = wxGetMainFrame()->getSelectedNode();
@@ -193,8 +191,6 @@ void MainFrame::OnGenSingleCpp(wxCommandEvent& WXUNUSED(event))
     wxMessageBox(msg, "C++ Code Generation", wxOK | wxICON_INFORMATION);
 }
 
-#endif
-
 static void GenCppForm(GenData& gen_data, Node* form)
 {
     // These are just defined for convenience.
@@ -233,7 +229,7 @@ static void GenCppForm(GenData& gen_data, Node* form)
         flags |= flag_test_only;
     if (form->as_bool(prop_no_closing_brace))
         flags |= flag_add_closing_brace;
-    auto retval = h_cw->WriteFile(GEN_LANG_CPLUSPLUS, flags);
+    auto retval = h_cw->WriteFile(GEN_LANG_CPLUSPLUS, flags, form);
     if (form->as_bool(prop_no_closing_brace))
         flags = flags & ~flag_add_closing_brace;
 
@@ -271,7 +267,7 @@ static void GenCppForm(GenData& gen_data, Node* form)
     }
 
     path.replace_extension(source_ext);
-    retval = cpp_cw->WriteFile(GEN_LANG_CPLUSPLUS, flags);
+    retval = cpp_cw->WriteFile(GEN_LANG_CPLUSPLUS, flags, form);
 
     if (retval > 0)
     {
@@ -318,9 +314,8 @@ bool GenerateCppFiles(GenResults& results, std::vector<tt_string>* pClassList)
     tt_cwd cwd(true);
     Project.ChangeDir();
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    results.StartClock();
-#endif
+    if (wxGetApp().isTestingMenuEnabled())
+        results.StartClock();
 
     if (Project.as_bool(prop_generate_cmake))
     {
@@ -382,9 +377,8 @@ bool GenerateCppFiles(GenResults& results, std::vector<tt_string>* pClassList)
         GenCppForm(gen_data, form);
     }
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    results.EndClock();
-#endif
+    if (wxGetApp().isTestingMenuEnabled())
+        results.EndClock();
 
     if (pClassList)
         return pClassList->size() > 0;
@@ -1103,11 +1097,11 @@ void BaseCodeGenerator::GenerateCppClassHeader()
         }
         if (m_form_node->hasProp(prop_pos))
         {
-            code.Eol(eol_if_needed).Str("static const wxPoint form_pos() { return ").Pos(prop_pos, no_dlg_units) += "; }";
+            code.Eol(eol_if_needed).Str("static const wxPoint form_pos() { return ").Pos(prop_pos, no_dpi_scaling) += "; }";
         }
         if (m_form_node->hasProp(prop_size))
         {
-            code.Eol(eol_if_needed).Str("static const wxSize form_size() { return  ").WxSize(prop_size, no_dlg_units) +=
+            code.Eol(eol_if_needed).Str("static const wxSize form_size() { return  ").WxSize(prop_size, no_dpi_scaling) +=
                 "; }";
         }
         if (m_form_node->hasProp(prop_title))
@@ -1345,6 +1339,18 @@ void BaseCodeGenerator::GenerateCppClassConstructor()
             m_source->writeLine();
             m_source->writeLine("// Event handlers");
             GenSrcEventBinding(m_form_node, m_events);
+
+            // Only generate potential events if no derived class is being
+            // created. If a derived class is being created, then we don't know
+            // the name of that class's file, and therefore have no idea if the
+            // event has been implemented or not.
+            if (m_events.size() && !m_form_node->as_bool(prop_derived_class))
+            {
+                m_source->writeLine();
+                m_source->ResetIndent();
+                GenCppEventHandlers(m_events);
+                m_source->Indent();
+            }
         }
 
         code.clear();

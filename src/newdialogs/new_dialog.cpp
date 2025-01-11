@@ -91,7 +91,24 @@ bool NewDialog::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     parent_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(parent_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(parent_sizer);
+    }
+    else
+    {
+        SetSizer(parent_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers
@@ -143,7 +160,7 @@ void NewDialog::OnInit(wxInitDialogEvent& event)
 
 void NewDialog::createNode()
 {
-    auto form_node = NodeCreation.createNode(gen_wxDialog, nullptr);
+    auto form_node = NodeCreation.createNode(gen_wxDialog, nullptr).first;
     ASSERT(form_node);
 
     if (m_title.size())
@@ -151,29 +168,29 @@ void NewDialog::createNode()
         form_node->set_value(prop_title, m_title.utf8_string());
     }
 
-    auto parent_sizer = NodeCreation.createNode(gen_VerticalBoxSizer, form_node.get());
+    auto parent_sizer = NodeCreation.createNode(gen_VerticalBoxSizer, form_node.get()).first;
     ASSERT(parent_sizer);
     parent_sizer->set_value(prop_var_name, "dlg_sizer");
     form_node->adoptChild(parent_sizer);
 
     if (m_has_tabs)
     {
-        auto notebook = NodeCreation.createNode(gen_wxNotebook, parent_sizer.get());
+        auto notebook = NodeCreation.createNode(gen_wxNotebook, parent_sizer.get()).first;
         ASSERT(notebook);
         parent_sizer->adoptChild(notebook);
 
         for (int count = 0; count < m_num_tabs; ++count)
         {
-            auto book_page = NodeCreation.createNode(gen_BookPage, notebook.get());
+            auto book_page = NodeCreation.createNode(gen_BookPage, notebook.get()).first;
             notebook->adoptChild(book_page);
 
             tt_string label("Tab ");
             label << count + 1;
             book_page->set_value(prop_label, label);
-            auto page_sizer = NodeCreation.createNode(gen_VerticalBoxSizer, book_page.get());
+            auto page_sizer = NodeCreation.createNode(gen_VerticalBoxSizer, book_page.get()).first;
             page_sizer->set_value(prop_var_name, tt_string() << "page_sizer_" << count + 1);
             book_page->adoptChild(page_sizer);
-            auto static_text = NodeCreation.createNode(gen_wxStaticText, page_sizer.get());
+            auto static_text = NodeCreation.createNode(gen_wxStaticText, page_sizer.get()).first;
             page_sizer->adoptChild(static_text);
             static_text->set_value(prop_label, "TODO: replace this control with something more useful...");
             static_text->set_value(prop_wrap, "200");
@@ -182,7 +199,7 @@ void NewDialog::createNode()
 
     if (m_has_std_btns)
     {
-        auto std_btn = NodeCreation.createNode(gen_wxStdDialogButtonSizer, parent_sizer.get());
+        auto std_btn = NodeCreation.createNode(gen_wxStdDialogButtonSizer, parent_sizer.get()).first;
         parent_sizer->adoptChild(std_btn);
 
         std_btn->set_value(prop_OK, "1");

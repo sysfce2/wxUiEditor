@@ -1,9 +1,11 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Functions for generating embedded images
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
+
+#include <wx/artprov.h>
 
 #include <array>
 #include <vector>
@@ -40,7 +42,7 @@ void BaseCodeGenerator::WriteImagePreConstruction(Code& code)
             code.Str("namespace wxue_img").OpenBrace();
         }
         code.Eol(eol_if_needed).Str("extern const unsigned char ").Str(iter_array->imgs[0].array_name);
-        code.Str("[").itoa(iter_array->imgs[0].array_size & 0xFFFFFFFF).Str("];");
+        code.Str("[").itoa((to_size_t) (iter_array->imgs[0].array_size & 0xFFFFFFFF)).Str("];");
         if (iter_array->imgs[0].filename.size())
         {
             code.Str("  // ").Str(iter_array->imgs[0].filename);
@@ -215,8 +217,8 @@ void BaseCodeGenerator::WriteImagePostHeader()
             m_header->writeLine(tt_string("// ") << iter_array->imgs[0].filename);
         }
         m_header->writeLine(tt_string("extern const unsigned char ")
-                            << iter_array->imgs[0].array_name << '[' << (iter_array->imgs[0].array_size & 0xFFFFFFFF)
-                            << "];");
+                            << iter_array->imgs[0].array_name << '['
+                            << (to_size_t) (iter_array->imgs[0].array_size & 0xFFFFFFFF) << "];");
     }
 
     if (is_namespace_written)
@@ -228,17 +230,24 @@ void BaseCodeGenerator::WriteImagePostHeader()
 
 // clang-format off
 
-std::map<int, GenEnum::PropName> map_lang_to_prop = {
+std::map<GenLang, GenEnum::PropName> map_lang_to_prop = {
 
     { GEN_LANG_CPLUSPLUS, prop_cpp_line_length },
+    { GEN_LANG_PERL, prop_perl_line_length },
     { GEN_LANG_PYTHON, prop_python_line_length },
     { GEN_LANG_RUBY, prop_ruby_line_length  },
+    { GEN_LANG_RUST, prop_rust_line_length },
 
+#if GENERATE_NEW_LANG_CODE
+    { GEN_LANG_FORTRAN, prop_fortran_line_length },
+    { GEN_LANG_HASKELL, prop_haskell_line_length },
+    { GEN_LANG_LUA, prop_lua_line_length },
+#endif  // GENERATE_NEW_LANG_CODE
 };
 
 // clang-format on
 
-std::vector<std::string> base64_encode(unsigned char const* data, size_t data_size, int language)
+std::vector<std::string> base64_encode(unsigned char const* data, size_t data_size, GenLang language)
 {
     size_t tab_quote_prefix = 7;  // 4 for tab, 2 for quotes, 1 for 'b' prefix
     if (language == GEN_LANG_RUBY)
@@ -506,7 +515,7 @@ static void GenerateSVGBundle(Code& code, const tt_string_vector& parts, bool ge
     auto embed = ProjectImages.GetEmbeddedImage(parts[IndexImage]);
     if (!embed)
     {
-        MSG_WARNING(tt_string() << parts[IndexImage] << " not embedded!")
+        MSG_WARNING(tt_string() << parts[IndexImage] << " not embedded!");
         code.Add("wxNullBitmap");
         return;
     }
@@ -514,8 +523,8 @@ static void GenerateSVGBundle(Code& code, const tt_string_vector& parts, bool ge
     if (code.is_cpp())
     {
         tt_string name = "wxue_img::" + embed->imgs[0].array_name;
-        code.Eol() << "\twxueBundleSVG(" << name << ", " << (embed->imgs[0].array_size & 0xFFFFFFFF) << ", ";
-        code.itoa(embed->imgs[0].array_size >> 32).Comma();
+        code.Eol() << "\twxueBundleSVG(" << name << ", " << (to_size_t) (embed->imgs[0].array_size & 0xFFFFFFFF) << ", ";
+        code.itoa((to_size_t) (embed->imgs[0].array_size >> 32)).Comma();
         if (get_bitmap)
         {
             code.FormFunction("FromDIP(").Add("wxSize(").itoa(svg_size.x).Comma().itoa(svg_size.y) += ")))";
@@ -598,6 +607,13 @@ static void GenerateARTBundle(Code& code, const tt_string_vector& parts, bool ge
     // Note that current documentation states that the client is required, but the header file says otherwise
     if (art_client.size())
         code.Comma().Add(art_client);
+    if (parts.size() > IndexSize)
+    {
+        code.Comma();
+        code.CheckLineLength(sizeof("wxSize(999, 999)))"));
+        auto size = GetSizeInfo(parts[IndexSize]);
+        code.WxSize(size, code::no_scaling);
+    }
     code << ')';
 }
 
@@ -766,7 +782,8 @@ static void GenerateEmbedBundle(Code& code, const tt_string_vector& parts, bool 
     {
         if (code.is_cpp())
         {
-            code.Str("[&]()");
+            code.Indent();
+            code.Eol().Str("[&]()");
             code.OpenBrace().Add("wxVector<wxBitmap> bitmaps;");
 
             for (auto& iter: bundle->lst_filenames)
@@ -785,9 +802,8 @@ static void GenerateEmbedBundle(Code& code, const tt_string_vector& parts, bool 
                 code.Eol().Str("bitmaps.push_back(wxueImage(") << name_img << ", sizeof(" << name_img << ")));";
             }
             code.Eol();
-            code.Str("return wxBitmapBundle::FromBitmaps(bitmaps);").CloseBrace();
-            code.pop_back();  // remove the linefeed
-            code.Str("()");
+            code.Str("return wxBitmapBundle::FromBitmaps(bitmaps);");
+            code.CloseBrace().Str("()").Eol();
         }
         else if (code.is_python())
         {

@@ -24,7 +24,7 @@
 wxObject* TextCtrlGenerator::CreateMockup(Node* node, wxObject* parent)
 {
     auto widget = new wxTextCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_value),
-                                 DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+                                 DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node));
 
 #if defined(__WXGTK__)
     if (widget->IsSingleLine())
@@ -67,36 +67,24 @@ bool TextCtrlGenerator::OnPropertyChange(wxObject* widget, Node* node, NodePrope
     {
         if (prop->hasValue() && !node->as_string(prop_style).contains("wxTE_RICH2"))
         {
-            if (auto infobar = wxGetFrame().GetPropInfoBar(); infobar)
-            {
-                infobar->ShowMessage("When used on Windows, spell checking requires the style to contain wxTE_RICH2.",
-                                     wxICON_INFORMATION);
-            }
+            wxGetFrame().ShowInfoBarMsg("When used on Windows, spell checking requires the style to contain wxTE_RICH2.",
+                                        wxICON_INFORMATION);
         }
         else
         {
-            if (auto infobar = wxGetFrame().GetPropInfoBar(); infobar)
-            {
-                infobar->Dismiss();
-            }
+            wxGetFrame().DismissInfoBar();
         }
     }
     else if (prop->isProp(prop_style))
     {
         if (node->hasValue(prop_spellcheck) && !node->as_string(prop_style).contains("wxTE_RICH2"))
         {
-            if (auto infobar = wxGetFrame().GetPropInfoBar(); infobar)
-            {
-                infobar->ShowMessage("When used on Windows, spell checking requires the style to contain wxTE_RICH2.",
-                                     wxICON_INFORMATION);
-            }
+            wxGetFrame().ShowInfoBarMsg("When used on Windows, spell checking requires the style to contain wxTE_RICH2.",
+                                        wxICON_INFORMATION);
         }
         else
         {
-            if (auto infobar = wxGetFrame().GetPropInfoBar(); infobar)
-            {
-                infobar->Dismiss();
-            }
+            wxGetFrame().DismissInfoBar();
         }
     }
 #endif  // _WIN32
@@ -109,7 +97,7 @@ bool TextCtrlGenerator::ConstructionCode(Code& code)
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id).Comma().CheckLineLength();
     code.QuotedString(prop_value);
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -244,7 +232,7 @@ void TextCtrlGenerator::ChangeEnableState(wxPropertyGridManager* prop_grid, Node
 }
 
 bool TextCtrlGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/textctrl.h>", set_src, set_hdr);
 

@@ -20,9 +20,8 @@
 
 wxObject* StaticBitmapGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget =
-        new wxGenericStaticBitmap(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxBitmapBundle(prop_bitmap),
-                                  DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxGenericStaticBitmap(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxBitmapBundle(prop_bitmap),
+                                            DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node));
 #if defined(_DEBUG)
     // auto default_size = node->as_wxBitmapBundle(prop_bitmap).GetDefaultSize();
 #endif  // _DEBUG
@@ -250,7 +249,7 @@ bool StaticBitmapGenerator::SettingsCode(Code& code)
 }
 
 bool StaticBitmapGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                        int /* language */)
+                                        GenLang /* language */)
 {
     if (node->as_string(prop_scale_mode) != "None")
         InsertGeneratorInclude(node, "#include <wx/generic/statbmpg.h>", set_src, set_hdr);

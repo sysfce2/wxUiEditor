@@ -30,7 +30,6 @@ public:
     {
         Create(parent, id, title, pos, size, style, name);
     }
-
     bool Create(wxWindow *parent, wxWindowID id = wxID_ANY, const wxString& title = "Preferences", const wxPoint& pos =
         wxDefaultPosition, const wxSize& size = wxDefaultSize,
         long style = wxDEFAULT_DIALOG_STYLE, const wxString &name = wxDialogNameStr);
@@ -47,6 +46,10 @@ protected:
 
     bool m_isWakaTimeEnabled { true };
     wxString m_cpp_line_length { "110" };
+    wxString m_haskell_line_length { "80" };
+    wxString m_lua_line_length { "100" };
+    wxString m_perl_line_length { "80" };
+    wxString m_perl_line_length2 { "80" };
     wxString m_python_line_length { "90" };
     wxString m_ruby_line_length { "80" };
 
@@ -60,17 +63,38 @@ protected:
     wxCheckBox* m_check_fullpath;
     wxCheckBox* m_check_high_contrast;
     wxCheckBox* m_check_load_last;
+    wxCheckBox* m_check_prefer_comments;
     wxCheckBox* m_check_right_propgrid;
     wxCheckBox* m_check_svg_bitmaps;
     wxChoice* m_choice_cpp_version;
+    wxChoice* m_choice_haskell_version;
     wxChoice* m_choice_icon_size;
+    wxChoice* m_choice_perl_version;
+    wxChoice* m_choice_php_version;
     wxChoice* m_choice_python_version;
+    wxChoice* m_choice_ruby_version3;
     wxChoice* m_choice_ruby_version;
     wxColourPickerCtrl* m_colour_cpp;
     wxColourPickerCtrl* m_colour_cpp_comment;
     wxColourPickerCtrl* m_colour_cpp_keyword;
     wxColourPickerCtrl* m_colour_cpp_number;
     wxColourPickerCtrl* m_colour_cpp_string;
+    wxColourPickerCtrl* m_colour_haskell;
+    wxColourPickerCtrl* m_colour_haskell_comment;
+    wxColourPickerCtrl* m_colour_haskell_number;
+    wxColourPickerCtrl* m_colour_haskell_string;
+    wxColourPickerCtrl* m_colour_lua;
+    wxColourPickerCtrl* m_colour_lua_comment;
+    wxColourPickerCtrl* m_colour_lua_number;
+    wxColourPickerCtrl* m_colour_lua_string;
+    wxColourPickerCtrl* m_colour_perl;
+    wxColourPickerCtrl* m_colour_perl_comment;
+    wxColourPickerCtrl* m_colour_perl_number;
+    wxColourPickerCtrl* m_colour_perl_string;
+    wxColourPickerCtrl* m_colour_php;
+    wxColourPickerCtrl* m_colour_php_comment;
+    wxColourPickerCtrl* m_colour_php_number;
+    wxColourPickerCtrl* m_colour_php_string;
     wxColourPickerCtrl* m_colour_python;
     wxColourPickerCtrl* m_colour_python_comment;
     wxColourPickerCtrl* m_colour_python_keyword;

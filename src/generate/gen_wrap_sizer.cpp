@@ -61,7 +61,8 @@ bool WrapSizerGenerator::AfterChildrenCode(Code& code)
     }
 
     auto parent = code.node()->getParent();
-    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm))
+    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm) &&
+        !parent->isGen(gen_wxPopupTransientWindow))
     {
         code.NewLine(true);
         if (parent->isGen(gen_wxRibbonPanel))
@@ -70,7 +71,7 @@ bool WrapSizerGenerator::AfterChildrenCode(Code& code)
         }
         else
         {
-            if (GetParentName(code.node()) != "this")
+            if (GetParentName(code.node(), code.get_language()) != "this")
             {
                 code.ValidParentName().Function("SetSizerAndFit(");
             }
@@ -89,7 +90,7 @@ bool WrapSizerGenerator::AfterChildrenCode(Code& code)
 }
 
 bool WrapSizerGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                     int /* language */)
+                                     GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/wrapsizer.h>", set_src, set_hdr);
     return true;

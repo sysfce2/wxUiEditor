@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Miscellaneous utility functions
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -35,14 +35,14 @@ const char* ConvertFontFamilyToString(wxFontFamily family);
 // Replace escape slashes with the actual character. Affects \\, \\n, \\r, and \\t
 tt_string ConvertEscapeSlashes(tt_string_view str);
 
-// If the property specifies dialog units, then parent will be used to do the conversion
-wxPoint DlgPoint(wxObject* parent, Node* node, GenEnum::PropName prop);
+// This will *always* call wxGetMainFrame()->getWindow()->FromDIP()
+wxPoint DlgPoint(Node* node, GenEnum::PropName prop);
 
-// Given a width (wxPoint::x) this will convert it into dialog units.
-int DlgPoint(wxObject* parent, int width);
+// This will *always* call wxGetMainFrame()->getWindow()->FromDIP()
+wxSize DlgSize(Node* node, GenEnum::PropName prop);
 
-// If the property specifies dialog units, then parent will be used to do the conversion
-wxSize DlgSize(wxObject* parent, Node* node, GenEnum::PropName prop);
+// Given a width this will convert it using wxGetMainFrame()->getWindow()->FromDIP()
+int DlgPoint(int width);
 
 // Convert a filename to a valid variable name. This will handle filnames with leading
 // numbers, utf8 characters, and other characters that are not valid in a variable name.
@@ -59,7 +59,7 @@ extern std::map<std::string, const char*> g_stc_wrap_mode;
 bool isConvertibleMime(const tt_string& suffix);
 
 // Checks whether a string is a valid C++ variable name.
-bool isValidVarName(const std::string& str, int language = GEN_LANG_CPLUSPLUS);
+bool isValidVarName(const std::string& str, GenLang language = GEN_LANG_CPLUSPLUS);
 
 // This takes the class_name of the form, converts it to lowercase, and if the class name
 // ends with Base, the a "_base" suffix is added.
@@ -74,3 +74,14 @@ tt_string ConvertToSnakeCase(tt_string_view str);
 
 // Converts string to snake_case, then converts to upper case
 tt_string ConvertToUpperSnakeCase(tt_string_view str);
+
+// Returns false if property contains a 'n', or language is C++ and wxWidgets 3.1 is being
+// used.
+bool isScalingEnabled(Node* node, GenEnum::PropName prop_name, GenLang m_language = GEN_LANG_NONE);
+
+// Convert the GEN_LANG enum to a string
+std::string_view ConvertFromGenLang(GenLang language);
+
+GenLang ConvertToGenLang(tt_string_view language);
+
+std::string GetLanguageExtension(GenLang language);

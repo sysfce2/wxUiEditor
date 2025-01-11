@@ -39,8 +39,8 @@ private:
 
 wxObject* SplitterWindowGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto splitter = new wxCustomSplitterWindow(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                               DlgSize(parent, node, prop_size), (GetStyleInt(node)) & ~wxSP_PERMIT_UNSPLIT);
+    auto splitter = new wxCustomSplitterWindow(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                               DlgSize(node, prop_size), (GetStyleInt(node)) & ~wxSP_PERMIT_UNSPLIT);
 
     if (node->hasValue(prop_sashgravity))
     {
@@ -192,7 +192,7 @@ bool SplitterWindowGenerator::SettingsCode(Code& code)
 }
 
 bool SplitterWindowGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/splitter.h>", set_src, set_hdr);
     if (node->hasValue(prop_persist_name))

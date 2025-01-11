@@ -44,6 +44,10 @@ bool WxGlade::Import(const tt_string& filename, bool write_doc)
         {
             m_language = GEN_LANG_CPLUSPLUS;
         }
+        else if (language == "Perl")
+        {
+            m_language = GEN_LANG_PERL;
+        }
     }
     else
     {
@@ -56,7 +60,7 @@ bool WxGlade::Import(const tt_string& filename, bool write_doc)
 
     try
     {
-        m_project = NodeCreation.createNode(gen_Project, nullptr);
+        m_project = NodeCreation.createNode(gen_Project, nullptr).first;
         if (auto src_ext = root.attribute("source_extension").as_view(); src_ext.size())
         {
             if (src_ext == ".cpp" || src_ext == ".cc" || src_ext == ".cxx")
@@ -223,7 +227,7 @@ NodeSharedPtr WxGlade::CreateGladeNode(pugi::xml_node& xml_obj, Node* parent, No
         }
     }
 
-    auto new_node = NodeCreation.createNode(getGenName, parent);
+    auto new_node = NodeCreation.createNode(getGenName, parent).first;
     if (new_node && object_not_generator)
     {
         new_node->set_value(prop_class_name, object_name);
@@ -262,7 +266,7 @@ NodeSharedPtr WxGlade::CreateGladeNode(pugi::xml_node& xml_obj, Node* parent, No
         {
             if (getGenName == gen_wxPanel)
             {
-                new_node = NodeCreation.createNode(gen_BookPage, parent);
+                new_node = NodeCreation.createNode(gen_BookPage, parent).first;
                 if (new_node)
                 {
                     if (!xml_obj.attribute("name").empty())
@@ -278,7 +282,7 @@ NodeSharedPtr WxGlade::CreateGladeNode(pugi::xml_node& xml_obj, Node* parent, No
             }
             else
             {
-                if (auto page = NodeCreation.createNode(gen_PageCtrl, parent); page)
+                if (auto page = NodeCreation.createNode(gen_PageCtrl, parent).first; page)
                 {
                     parent->adoptChild(page);
                     if (!xml_obj.attribute("name").empty())
@@ -290,7 +294,7 @@ NodeSharedPtr WxGlade::CreateGladeNode(pugi::xml_node& xml_obj, Node* parent, No
                         }
                     }
 
-                    new_node = NodeCreation.createNode(getGenName, page.get());
+                    new_node = NodeCreation.createNode(getGenName, page.get()).first;
                     if (new_node)
                         continue;
                 }
@@ -622,40 +626,6 @@ bool WxGlade::HandleNormalProperty(const pugi::xml_node& xml_obj, Node* node, No
         node->set_value(prop_id, id);
         return true;
     }
-    else if (wxue_prop == prop_font)
-    {
-        FontProperty font_info;
-        if (auto size_child = xml_obj.child("size"); size_child)
-        {
-            font_info.PointSize(size_child.text().as_double());
-        }
-        if (auto family_child = xml_obj.child("family"); family_child && family_child.text().as_view() != "default")
-        {
-            FontFamilyPairs family_pair;
-            font_info.Family(family_pair.GetValue(family_child.text().as_view()));
-        }
-        if (auto style_child = xml_obj.child("style"); style_child && style_child.text().as_view() != "normal")
-        {
-            FontStylePairs style_pair;
-            font_info.Style(style_pair.GetValue(style_child.text().as_view()));
-        }
-        if (auto weight_child = xml_obj.child("weight"); weight_child && weight_child.text().as_view() != "normal")
-        {
-            FontWeightPairs weight_pair;
-            font_info.Weight(weight_pair.GetValue(weight_child.text().as_view()));
-        }
-        if (auto underline_child = xml_obj.child("underline"); underline_child)
-        {
-            font_info.Underlined(underline_child.text().as_bool());
-        }
-        if (auto face_child = xml_obj.child("face"); face_child)
-        {
-            font_info.FaceName(face_child.text().as_cstr().make_wxString());
-        }
-
-        node->set_value(prop_font, font_info.as_string());
-        return true;
-    }
 
     return false;
 }
@@ -669,7 +639,7 @@ void WxGlade::CreateMenus(pugi::xml_node& xml_obj, Node* parent)
 
     for (auto& menu: menus.children("menu"))
     {
-        auto menu_node = NodeCreation.createNode(gen_wxMenu, parent);
+        auto menu_node = NodeCreation.createNode(gen_wxMenu, parent).first;
         parent->adoptChild(menu_node);
         for (auto& iter: menu.attributes())
         {
@@ -688,7 +658,8 @@ void WxGlade::CreateMenus(pugi::xml_node& xml_obj, Node* parent)
             auto id = item.child("id");
 
             auto new_item =
-                NodeCreation.createNode(id.text().as_view() == "---" ? gen_separator : gen_wxMenuItem, menu_node.get());
+                NodeCreation.createNode(id.text().as_view() == "---" ? gen_separator : gen_wxMenuItem, menu_node.get())
+                    .first;
             menu_node->adoptChild(new_item);
 
             for (auto& iter: item.children())
@@ -747,7 +718,7 @@ void WxGlade::CreateToolbar(pugi::xml_node& xml_obj, Node* parent)
     {
         auto id = tool.child("id");
 
-        auto new_tool = NodeCreation.createNode(id.text().as_view() == "---" ? gen_separator : gen_wxMenuItem, parent);
+        auto new_tool = NodeCreation.createNode(id.text().as_view() == "---" ? gen_separator : gen_wxMenuItem, parent).first;
         parent->adoptChild(new_tool);
         for (auto& iter: tool.children())
         {

@@ -17,9 +17,8 @@
 
 wxObject* FontPickerGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget =
-        new wxFontPickerCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxFont(prop_initial_font),
-                             DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxFontPickerCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxFont(prop_initial_font),
+                                       DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->hasValue(prop_max_point_size))
     {
@@ -72,7 +71,7 @@ bool FontPickerGenerator::ConstructionCode(Code& code)
             code.Add("wxNullFont");
     }
 
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -94,7 +93,7 @@ bool FontPickerGenerator::SettingsCode(Code& code)
 }
 
 bool FontPickerGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/fontpicker.h>", set_src, set_hdr);
     InsertGeneratorInclude(node, "#include <wx/font.h>", set_src, set_hdr);

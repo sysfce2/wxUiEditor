@@ -19,8 +19,8 @@
 
 wxObject* HtmlListBoxGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxSimpleHtmlListBox(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                          DlgSize(parent, node, prop_size), 0, nullptr, GetStyleInt(node));
+    auto widget = new wxSimpleHtmlListBox(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                          DlgSize(node, prop_size), 0, nullptr, GetStyleInt(node));
 
     if (node->hasValue(prop_contents))
     {
@@ -125,16 +125,23 @@ bool HtmlListBoxGenerator::SettingsCode(Code& code)
 }
 
 bool HtmlListBoxGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                       int /* language */)
+                                       GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/htmllbox.h>", set_src, set_hdr);
     return true;
 }
 
-bool HtmlListBoxGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool HtmlListBoxGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/html'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/html'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }
 
 // ../../wxSnapShot/src/xrc/xh_simplehtmllbox.cpp

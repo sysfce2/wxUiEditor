@@ -18,8 +18,7 @@
 wxObject* RichTextCtrlGenerator::CreateMockup(Node* node, wxObject* parent)
 {
     auto widget = new wxRichTextCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_value),
-                                     DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size),
-                                     GetStyleInt(node) | wxRE_MULTILINE);
+                                     DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node) | wxRE_MULTILINE);
 
     if (node->hasValue(prop_hint))
         widget->SetHint(node->as_wxString(prop_hint));
@@ -33,7 +32,7 @@ bool RichTextCtrlGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id).Comma().QuotedString(prop_value);
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -84,14 +83,21 @@ void RichTextCtrlGenerator::RequiredHandlers(Node* /* node */, std::set<std::str
 }
 
 bool RichTextCtrlGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                        int /* language */)
+                                        GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/richtext/richtextctrl.h>", set_src, set_hdr);
     return true;
 }
 
-bool RichTextCtrlGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool RichTextCtrlGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/rtc'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/rtc'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }

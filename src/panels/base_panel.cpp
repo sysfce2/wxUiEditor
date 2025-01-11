@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Code code generation panel
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2021 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -46,13 +46,32 @@ const char* g_ruby_keywords = "ENCODING LINE FILE BEGIN END alias and begin brea
                               " elsif end ensure false for if in module next nil not or redo require rescue retry"
                               " return self super then true undef unless until when while yield";
 
-BasePanel::BasePanel(wxWindow* parent, MainFrame* frame, int panel_type) : wxPanel(parent)
+const char* g_perl_keywords = "do if else elsif unless while until for foreach last next pod cut redo continue "
+                              "qw sub return goto and or not xor "
+                              "unless use no package require my our local state ";
+
+const char* g_lua_keywords =
+    "and break do else elseif end false for function goto if in local nil not or repeat return then true until while";
+
+const char* g_rust_keywords =
+    "as break const continue crate do else enum extern false fn for if impl in let loop match mod move mut pub "
+    "ref return self self mut static struct trait true type unsafe use where while";
+
+const char* g_haskell_keywords =
+    "case class data deriving do else if import in infix infixl infixr instance let module newtype of then type where";
+
+const char* g_fortran_keywords = "program module subroutine function if else end do select case";
+
+BasePanel::BasePanel(wxWindow* parent, MainFrame* frame, GenLang panel_type) : wxPanel(parent)
 {
     m_panel_type = panel_type;
     auto top_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_notebook = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TOP);
     m_notebook->SetArtProvider(new wxAuiGenericTabArt());
+
+    // Note that a lot of code assumes m_hPanel is valid. It is up to the language generator to generate inherited
+    // classes, or just generate generation information about the class.
 
     if (m_panel_type == GEN_LANG_CPLUSPLUS)
     {
@@ -68,39 +87,66 @@ BasePanel::BasePanel(wxWindow* parent, MainFrame* frame, int panel_type) : wxPan
         m_derived_hdr_panel = new CodeDisplay(m_notebook, panel_type);
         m_notebook->AddPage(m_derived_hdr_panel, "derived_hdr", false, wxWithImages::NO_IMAGE);
     }
+    else if (m_panel_type == GEN_LANG_PERL)
+    {
+        m_cppPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
+        m_hPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
+    }
     else if (m_panel_type == GEN_LANG_PYTHON)
     {
         m_cppPanel = new CodeDisplay(m_notebook, panel_type);
         m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
-
-        // A lot of code expects m_hPanel to exist. This will give us something to add additional information to, such as
-        // which properties are not supported.
-
         m_hPanel = new CodeDisplay(m_notebook, panel_type);
-        m_notebook->AddPage(m_hPanel, "inherit", false, wxWithImages::NO_IMAGE);
+        m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
     }
     else if (m_panel_type == GEN_LANG_RUBY)
     {
         m_cppPanel = new CodeDisplay(m_notebook, panel_type);
         m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
-
-        // A lot of code expects m_hPanel to exist. This will give us something to add additional information to, such as
-        // which properties are not supported.
-
         m_hPanel = new CodeDisplay(m_notebook, panel_type);
-        m_notebook->AddPage(m_hPanel, "inherit", false, wxWithImages::NO_IMAGE);
+        m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
     }
     else if (m_panel_type == GEN_LANG_XRC)
     {
         m_cppPanel = new CodeDisplay(m_notebook, panel_type);
         m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
-
-        // A lot of code expects m_hPanel to exist. This will give us something to add additional information to, such as
-        // which properties are not supported.
-
         m_hPanel = new CodeDisplay(m_notebook, panel_type);
         m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
     }
+    else if (m_panel_type == GEN_LANG_RUST)
+    {
+        m_cppPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
+        m_hPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
+    }
+
+#if GENERATE_NEW_LANG_CODE
+    else if (m_panel_type == GEN_LANG_FORTRAN)
+    {
+        m_cppPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
+        m_hPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
+    }
+    else if (m_panel_type == GEN_LANG_HASKELL)
+    {
+        m_cppPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
+        m_hPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
+    }
+    else if (m_panel_type == GEN_LANG_LUA)
+    {
+        m_cppPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_cppPanel, "source", false, wxWithImages::NO_IMAGE);
+        m_hPanel = new CodeDisplay(m_notebook, panel_type);
+        m_notebook->AddPage(m_hPanel, "info", false, wxWithImages::NO_IMAGE);
+    }
+#endif  // GENERATE_NEW_LANG_CODE
+
     else
     {
         FAIL_MSG("Unknown Panel type!")
@@ -172,7 +218,10 @@ BasePanel::BasePanel(wxWindow* parent, MainFrame* frame, int panel_type) : wxPan
     frame->AddCustomEventHandler(GetEventHandler());
 }
 
-BasePanel::~BasePanel() {}
+BasePanel::~BasePanel()
+{
+    wxGetMainFrame()->RemoveCustomEventHandler(GetEventHandler());
+}
 
 wxString BasePanel::GetSelectedText()
 {
@@ -303,6 +352,10 @@ void BasePanel::GenerateBaseClass()
             codegen.GenerateDerivedClass(Project.getProjectNode(), m_cur_form, panel_page);
             break;
 
+        case GEN_LANG_PERL:
+            codegen.GeneratePerlClass(panel_page);
+            break;
+
         case GEN_LANG_PYTHON:
             codegen.GeneratePythonClass(panel_page);
             break;
@@ -311,9 +364,27 @@ void BasePanel::GenerateBaseClass()
             codegen.GenerateRubyClass(panel_page);
             break;
 
+        case GEN_LANG_RUST:
+            codegen.GenerateRustClass(panel_page);
+            break;
+
         case GEN_LANG_XRC:
             codegen.GenerateXrcClass(panel_page);
             break;
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            codegen.GenerateFortranClass(panel_page);
+            break;
+
+        case GEN_LANG_HASKELL:
+            codegen.GenerateHaskellClass(panel_page);
+            break;
+
+        case GEN_LANG_LUA:
+            codegen.GenerateLuaClass(panel_page);
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
 
         default:
             FAIL_MSG("Unknown panel type!")

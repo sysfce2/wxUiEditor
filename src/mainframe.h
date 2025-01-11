@@ -78,19 +78,27 @@ public:
     NavigationPanel* getNavigationPanel() { return m_nav_panel; }
     RibbonPanel* getRibbonPanel() { return m_ribbon_panel; }
 
+    BasePanel* GetFirstCodePanel();
     BasePanel* GetCppPanel() { return m_cppPanel; }
+    BasePanel* GetPerlPanel() { return m_perlPanel; }
     BasePanel* GetPythonPanel() { return m_pythonPanel; }
     BasePanel* GetRubyPanel() { return m_rubyPanel; }
+    BasePanel* GetRustPanel() { return m_rustPanel; }
     BasePanel* GetXrcPanel() { return m_xrcPanel; }
+
+    BasePanel* GetFortranPanel() { return m_fortranPanel; }
+    BasePanel* GetHaskellPanel() { return m_haskellPanel; }
+    BasePanel* GetLuaPanel() { return m_luaPanel; }
+
+    void UpdateLanguagePanels();
 
     wxAuiNotebook* getTopNotebook() { return m_notebook; }
     DocViewPanel* getDocViewPanel() { return m_docviewPanel; }
 
-#if defined(INTERNAL_TESTING)
     ImportPanel* getImportPanel() { return m_imnportPanel; }
-#endif
 
     void AddCustomEventHandler(wxEvtHandler* handler) { m_custom_event_handlers.push_back(handler); }
+    void RemoveCustomEventHandler(wxEvtHandler* handler);
 
     void FireChangeEventHandler(NodeEvent* event);
     void FireCreatedEvent(Node* node);
@@ -180,14 +188,6 @@ public:
     // that aligns with the PropertyGrid panel.
     void setStatusField(const tt_string text, int position = -1);
 
-    // Search for a sizer to move the node into.
-    // Set include_splitter to treat a splitter window like a sizer.
-    Node* FindChildSizerItem(Node* node, bool include_splitter = false);
-    Node* FindChildSizerItem(const NodeSharedPtr& node, bool include_splitter = false)
-    {
-        return FindChildSizerItem(node.get(), include_splitter);
-    }
-
     const wxSize& GetMenuDpiSize() { return m_dpi_menu_size; }
     const wxSize& GetRibbonDpiSize() { return m_dpi_ribbon_size; }
     const wxSize& GetToolbarDpiSize() { return m_dpi_toolbar_size; }
@@ -218,6 +218,7 @@ public:
 
     bool SaveWarning();
     void UpdateFrame();
+    void OnProjectLoaded();
 
     bool isModified() { return m_isProject_modified; }
 
@@ -232,9 +233,12 @@ public:
 
     wxInfoBar* GetPropInfoBar() { return m_info_bar; }
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
+    // Shows info bar message above code display panels
+    // icon is one of wxICON_INFORMATION, wxICON_WARNING, wxICON_ERROR, or wxICON_QUESTION
+    void ShowInfoBarMsg(const tt_string& msg, int icon = wxICON_WARNING);
+    void DismissInfoBar();
+
     wxFileHistory* GetAppendImportHistory() { return &m_ImportHistory; }
-#endif  // _DEBUG
 
     void ProjectLoaded();
     void ProjectSaved();
@@ -261,12 +265,17 @@ public:
     void OnSaveProject(wxCommandEvent& event) override;
     void OnGenerateCode(wxCommandEvent& event) override;
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
     void OnGenSingleCpp(wxCommandEvent& event);
+    void OnGenSingleFortran(wxCommandEvent& event);
+    void OnGenSingleHaskell(wxCommandEvent& event);
+    void OnGenSingleLua(wxCommandEvent& event);
+    void OnGenSinglePerl(wxCommandEvent& event);
     void OnGenSinglePython(wxCommandEvent& event);
     void OnGenSingleRuby(wxCommandEvent& event);
+    void OnGenSingleRust(wxCommandEvent& event);
     void OnGenSingleXRC(wxCommandEvent& event);
-#endif
+
+    void OnInsertWidget(wxCommandEvent&) override;
 
 protected:
     void OnAbout(wxCommandEvent& event) override;
@@ -292,7 +301,6 @@ protected:
     void OnImportProject(wxCommandEvent& event);
     void OnImportRecent(wxCommandEvent& event);
     void OnImportWindowsResource(wxCommandEvent& event) override;
-    void OnInsertWidget(wxCommandEvent&) override;
     void OnNewProject(wxCommandEvent& event);
     void OnOpenRecentProject(wxCommandEvent& event);
     void OnPaste(wxCommandEvent& event) override;
@@ -313,17 +321,13 @@ protected:
 
     void OnFindWidget(wxCommandEvent& event);
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    void OnConvertImageDlg(wxCommandEvent& event);
-    void OnGeneratePython(wxCommandEvent& event);
-    void OnGenerateRuby(wxCommandEvent& event);
-#endif
+    void OnXrcPreview(wxCommandEvent& e);
+    void OnTestXrcImport(wxCommandEvent& e);
+    void OnTestXrcDuplicate(wxCommandEvent& e);
 
 #if defined(_DEBUG)  // Starts debug section.
 
-    void OnTestXrcImport(wxCommandEvent& e);
-    void OnTestXrcDuplicate(wxCommandEvent& e);
-    void OnXrcPreview(wxCommandEvent& e);
+    void OnConvertImageDlg(wxCommandEvent& event);
 
 #endif
 
@@ -364,14 +368,19 @@ private:
 
     BasePanel* m_cppPanel { nullptr };
 
-    // Language panels
+    // Language panels -- whether they are actually created is dependent on defitions in pch.h as
+    // well as user preferences.
+    BasePanel* m_perlPanel { nullptr };
     BasePanel* m_pythonPanel { nullptr };
     BasePanel* m_rubyPanel { nullptr };
+    BasePanel* m_rustPanel { nullptr };
     BasePanel* m_xrcPanel { nullptr };
 
-#if defined(INTERNAL_TESTING)
+    BasePanel* m_fortranPanel { nullptr };
+    BasePanel* m_haskellPanel { nullptr };
+    BasePanel* m_luaPanel { nullptr };
+
     ImportPanel* m_imnportPanel { nullptr };
-#endif
 
     int m_MainSashPosition { 300 };
     int m_SecondarySashPosition { 300 };
@@ -386,17 +395,15 @@ private:
     wxFindReplaceDialog* m_findDialog { nullptr };
 
     wxFileHistory m_FileHistory;
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
     wxFileHistory m_ImportHistory;
     wxMenu* m_submenu_import_recent;
-
-#endif  // _DEBUG
 
     wxSize m_dpi_menu_size;
     wxSize m_dpi_ribbon_size;
     wxSize m_dpi_toolbar_size;
 
     wxInfoBar* m_info_bar { nullptr };
+    bool m_info_bar_dismissed { true };
 
     ueStatusBar* m_statBar { nullptr };
 
@@ -438,7 +445,6 @@ inline MainFrame& wxGetFrame()
 // Returns a pointer to the mainframe window
 inline MainFrame* wxGetMainFrame()
 {
-    ASSERT_MSG(wxGetApp().getMainFrame(), "MainFrame hasn't been created yet.");
     return wxGetApp().getMainFrame();
 }
 

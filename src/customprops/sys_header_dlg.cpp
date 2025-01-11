@@ -41,7 +41,7 @@ bool SysHeaderDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title
     m_text_ctrl = new wxTextCtrl(collapsible_pane->GetPane(), wxID_ANY,
         "Start by selecting or adding a root directory. This should either be a directory in your $INCLUDE environment, or one that is passed to the compiler using -I. Header files will then be displayed automatically relative to this directory. Check the ones you want to add.",
         wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxTE_NO_VSCROLL|wxBORDER_NONE);
-    m_text_ctrl->SetMinSize(ConvertDialogToPixels(wxSize(200, -1)));
+    m_text_ctrl->SetMinSize(FromDIP(wxSize(400, -1)));
     m_text_ctrl->SetBackgroundColour(wxColour("#F0F0F0"));
     box_sizer->Add(m_text_ctrl, wxSizerFlags(1).Expand().Border(wxALL));
     collapsible_pane->GetPane()->SetSizerAndFit(box_sizer);
@@ -74,7 +74,7 @@ bool SysHeaderDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title
     m_check_list_files = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_MULTIPLE|
         wxLB_SORT);
     m_check_list_files->SetValidator(wxGenericValidator(&m_file_indexes));
-    m_check_list_files->SetMinSize(ConvertDialogToPixels(wxSize(-1, 90)));
+    m_check_list_files->SetMinSize(FromDIP(wxSize(-1, 225)));
     box_sizer6->Add(m_check_list_files, wxSizerFlags(1).Expand().Border(wxALL));
 
     dlg_sizer->Add(box_sizer6, wxSizerFlags(1).Expand().Border(wxALL));
@@ -82,9 +82,25 @@ bool SysHeaderDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizer(dlg_sizer);
-    SetMinSize(ConvertDialogToPixels(wxSize(400, -1)));
-    Fit();
+    SetMinSize(FromDIP(wxSize(800, -1)));
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     wxPersistentRegisterAndRestore(this, "SysHeaderDlg");

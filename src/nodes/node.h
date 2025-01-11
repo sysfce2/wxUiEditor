@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Node class
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -37,6 +37,22 @@ using namespace GenEnum;
 class Node : public std::enable_shared_from_this<Node>
 {
 public:
+    // node creation error codes
+    enum
+    {
+        valid_node = 0,
+        unsupported_language = -1,
+        unknown_gen_name = -2,
+        parent_not_wxFrame = -3,
+        invalid_tool_grandparent = -4,
+        invalid_page_grandparent = -5,
+        invalid_child_count = -6,
+        gridbag_insert_error = -7,
+        invalid_child = -8,  // Requiested child is not allowed for the parent
+
+        unknown_error = -99,
+    };
+
     Node(NodeDeclaration* declaration);
 
     // Use get_name() if you want the enum value.
@@ -136,7 +152,8 @@ public:
     bool isSizer() const noexcept { return (isType(type_sizer) || isType(type_gbsizer)); }
     bool isContainer() const noexcept
     {
-        return (isType(type_container) || isType(type_propsheetform) || tt::contains(map_GenTypes[getGenType()], "book"));
+        return (isType(type_container) || isType(type_propsheetform) || isType(type_panel) ||
+                tt::contains(map_GenTypes[getGenType()], "book"));
     }
 
     // Returns true if access property == none or there is no access property
@@ -148,8 +165,16 @@ public:
     // Returns the value of the property "var_name" or "class_name"
     const tt_string& getNodeName() const;
 
+    // May remove prefix based on the language -- e.g., @foo become foo unless the language
+    // is GEN_LANG_RUBY
+    tt_string_view getNodeName(GenLang lang) const;
+
     // Returns the value of the parent property "var_name" or "class_name"
     const tt_string& getParentName() const;
+
+    // May remove prefix based on the language -- e.g., @foo become foo unless the language
+    // is GEN_LANG_RUBY
+    tt_string_view getParentName(GenLang lang) const;
 
     // Returns this if the node is a form, else walks up node tree to find the parent form.
     Node* getForm() noexcept;
@@ -380,8 +405,11 @@ public:
     void createDoc(pugi::xml_document& doc);
 
     // This creates an orphaned node -- it is the caller's responsibility to hook it up with
-    // a parent.
-    Node* createChildNode(GenName name);
+    // a parent. Returns the node and an error code.
+    //
+    // If verify_language_support is true, then the node will only be created if the
+    // preferred language supports it (unless the user agrees to create it anyway)
+    std::pair<NodeSharedPtr, int> createChildNode(GenName name, bool verify_language_support = false, int pos = -1);
 
     // Gets the current selected node and uses that to call createChildNode().
     Node* createNode(GenName name);
@@ -389,7 +417,7 @@ public:
     // This is the preferred way to create a new node when requested by the user (tool, menu,
     // or dialog). Besides creating the node, some nodes will get special processing to
     // automatically create additional child nodes.
-    bool createToolNode(GenName name);
+    bool createToolNode(GenName name, int pos = -1);
 
     // This will modify the property and fire a EVT_NodePropChange event if the property
     // actually changed

@@ -18,8 +18,8 @@
 
 wxObject* PropertyGridGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxPropertyGrid(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                     DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxPropertyGrid(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                     DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->hasValue(prop_extra_style))
     {
@@ -39,7 +39,7 @@ void PropertyGridGenerator::AfterCreation(wxObject* wxobject, wxWindow* /* wxpar
 bool PropertyGridGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass().ValidParentName().Comma().as_string(prop_id);
-    code.PosSizeFlags(false, "wxPG_DEFAULT_STYLE");
+    code.PosSizeFlags(code::allow_scaling, false, "wxPG_DEFAULT_STYLE");
 
     if (code.hasValue(prop_extra_style))
         code.Eol().NodeName().Function("SetExtraStyle(").Add(prop_extra_style).EndFunction();
@@ -48,7 +48,7 @@ bool PropertyGridGenerator::ConstructionCode(Code& code)
 }
 
 bool PropertyGridGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                        int /* language */)
+                                        GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/propgrid/propgrid.h>", set_src, set_hdr);
 
@@ -60,8 +60,15 @@ bool PropertyGridGenerator::GetIncludes(Node* node, std::set<std::string>& set_s
     return true;
 }
 
-bool PropertyGridGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool PropertyGridGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/pg'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/pg'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }

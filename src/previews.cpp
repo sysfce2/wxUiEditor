@@ -166,6 +166,9 @@ void Preview(Node* form_node)
             return;
         }
 
+        tt_cwd cwd(true);
+        wxSetWorkingDirectory(Project.ArtDirectory().make_wxString());
+
         XrcCompare dlg_compare;
         if (!dlg_compare.DoCreate(wxGetMainFrame(), form_node))
         {
@@ -255,6 +258,9 @@ void PreviewXrc(Node* form_node)
             wxMessageBox("wxWidgets could not parse the XRC data.", "XRC Preview");
             return;
         }
+
+        tt_cwd cwd(true);
+        wxSetWorkingDirectory(Project.ArtDirectory().make_wxString());
 
         switch (form_node->getGenName())
         {
@@ -395,8 +401,7 @@ void MainFrame::PreviewCpp(Node* form_node)
                 {
                     wxDialog dlg;
                     if (!dlg.Create(wxGetMainFrame(), wxID_ANY, form_node->as_string(prop_title),
-                                    DlgPoint(this, form_node, prop_pos), DlgSize(this, form_node, prop_size),
-                                    GetStyleInt(form_node)))
+                                    DlgPoint(form_node, prop_pos), DlgSize(form_node, prop_size), GetStyleInt(form_node)))
                     {
                         wxMessageBox("Unable to create dialog", "C++ Preview");
                         return;
@@ -444,8 +449,8 @@ void MainFrame::PreviewCpp(Node* form_node)
 
             case gen_wxFrame:
                 if (auto* frame =
-                        new wxFrame(nullptr, wxID_ANY, form_node->as_string(prop_title), DlgPoint(this, form_node, prop_pos),
-                                    DlgSize(this, form_node, prop_size), GetStyleInt(form_node));
+                        new wxFrame(nullptr, wxID_ANY, form_node->as_string(prop_title), DlgPoint(form_node, prop_pos),
+                                    DlgSize(form_node, prop_size), GetStyleInt(form_node));
                     frame)
                 {
                     for (auto& iter: form_node->getChildNodePtrs())
@@ -470,14 +475,14 @@ void MainFrame::PreviewCpp(Node* form_node)
                     {
                         auto bundle = form_node->as_wxBitmapBundle(prop_bitmap);
                         if (!wizard.Create(wxGetMainFrame(), wxID_ANY, form_node->as_string(prop_title), bundle,
-                                           DlgPoint(this, form_node, prop_pos), GetStyleInt(form_node)))
+                                           DlgPoint(form_node, prop_pos), GetStyleInt(form_node)))
                         {
                             wxMessageBox("Unable to create wizard", "C++ Preview");
                             return;
                         }
                     }
                     else if (!wizard.Create(wxGetMainFrame(), wxID_ANY, form_node->as_string(prop_title), wxNullBitmap,
-                                            DlgPoint(this, form_node, prop_pos), GetStyleInt(form_node)))
+                                            DlgPoint(form_node, prop_pos), GetStyleInt(form_node)))
                     {
                         wxMessageBox("Unable to create wizard", "C++ Preview");
                         return;

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 // Purpose:   wxStatusBar generator
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2022 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -86,7 +86,28 @@ bool StatusBarGenerator::ConstructionCode(Code& code)
     else
         num_fields = node->as_int(prop_fields);
 
-    code.AddAuto().NodeName().Str(" = ").FormFunction("CreateStatusBar(");
+    if (node->hasValue(prop_subclass))
+    {
+        code.AddAuto().NodeName();
+        code.CreateClass(false, "", true);
+        code.ValidParentName().Comma().as_string(prop_id).Comma().Style();
+        if (node->hasValue(prop_window_name))
+        {
+            code.Comma().QuotedString(prop_window_name);
+        }
+        code.EndFunction();
+        if (num_fields > 0)
+        {
+            code.Eol().NodeName().Function("SetFieldsCount(").itoa(num_fields).EndFunction();
+        }
+        code.Eol().FormFunction("SetStatusBar(").NodeName().EndFunction();
+        return true;
+    }
+    else
+    {
+        code.AddAuto().NodeName().Str(" = ").FormFunction("CreateStatusBar(");
+    }
+
     if (node->hasValue(prop_window_name))
     {
         code.itoa(num_fields).Comma().as_string(prop_id).Comma().Style();
@@ -169,7 +190,7 @@ int StatusBarGenerator::GetRequiredVersion(Node* node)
 }
 
 bool StatusBarGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                     int /* language */)
+                                     GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/statusbr.h>", set_src, set_hdr);
     return true;

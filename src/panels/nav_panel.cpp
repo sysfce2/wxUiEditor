@@ -262,24 +262,24 @@ void NavigationPanel::OnSelChanged(wxTreeEvent& event)
         else
             m_pMainFrame->getPropPanel()->Create();
 
-        if (Project.as_string(prop_code_preference) == "Python")
+        // TODO: [Randalphwa - 09-30-2024] Once all generators support isLanguageVersionSupported(),
+        // this should be changed to call the generator to determine if the control is
+        // supported by the current language.
+
+        if (Project.getCodePreference() == GEN_LANG_PYTHON)
         {
             if (std::find(unsupported_gen_python.begin(), unsupported_gen_python.end(), iter->second->getGenName()) !=
                 unsupported_gen_python.end())
             {
-                auto info = wxGetFrame().GetPropInfoBar();
-                info->Dismiss();
-                info->ShowMessage("This control is not supported by wxPython.", wxICON_INFORMATION);
+                wxGetFrame().ShowInfoBarMsg("This control is not supported by wxPython.", wxICON_INFORMATION);
             }
         }
-        if (Project.as_string(prop_code_preference) == "Ruby")
+        else if (Project.getCodePreference() == GEN_LANG_RUBY)
         {
             if (std::find(unsupported_gen_ruby.begin(), unsupported_gen_ruby.end(), iter->second->getGenName()) !=
                 unsupported_gen_ruby.end())
             {
-                auto info = wxGetFrame().GetPropInfoBar();
-                info->Dismiss();
-                info->ShowMessage("This control is not supported by wxRuby.", wxICON_INFORMATION);
+                wxGetFrame().ShowInfoBarMsg("This control is not supported by wxRuby.", wxICON_INFORMATION);
             }
         }
         else if (Project.as_string(prop_code_preference) == "XRC")
@@ -287,9 +287,7 @@ void NavigationPanel::OnSelChanged(wxTreeEvent& event)
             if (std::find(unsupported_gen_XRC.begin(), unsupported_gen_XRC.end(), iter->second->getGenName()) !=
                 unsupported_gen_XRC.end())
             {
-                auto info = wxGetFrame().GetPropInfoBar();
-                info->Dismiss();
-                info->ShowMessage("This control is not supported by XRC.", wxICON_INFORMATION);
+                wxGetFrame().ShowInfoBarMsg("This control is not supported by XRC.", wxICON_INFORMATION);
             }
         }
 

@@ -19,8 +19,8 @@
 
 wxObject* NotebookGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxNotebook(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                 DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxNotebook(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                 DlgSize(node, prop_size), GetStyleInt(node));
 
     AddBookImageList(node, widget);
 
@@ -41,14 +41,14 @@ void NotebookGenerator::OnPageChanged(wxNotebookEvent& event)
 bool NotebookGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
-    code.ValidParentName().Comma().as_string(prop_id).PosSizeFlags(false);
+    code.ValidParentName().Comma().as_string(prop_id).PosSizeFlags();
     BookCtorAddImagelist(code);
 
     return true;
 }
 
 bool NotebookGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/notebook.h>", set_src, set_hdr);
     if (node->hasValue(prop_persist_name))

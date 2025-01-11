@@ -1,6 +1,7 @@
 set (file_list_dir ${CMAKE_CURRENT_LIST_DIR})
 
 # wxui/wxui_code.cmake
+# ../internal.cmake
 
 set (file_list
 
@@ -28,6 +29,7 @@ set (file_list
     tt/tt_string_view.cpp   # std::string_view with additional methods
     tt/tt_string_vector.cpp # Class for reading and writing line-oriented strings/files
     tt/tt_view_vector.cpp   # Class for reading and writing line-oriented strings/files
+    tt/tt_wxString.cpp      # wxString with additional methods
 
     # Custom property handling for Property Grid panel
 
@@ -88,9 +90,15 @@ set (file_list
 
     generate/gen_cpp.cpp           # Generate C++ code
     generate/gen_derived.cpp       # Generate C++ Derived code
+    generate/gen_perl.cpp          # Generate wxPerl code
     generate/gen_python.cpp        # Generate wxPython code
     generate/gen_ruby.cpp          # Generate wxRuby3 code
+    generate/gen_rust.cpp          # Generate wxRust code
     generate/gen_xrc.cpp           # Generate XRC
+
+    # generate/gen_fortran.cpp       # Generate wxFortran code
+    # generate/gen_haskell.cpp       # Generate wxHaskell code
+    # generate/gen_lua.cpp           # Generate wxLua/wxLuaJIT code
 
     # Generators are responsible for displaying the widget in the Mockup window,
     # and generating both C++, Python, Ruby and XRC code. If the generated object
@@ -181,12 +189,12 @@ set (file_list
 
     # Forms
 
-    generate/gen_dialog.cpp             # wxDialog generator
-    generate/gen_frame.cpp              # wxFrame generator
-    generate/gen_panel_form.cpp         # wxPanel Form generator
-    generate/gen_popup_trans_win.cpp    # wxPopupTransientWindow generator
-    generate/gen_propsheet_dlg.cpp      # wxPropertySheetDialog generator
-    generate/gen_wizard.cpp             # wxWizard generator
+    generate/gen_dialog.cpp         # wxDialog generator
+    generate/gen_frame.cpp          # wxFrame generator
+    generate/gen_panel_form.cpp     # wxPanel Form generator
+    generate/gen_popup_win.cpp      # wxPopupTransientWindow generator
+    generate/gen_propsheet_dlg.cpp  # wxPropertySheetDialog generator
+    generate/gen_wizard.cpp         # wxWizard generator
 
     # Menus
 
@@ -237,7 +245,7 @@ set (file_list
     generate/gen_ribbon_tool.cpp     # wxRibbonToolBar generator
     generate/gen_toolbar.cpp         # wxToolBar generator
 
-    ############################# end generators ##############################
+    ############################# Importers ##############################
 
     # Importers (also see Windows Resource importer below)
 
@@ -250,13 +258,14 @@ set (file_list
 
     # (generated) import/import_winres_dlg.cpp
 
-    # Mockup panel
+    ############################# Mockup Panel ##############################
 
     mockup/mockup_content.cpp   # Mockup of a form's contents
     mockup/mockup_parent.cpp    # Top-level MockUp Parent window
     mockup/mockup_preview.cpp   # Preview Mockup
     mockup/mockup_wizard.cpp    # Emulate a wxWizard
 
+    ############################# New Form Dialogs ##############################
     # Dialogs for creating new forms
 
     newdialogs/new_common.cpp   # Contains code common between all new_ dialogs
@@ -270,7 +279,7 @@ set (file_list
     # (generated) newdialogs/new_wizard.cpp     # Dialog for creating a new wxWizard
     # (generated) newdialogs/new_dialog.cpp     # Dialog for creating a new project dialog
 
-    # Nodes
+    ############################# Nodes ##############################
 
     nodes/node.cpp              # Contains user-modifiable node
     nodes/node_constants.cpp    # Maps wxWidgets constants to their numerical value
@@ -281,7 +290,7 @@ set (file_list
     nodes/node_prop.cpp         # NodeProperty class
     nodes/tool_creator.cpp      # Functions for creating new nodes from Ribbon Panel
 
-    # Panels
+    ############################# Panels ##############################
 
     panels/base_panel.cpp       # Code generation panel
     panels/code_display.cpp     # Display code in scintilla control
@@ -306,6 +315,16 @@ set (file_list
     utils/dlg_msgs.cpp          # wxMessageDialog dialogs
     utils/font_prop.cpp         # FontProperty class
     utils/utils.cpp             # Utility functions that work with properties
+
+    # Testing
+
+    internal/node_info.cpp     # Node memory usage dialog
+    internal/msgframe.cpp      # Stores messages
+    internal/msg_logging.cpp   # Message logging class
+    internal/import_panel.cpp  # Panel to display original imported file
+    internal/xrcpreview.cpp    # Test XRC
+    internal/import_panel.cpp  # Panel to display original imported file
+    tests/test_xrc_import.cpp  # XRC Import tests
 
     # Tools
 
@@ -340,8 +359,7 @@ set (file_list
 
     # (generated) ui/preferences_dlg.cpp  # Preferences dialog
 
-    $<$<CONFIG:Debug>:internal/convert_img.cpp>     # Convert image
-
+    $<$<CONFIG:Debug>:internal/convert_img.cpp>   # Convert image
     $<$<CONFIG:Debug>:tests/test_xrc_import.cpp>  # XRC Import tests
 )
 
@@ -350,18 +368,14 @@ set (debug_files
 
     internal/code_compare.cpp
     internal/convert_img.cpp
-    internal/import_panel.cpp
-
 
     internal/code_compare.cpp
     internal/convert_img_base.cpp
     internal/debugsettings.cpp
     internal/msgframe_base.cpp
-    internal/node_info.cpp
     internal/node_search_dlg.cpp
     internal/undo_info.cpp
     internal/unused_gen_dlg.cpp
-    internal/xrcpreview.cpp
 
     tools/generate_dlg.cpp
     tools/preview_settings.cpp
@@ -370,7 +384,6 @@ set (debug_files
     wxui/code_preference_dlg.cpp
     wxui/dlg_gen_results.cpp
 
-    tests/test_xrc_import.cpp
 
 )
 

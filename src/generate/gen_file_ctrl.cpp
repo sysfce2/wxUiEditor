@@ -27,8 +27,8 @@ wxObject* FileCtrlGenerator::CreateMockup(Node* node, wxObject* parent)
         wild = wxFileSelectorDefaultWildcardStr;
 
     auto widget = new wxFileCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_initial_folder),
-                                 node->as_wxString(prop_initial_filename), wild, GetStyleInt(node),
-                                 DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size));
+                                 node->as_wxString(prop_initial_filename), wild, GetStyleInt(node), DlgPoint(node, prop_pos),
+                                 DlgSize(node, prop_size));
 
     if (!(node->as_int(prop_style) & wxFC_NOSHOWHIDDEN))
         widget->ShowHidden(node->as_bool(prop_show_hidden));
@@ -102,7 +102,7 @@ bool FileCtrlGenerator::SettingsCode(Code& code)
 }
 
 bool FileCtrlGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/filectrl.h>", set_src, set_hdr);
     return true;

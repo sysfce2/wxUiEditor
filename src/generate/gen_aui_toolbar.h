@@ -26,12 +26,12 @@ public:
     void GenEvent(Code&, NodeEvent*, const std::string&) override;
 
     bool GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                     int /* language */) override;
+                     GenLang /* language */) override;
 
     int GenXrcObject(Node*, pugi::xml_node& /* object */, size_t /* xrc_flags */) override;
     void RequiredHandlers(Node*, std::set<std::string>& /* handlers */) override;
 
-    bool GetRubyImports(Node*, std::set<std::string>& /* set_imports */) override;
+    bool GetImports(Node*, std::set<std::string>& /* set_imports */, GenLang language) override;
 
 protected:
     void OnTool(wxCommandEvent& event);
@@ -48,12 +48,12 @@ public:
     bool AfterChildrenCode(Code&) override;
 
     bool GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                     int /* language */) override;
+                     GenLang /* language */) override;
 
     int GenXrcObject(Node*, pugi::xml_node& /* object */, size_t /* xrc_flags */) override;
     void RequiredHandlers(Node*, std::set<std::string>& /* handlers */) override;
 
-    bool GetRubyImports(Node*, std::set<std::string>& /* set_imports */) override;
+    bool GetImports(Node*, std::set<std::string>& /* set_imports */, GenLang language) override;
 
 protected:
     void OnTool(wxCommandEvent& event);
@@ -64,7 +64,7 @@ class AuiToolGenerator : public BaseGenerator
 public:
     bool ConstructionCode(Code& code) override;
     bool GetIncludes(Node*, std::set<std::string>& /* set_src */, std::set<std::string>& /* set_hdr */,
-                     int /* language */) override;
+                     GenLang /* language */) override;
 
     int GenXrcObject(Node*, pugi::xml_node& /* object */, size_t /* xrc_flags */) override;
     int GetRequiredVersion(Node* /*node*/) override;

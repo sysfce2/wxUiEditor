@@ -13,6 +13,7 @@
 #include "base_generator.h"  // BaseGenerator -- Base widget generator class
 #include "bitmaps.h"         // Contains various images handling functions
 #include "clipboard.h"       // Handles reading and writing OS clipboard data
+#include "gen_common.h"      // Common component functions
 #include "mainframe.h"       // MainFrame -- Main window frame
 #include "nav_panel.h"       // NavigationPanel -- Navigation Panel
 #include "node.h"            // Node class
@@ -291,7 +292,6 @@ void NavPopupMenu::OnMenuEvent(wxCommandEvent& event)
             ChangeSizer(gen_wxWrapSizer);
             break;
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
         case MenuSingleGenCpp:
             {
                 wxCommandEvent dummy;
@@ -299,17 +299,27 @@ void NavPopupMenu::OnMenuEvent(wxCommandEvent& event)
             }
             break;
 
+        case MenuSingleGenPerl:
+            {
+                OnGenerateSingleLanguage(GEN_LANG_PERL);
+            }
+            break;
+
         case MenuSingleGenPython:
             {
-                wxCommandEvent dummy;
-                wxGetMainFrame()->OnGenSinglePython(dummy);
+                OnGenerateSingleLanguage(GEN_LANG_PYTHON);
             }
             break;
 
         case MenuSingleGenRuby:
             {
-                wxCommandEvent dummy;
-                wxGetMainFrame()->OnGenSingleRuby(dummy);
+                OnGenerateSingleLanguage(GEN_LANG_RUBY);
+            }
+            break;
+
+        case MenuSingleGenRust:
+            {
+                OnGenerateSingleLanguage(GEN_LANG_RUST);
             }
             break;
 
@@ -319,7 +329,26 @@ void NavPopupMenu::OnMenuEvent(wxCommandEvent& event)
                 wxGetMainFrame()->OnGenSingleXRC(dummy);
             }
             break;
-#endif
+
+#if GENERATE_NEW_LANG_CODE
+        case MenuSingleGenFortran:
+            {
+                OnGenerateSingleLanguage(GEN_LANG_FORTRAN);
+            }
+            break;
+
+        case MenuSingleGenHaskell:
+            {
+                OnGenerateSingleLanguage(GEN_LANG_HASKELL);
+            }
+            break;
+
+        case MenuSingleGenLua:
+            {
+                OnGenerateSingleLanguage(GEN_LANG_LUA);
+            }
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
 
         case MenuADD_PAGE:
             if (m_node->isGen(gen_BookPage))
@@ -486,16 +515,57 @@ void NavPopupMenu::MenuAddCommands(Node* node)
     wxMenuItem* menu_item;
     auto& dpi_size = wxGetFrame().GetMenuDpiSize();
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    if (node->isForm())
-    {
-        Append(MenuSingleGenCpp, "Generate C++ for this form");
-        Append(MenuSingleGenPython, "Generate Python for this form");
-        Append(MenuSingleGenRuby, "Generate Ruby for this form");
-        Append(MenuSingleGenXRC, "Generate XRC for this form");
-        AppendSeparator();
-    }
-#endif
+    if (wxGetApp().isTestingMenuEnabled())
+        if (node->isForm())
+        {
+            int count = 0;
+            if (node->hasValue(prop_base_file))
+            {
+                Append(MenuSingleGenCpp, "Generate C++ for this form");
+                ++count;
+            }
+            if (node->hasValue(prop_python_file))
+            {
+                Append(MenuSingleGenPython, "Generate Python for this form");
+                ++count;
+            }
+            if (node->hasValue(prop_ruby_file))
+            {
+                Append(MenuSingleGenRuby, "Generate Ruby for this form");
+                ++count;
+            }
+            if (node->hasValue(prop_xrc_file))
+            {
+                Append(MenuSingleGenXRC, "Generate XRC for this form");
+                ++count;
+            }
+
+            if (node->hasValue(prop_haskell_file))
+            {
+                Append(MenuSingleGenHaskell, "Generate Haskell for this form");
+                ++count;
+            }
+            if (node->hasValue(prop_lua_file))
+            {
+                Append(MenuSingleGenLua, "Generate Lua for this form");
+                ++count;
+            }
+            if (node->hasValue(prop_perl_file))
+            {
+                Append(MenuSingleGenPerl, "Generate Perl for this form");
+                ++count;
+            }
+            if (node->hasValue(prop_rust_file))
+            {
+                Append(MenuSingleGenRust, "Generate Rust for this form");
+                ++count;
+            }
+
+            if (count)
+            {
+                AppendSeparator();
+            }
+        }
 
     if (node->isForm() || node->isGen(gen_Images) || node->isGen(gen_embedded_image))
     {
@@ -1119,11 +1189,22 @@ void NavPopupMenu::MenuAddStandardCommands(Node* node)
     menu_item = Append(wxID_DELETE);
     menu_item->SetBitmap(wxArtProvider::GetBitmapBundle(wxART_DELETE, wxART_MENU));
 
+    AddSeparatorIfNeeded();
     if (!node->isGen(gen_Images) && !node->isGen(gen_Data))
     {
         menu_item = Append(MenuDUPLICATE, "Duplicate");
         menu_item->SetBitmap(GetSvgImage("duplicate", dpi_size));
     }
+
+    menu_item = Append(MenuInsertWidget, "Insert Widget...");
+    menu_item->SetBitmap(wxArtProvider::GetBitmapBundle(wxART_EDIT, wxART_MENU));
+    Bind(
+        wxEVT_MENU,
+        [](wxCommandEvent& event)
+        {
+            wxGetFrame().OnInsertWidget(event);
+        },
+        MenuInsertWidget);
 }
 
 void NavPopupMenu::CreateSizerParent(Node* node, tt_string_view widget)
@@ -1159,7 +1240,7 @@ void NavPopupMenu::CreateSizerParent(Node* node, tt_string_view widget)
     // Avoid the temptation to set new_parent to the raw pointer so that .get() doesn't have to be called below. Doing so
     // will result in the reference count being decremented before we are done hooking it up, and you end up crashing.
 
-    auto new_parent = NodeCreation.createNode(widget, parent);
+    auto new_parent = NodeCreation.createNode(widget, parent).first;
     if (new_parent)
     {
         wxGetFrame().Freeze();
@@ -1168,7 +1249,26 @@ void NavPopupMenu::CreateSizerParent(Node* node, tt_string_view widget)
             undo_string << "folder";
         else
             undo_string << "sizer";
-        wxGetFrame().PushUndoAction(std::make_shared<InsertNodeAction>(new_parent.get(), parent, undo_string, childPos));
+        if (!parent->isGen(gen_wxGridBagSizer))
+        {
+            wxGetFrame().PushUndoAction(std::make_shared<InsertNodeAction>(new_parent.get(), parent, undo_string, childPos));
+        }
+        else
+        {
+            auto new_child = NodeCreation.makeCopy(node);
+            undo_string = "Remove widget";
+            wxGetFrame().PushUndoAction(std::make_shared<RemoveNodeAction>(node, undo_string));
+            new_parent->adoptChild(new_child->getSharedPtr());
+            new_parent->set_value(prop_column, new_child->as_string(prop_column));
+            new_parent->set_value(prop_row, new_child->as_string(prop_row));
+            new_parent->set_value(prop_colspan, new_child->as_string(prop_colspan));
+            new_parent->set_value(prop_rowspan, new_child->as_string(prop_rowspan));
+            // wxGetFrame().FireDeletedEvent(new_child);
+            wxGetFrame().PushUndoAction(std::make_shared<AppendGridBagAction>(new_parent.get(), parent, (to_int) childPos));
+            wxGetFrame().SelectNode(new_child, evt_flags::fire_event | evt_flags::force_selection);
+            wxGetFrame().Thaw();
+            return;
+        }
 
         // InsertNodeAction does not fire the creation event since that's usually handled by the caller as needed. We
         // don't want to fire an event because we don't want the Mockup or Code panels to update until we have changed

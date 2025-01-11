@@ -20,9 +20,8 @@ using namespace code;
 
 wxObject* CheckListBoxGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget =
-        new wxCheckListBox(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                           DlgSize(parent, node, prop_size), 0, nullptr, node->as_int(prop_type) | GetStyleInt(node));
+    auto widget = new wxCheckListBox(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                     DlgSize(node, prop_size), 0, nullptr, node->as_int(prop_type) | GetStyleInt(node));
 
     auto items = node->as_checklist_items(prop_contents);
     if (items.size())
@@ -153,7 +152,7 @@ int CheckListBoxGenerator::GetRequiredVersion(Node* node)
 }
 
 bool CheckListBoxGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                        int /* language */)
+                                        GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/checklst.h>", set_src, set_hdr);
     if (node->hasValue(prop_validator_variable))

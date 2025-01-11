@@ -1,18 +1,24 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Common component functions
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
+
+#include <wx/artprov.h>
 
 #include <charconv>  // for std::to_chars
 
 #include "gen_common.h"
 
+#include "file_codewriter.h"  // FileCodeWriter -- Classs to write code to disk
 #include "gen_base.h"         // BaseCodeGenerator -- Generate Src and Hdr files for Base Class
+#include "gen_results.h"      // Code generation file writing functions
 #include "image_gen.h"        // Functions for generating embedded images
 #include "image_handler.h"    // ImageHandler class
 #include "lambdas.h"          // Functions for formatting and storage of lamda events
+#include "mainapp.h"          // wxGetApp()
+#include "mainframe.h"        // MainFrame -- Main window frame
 #include "node.h"             // Node class
 #include "project_handler.h"  // ProjectHandler class
 #include "utils.h"            // Utility functions that work with properties
@@ -109,6 +115,7 @@ static constexpr GenType s_GenParentTypes[] = {
     type_container,
     type_listbook,
     type_notebook,
+    type_panel,
     type_ribbonpanel,
     type_simplebook,
     type_splitter,
@@ -118,7 +125,7 @@ static constexpr GenType s_GenParentTypes[] = {
 
 // clang-format on
 
-tt_string GetParentName(Node* node)
+tt_string GetParentName(Node* node, GenLang language)
 {
     auto parent = node->getParent();
     while (parent)
@@ -127,7 +134,7 @@ tt_string GetParentName(Node* node)
         {
             if (parent->isStaticBoxSizer())
             {
-                return (tt_string() << parent->getNodeName() << "->GetStaticBox()");
+                return (tt_string() << parent->getNodeName(language) << "->GetStaticBox()");
             }
         }
         if (parent->isForm())
@@ -139,7 +146,7 @@ tt_string GetParentName(Node* node)
         {
             if (parent->isType(iter))
             {
-                tt_string name = parent->getNodeName();
+                tt_string name = parent->getNodeName(language);
                 if (parent->isGen(gen_wxCollapsiblePane))
                 {
                     name << "->GetPane()";
@@ -152,32 +159,6 @@ tt_string GetParentName(Node* node)
 
     ASSERT_MSG(parent, tt_string() << node->getNodeName() << " has no parent!");
     return tt_string("internal error");
-}
-
-void GenPos(Node* node, tt_string& code)
-{
-    auto point = node->as_wxPoint(prop_pos);
-    if (point.x != -1 || point.y != -1)
-    {
-        if (node->as_string(prop_pos).contains("d", tt::CASE::either))
-        {
-            code << "ConvertDialogToPixels(wxPoint(" << point.x << ", " << point.y << "))";
-        }
-        else
-        {
-            code << "wxPoint(" << point.x << ", " << point.y << ")";
-        }
-    }
-    else
-        code << "wxDefaultPosition";
-}
-
-void GenSize(Node* node, tt_string& code)
-{
-    if (node->as_wxSize(prop_size) != wxDefaultSize)
-        code << GenerateWxSize(node, prop_size);
-    else
-        code << "wxDefaultSize";
 }
 
 static void GenStyle(Node* node, tt_string& code, const char* prefix)
@@ -513,6 +494,17 @@ bool GenerateBundleCode(const tt_string& description, tt_string& code)
         // Note that current documentation states that the client is required, but the header file says otherwise
         if (art_client.size())
             code << art_client;
+
+        if (parts.size() > IndexSize && parts[IndexSize].size())
+        {
+            wxSize svg_size { -1, -1 };
+            svg_size = GetSizeInfo(parts[IndexSize]);
+
+            if (svg_size != wxDefaultSize)
+            {
+                code << ", wxSize(" << svg_size.x << ", " << svg_size.y << ')';
+            }
+        }
         code << ')';
     }
 
@@ -581,7 +573,7 @@ bool GenerateBundleCode(const tt_string& description, tt_string& code)
         auto embed = ProjectImages.GetEmbeddedImage(parts[IndexImage]);
         if (!embed)
         {
-            MSG_WARNING(tt_string() << description << " not embedded!")
+            MSG_WARNING(tt_string() << description << " not embedded!");
             code << "wxNullBitmap";
             return false;
         }
@@ -593,8 +585,8 @@ bool GenerateBundleCode(const tt_string& description, tt_string& code)
         }
 
         tt_string name = "wxue_img::" + embed->imgs[0].array_name;
-        code << "wxueBundleSVG(" << name << ", " << (embed->imgs[0].array_size & 0xFFFFFFFF) << ", ";
-        code << (embed->imgs[0].array_size >> 32) << ", wxSize(" << svg_size.x << ", " << svg_size.y << "))";
+        code << "wxueBundleSVG(" << name << ", " << (to_size_t) (embed->imgs[0].array_size & 0xFFFFFFFF) << ", ";
+        code << (to_size_t) (embed->imgs[0].array_size >> 32) << ", wxSize(" << svg_size.x << ", " << svg_size.y << "))";
     }
     else
     {
@@ -1203,8 +1195,8 @@ tt_string GenerateIconCode(const tt_string& description)
         else
         {
             tt_string name = "wxue_img::" + embed->imgs[0].array_name;
-            code << "SetIcon(wxueBundleSVG(" << name << ", " << (embed->imgs[0].array_size & 0xFFFFFFFF) << ", ";
-            code << (embed->imgs[0].array_size >> 32) << ", wxSize(" << svg_size.x << ", " << svg_size.y << "))";
+            code << "SetIcon(wxueBundleSVG(" << name << ", " << (to_size_t) (embed->imgs[0].array_size & 0xFFFFFFFF) << ", ";
+            code << (to_size_t) (embed->imgs[0].array_size >> 32) << ", wxSize(" << svg_size.x << ", " << svg_size.y << "))";
         }
 
         code << ".GetIconFor(this));\n";
@@ -1284,21 +1276,6 @@ tt_string GenerateIconCode(const tt_string& description)
     return code;
 }
 
-tt_string GenerateWxSize(Node* node, PropName prop)
-{
-    tt_string code;
-    auto size = node->as_wxSize(prop);
-    if (node->as_string(prop).contains("d", tt::CASE::either))
-    {
-        code << "ConvertDialogToPixels(wxSize(" << size.x << ", " << size.y << "))";
-    }
-    else
-    {
-        code << "wxSize(" << size.x << ", " << size.y << ")";
-    }
-    return code;
-}
-
 // This is called to add a tool to wxToolBar, wxAuiToolBar or wxRibbonToolBar
 void GenToolCode(Code& code)
 {
@@ -1335,6 +1312,7 @@ void GenToolCode(Code& code)
     }
 
     code.QuotedString(prop_label).Comma();
+
     if (!code.hasValue(prop_bitmap))
     {
         code.Add("wxNullBitmap");
@@ -1354,14 +1332,23 @@ void GenToolCode(Code& code)
                 code.Eol() += "#if wxCHECK_VERSION(3, 1, 6)\n\t";
             }
 
-            GenerateBundleParameter(code, parts);
-
-            if (code.is_cpp() && Project.is_wxWidgets31())
+            // TODO: [Randalphwa - 01-07-2025] wxPerl doesn't support wxBitmapBundle. It
+            // does support wxBitmap, but wxUE doesn't generate code for that yet.
+            else if (code.is_perl())
             {
-                code.Eol() += "#else\n\t";
-                code << "wxBitmap(" << GenerateBitmapCode(node->as_string(prop_bitmap)) << ")";
-                code.Eol() += "#endif";
-                code.Eol();
+                code.Add("wxNullBitmap");
+            }
+            else
+            {
+                GenerateBundleParameter(code, parts);
+
+                if (code.is_cpp() && Project.is_wxWidgets31())
+                {
+                    code.Eol() += "#else\n\t";
+                    code << "wxBitmap(" << GenerateBitmapCode(node->as_string(prop_bitmap)) << ")";
+                    code.Eol() += "#endif";
+                    code.Eol();
+                }
             }
         }
     }
@@ -1401,6 +1388,7 @@ void GenToolCode(Code& code)
             code.Comma();
             code.AddIfCpp("nullptr");
             code.AddIfPython("None");
+            code.AddIfRuby("nil");
         }
     }
     code.EndFunction();
@@ -1515,4 +1503,224 @@ bool BitmapList(Code& code, const GenEnum::PropName prop)
     // prop_wxWidgets_version == 3.1, follow this with a #else and the alternate code.
 
     return true;
+}
+
+bool GenerateLanguageForm(Node* form, GenResults& results, std::vector<tt_string>* pClassList, GenLang language)
+{
+    auto [path, has_base_file] = Project.GetOutputPath(form, language);
+    if (!has_base_file)
+    {
+#if !defined(_DEBUG)
+        // For a lot of testing of projects with multiple dialogs, there may only be a
+        // few forms where generation is being tested, so don't nag in Debug builds.
+        // :-)
+        results.msgs.emplace_back() << "No filename specified for " << form->as_string(prop_class_name) << '\n';
+#endif  // _DEBUG
+        return false;
+    }
+    BaseCodeGenerator codegen(language, form);
+
+    auto h_cw = std::make_unique<FileCodeWriter>(path);
+    if (language == GEN_LANG_RUBY)
+    {
+        h_cw->SetTabToSpaces(2);
+    }
+    codegen.SetHdrWriteCode(h_cw.get());
+
+    path.replace_extension(GetLanguageExtension(language));
+    auto cpp_cw = std::make_unique<FileCodeWriter>(path);
+    if (language == GEN_LANG_RUBY)
+    {
+        cpp_cw->SetTabToSpaces(2);
+    }
+    codegen.SetSrcWriteCode(cpp_cw.get());
+
+    switch (language)
+    {
+        case GEN_LANG_PERL:
+            codegen.GeneratePerlClass();
+            break;
+
+        case GEN_LANG_PYTHON:
+            codegen.GeneratePythonClass();
+            break;
+
+        case GEN_LANG_RUBY:
+            codegen.GenerateRubyClass();
+            break;
+
+        case GEN_LANG_RUST:
+            codegen.GenerateRustClass();
+            break;
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            codegen.GenerateFortranClass();
+            break;
+
+        case GEN_LANG_HASKELL:
+            codegen.GenerateHaskellClass();
+            break;
+
+        case GEN_LANG_LUA:
+            codegen.GenerateLuaClass();
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+        default:
+            ASSERT_MSG(false, "Unknown language specified for code generation!");
+            break;
+    }
+
+    int flags = flag_no_ui;
+    if (pClassList)
+        flags |= flag_test_only;
+    auto retval = cpp_cw->WriteFile(language, flags, form);
+
+    if (auto warning_msgs = codegen.getWarnings(); warning_msgs.size())
+    {
+        for (auto& iter: warning_msgs)
+        {
+            results.msgs.emplace_back() << iter << '\n';
+        }
+    }
+
+    if (retval > 0)
+    {
+        if (!pClassList)
+        {
+            results.updated_files.emplace_back(path);
+        }
+        else
+        {
+            if (form->isGen(gen_Images))
+                pClassList->emplace_back(GenEnum::map_GenNames[gen_Images]);
+            if (form->isGen(gen_Data))
+                pClassList->emplace_back(GenEnum::map_GenNames[gen_Data]);
+            else
+                pClassList->emplace_back(form->as_string(prop_class_name));
+            return true;
+        }
+    }
+
+    else if (retval < 0)
+    {
+        results.msgs.emplace_back() << "Cannot create or write to the file " << path << '\n';
+    }
+    else  // retval == result::exists
+    {
+        ++results.file_count;
+    }
+    return true;
+}
+
+bool GenerateLanguageFiles(GenResults& results, std::vector<tt_string>* pClassList, GenLang language)
+{
+    if (Project.getChildCount() == 0)
+    {
+        wxMessageBox("You cannot generate any code until you have added a top level form.", "Code Generation");
+        return false;
+    }
+
+    ASSERT_MSG(language != GEN_LANG_NONE, "No language specified for code generation!");
+    ASSERT_MSG(language <= GEN_LANG_XRC, "Invalid language specified for code generation!");
+    ASSERT_MSG(language != GEN_LANG_CPLUSPLUS, "Use GenerateCppFiles() for C++ code generation!");
+
+    tt_cwd cwd(true);
+    Project.ChangeDir();
+
+    bool generate_result = false;
+    std::vector<Node*> forms;
+    Project.CollectForms(forms);
+
+    if (wxGetApp().isTestingMenuEnabled())
+        results.StartClock();
+
+    for (const auto& form: forms)
+    {
+        GenerateLanguageForm(form, results, pClassList, language);
+
+        if (results.updated_files.size())
+        {
+            generate_result = true;
+        }
+    }
+
+    if (wxGetApp().isTestingMenuEnabled())
+        results.EndClock();
+
+    return generate_result;
+}
+
+void OnGenerateSingleLanguage(GenLang language)
+{
+    auto form = wxGetMainFrame()->getSelectedNode();
+    if (form && !form->isForm())
+    {
+        form = form->getForm();
+    }
+    if (!form)
+    {
+        wxMessageBox("You must select a form before you can generate code.", "Code Generation");
+        return;
+    }
+
+    GenResults results;
+    GenerateLanguageForm(form, results, nullptr, language);
+
+    tt_string msg;
+    if (results.updated_files.size())
+    {
+        if (results.updated_files.size() == 1)
+            msg << "1 file was updated";
+        else
+            msg << results.updated_files.size() << " files were updated";
+        msg << '\n';
+    }
+    else
+    {
+        msg << "Generated file is current";
+    }
+
+    if (results.msgs.size())
+    {
+        for (auto& iter: results.msgs)
+        {
+            msg << '\n';
+            msg << iter;
+        }
+    }
+
+    wxMessageBox(msg, tt_string() << ConvertFromGenLang(language) << " Code Generation", wxOK | wxICON_INFORMATION);
+}
+
+void OnGenerateLanguage(GenLang language)
+{
+    GenResults results;
+    GenerateLanguageFiles(results, nullptr, language);
+
+    tt_string msg;
+    if (results.updated_files.size())
+    {
+        if (results.updated_files.size() == 1)
+            msg << "1 file was updated";
+        else
+            msg << " files were updated";
+        msg << '\n';
+    }
+    else
+    {
+        msg << "All " << results.file_count << " generated files are current";
+    }
+
+    if (results.msgs.size())
+    {
+        for (auto& iter: results.msgs)
+        {
+            msg << '\n';
+            msg << iter;
+        }
+    }
+
+    wxMessageBox(msg, tt_string() << ConvertFromGenLang(language) << " Code Generation", wxOK | wxICON_INFORMATION);
 }

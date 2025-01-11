@@ -24,14 +24,13 @@ wxObject* StaticTextGenerator::CreateMockup(Node* node, wxObject* parent)
     wxStaticTextBase* widget;
     if (node->as_bool(prop_markup) && node->as_int(prop_wrap) <= 0)
     {
-        widget =
-            new wxGenericStaticText(wxStaticCast(parent, wxWindow), wxID_ANY, wxEmptyString,
-                                    DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+        widget = new wxGenericStaticText(wxStaticCast(parent, wxWindow), wxID_ANY, wxEmptyString, DlgPoint(node, prop_pos),
+                                         DlgSize(node, prop_size), GetStyleInt(node));
     }
     else
     {
-        widget = new wxStaticText(wxStaticCast(parent, wxWindow), wxID_ANY, wxEmptyString, DlgPoint(parent, node, prop_pos),
-                                  DlgSize(parent, node, prop_size), GetStyleInt(node));
+        widget = new wxStaticText(wxStaticCast(parent, wxWindow), wxID_ANY, wxEmptyString, DlgPoint(node, prop_pos),
+                                  DlgSize(node, prop_size), GetStyleInt(node));
     }
 
     if (node->as_bool(prop_markup) && node->as_int(prop_wrap) <= 0)
@@ -164,7 +163,7 @@ void StaticTextGenerator::RequiredHandlers(Node* /* node */, std::set<std::strin
 }
 
 bool StaticTextGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/stattext.h>", set_src, set_hdr);
     if (node->as_bool(prop_markup) && node->as_int(prop_wrap) <= 0)

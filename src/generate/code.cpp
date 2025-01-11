@@ -1,20 +1,34 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Helper class for generating code
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2022-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2022-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
+
+/*
+
+    Notes:
+
+    The Eol() function will automatically append tabs if m_indent is greater than 0. That means you should *not* append tabs
+   using += '/t', and you should be very cautious about using += '\n' instead of Eol() since the Eol() call will
+   automatically append tabs if needed.
+
+*/
 
 #include <array>
 #include <charconv>  // for std::to_chars()
 #include <map>
+
+#include <frozen/set.h>
 
 #include "code.h"
 
 #include "gen_common.h"       // Common component functions
 #include "image_gen.h"        // Functions for generating embedded images
 #include "mainapp.h"          // App class
+#include "mainframe.h"        // MainFrame class
 #include "node.h"             // Node class
+#include "preferences.h"      // Prefs -- Set/Get wxUiEditor preferences
 #include "project_handler.h"  // ProjectHandler class
 #include "utils.h"            // Miscellaneous utilities
 
@@ -38,6 +52,9 @@ static const view_map s_short_python_map
     { "wxGRID_", "wx.grid."},
 
     { "wxEVT_DATAVIEW_", "wx.dataview."},
+    { "wxEVT_TREELIST_", "wx.dataview." },
+    { "wxTL_", "wx.dataview." },
+
     { "wxEVT_DATE_", "wx.adv."},
     { "wxEVT_GRID_", "wx.grid." },
     { "wxEVT_RIBBON", "wx.ribbon." },
@@ -79,6 +96,7 @@ const view_map g_map_python_prefix
     { "wxDataViewCtrl",         "wx.dataview."},
     { "wxDataViewListCtrl",     "wx.dataview."},
     { "wxDataViewTreeCtrl",     "wx.dataview."},
+    { "wxTreeListCtrl",         "wx.dataview."},
     { "wxGrid",                 "wx.grid."},
     { "wxPropertyGridManager",  "wx.propgrid."},
     { "wxPropertyGrid",         "wx.propgrid."},
@@ -221,15 +239,74 @@ const view_map g_map_ruby_prefix
 
 };
 
+const view_map g_map_fortran_prefix
+{
+};
+
+const view_map g_map_haskell_prefix
+{
+};
+
+const view_map g_map_lua_prefix
+{
+};
+
+const view_map g_map_perl_prefix
+{
+};
+
+const view_map g_map_rust_prefix
+{
+};
+
+static const view_map s_short_fortran_map
+{
+};
+
+static const view_map s_short_haskell_map
+{
+};
+
+static const view_map s_short_lua_map
+{
+};
+
+static const view_map s_short_perl_map
+{
+};
+
+static const view_map s_short_rust_map
+{
+};
+
+constexpr auto set_perl_constants = frozen::make_set<std::string_view>({
+
+    "wxNullBitmap",
+    "wxITEM_CHECK",
+    "wxITEM_DROPDOWN",
+    "wxITEM_NORMAL",
+    "wxITEM_RADIO",
+    "wxID_ANY",
+    "wxVERTICAL",
+    "wxHORIZONTAL",
+    "wxBOTH",
+
+});
+
 // clang-format on
 
-std::string_view GetLanguagePrefix(tt_string_view candidate, int language)
+std::string_view GetLanguagePrefix(tt_string_view candidate, GenLang language)
 {
     const view_map* prefix_list;
     const view_map* global_list;
 
     switch (language)
     {
+        case GEN_LANG_PERL:
+            prefix_list = &s_short_perl_map;
+            global_list = &g_map_perl_prefix;
+            break;
+
         case GEN_LANG_PYTHON:
             prefix_list = &s_short_python_map;
             global_list = &g_map_python_prefix;
@@ -240,9 +317,29 @@ std::string_view GetLanguagePrefix(tt_string_view candidate, int language)
             global_list = &g_map_ruby_prefix;
             break;
 
+        case GEN_LANG_RUST:
+            return "wx::";
+
         case GEN_LANG_CPLUSPLUS:
             FAIL_MSG("Don't call GetLanguagePrefix() for C++ code!");
             return {};
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            prefix_list = &s_short_fortran_map;
+            global_list = &g_map_fortran_prefix;
+            break;
+
+        case GEN_LANG_HASKELL:
+            prefix_list = &s_short_haskell_map;
+            global_list = &g_map_haskell_prefix;
+            break;
+
+        case GEN_LANG_LUA:
+            prefix_list = &s_short_lua_map;
+            global_list = &g_map_lua_prefix;
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
 
         default:
             FAIL_MSG("Unknown language");
@@ -265,12 +362,12 @@ std::string_view GetLanguagePrefix(tt_string_view candidate, int language)
     return {};
 }
 
-Code::Code(Node* node, int language)
+Code::Code(Node* node, GenLang language)
 {
     Init(node, language);
 }
 
-void Code::Init(Node* node, int language)
+void Code::Init(Node* node, GenLang language)
 {
     m_node = node;
     m_language = language;
@@ -279,6 +376,14 @@ void Code::Init(Node* node, int language)
         m_language_wxPrefix = "wx";
         m_break_length = Project.as_size_t(prop_cpp_line_length);
         // Always assume C++ code has one tab at the beginning of the line
+        m_break_length -= m_indent_size;
+    }
+    else if (language == GEN_LANG_PERL)
+    {
+        m_indent_size = 4;
+        m_language_wxPrefix = "Wx::";
+        m_break_length = Project.as_size_t(prop_perl_line_length);
+        // Always assume Perl code has one tab at the beginning of the line
         m_break_length -= m_indent_size;
     }
     else if (language == GEN_LANG_PYTHON)
@@ -292,17 +397,46 @@ void Code::Init(Node* node, int language)
     {
         m_indent_size = 2;
         m_language_wxPrefix = "Wx::";
-        m_lang_assignment = " = ";
         m_break_length = Project.as_size_t(prop_ruby_line_length);
         // Always assume Ruby code has two tabs at the beginning of the line
         m_break_length -= (m_indent_size * 2);
     }
+    else if (language == GEN_LANG_RUST)
+    {
+        m_language_wxPrefix = "wx.";
+        m_break_length = 100;
+        // Always assume Rust code has one tab at the beginning of the line
+        m_break_length -= m_indent_size;
+    }
+
+#if GENERATE_NEW_LANG_CODE
+    else if (language == GEN_LANG_FORTRAN)
+    {
+        // REVIEW: [Randalphwa - 11-24-2024] wxFortran3 doesn't exist yet, but I'm guessing that
+        // there will be a wx derived type with members accessed using %.
+        m_language_wxPrefix = "wx%";
+        m_break_length = Project.as_size_t(prop_fortran_line_length);
+        m_break_length -= m_indent_size;
+    }
+    else if (language == GEN_LANG_HASKELL)
+    {
+        m_language_wxPrefix = "wx";  // wxHaskell doesn't change wxWidgets naming
+        m_break_length = Project.as_size_t(prop_haskell_line_length);
+        m_break_length -= m_indent_size;
+    }
+    else if (language == GEN_LANG_LUA)
+    {
+        // Lua simply uses a "wx." prefix before the normal wxWidgets "wx" prefix
+        m_language_wxPrefix = "wx.wx";
+        m_break_length = Project.as_size_t(prop_lua_line_length);
+        m_break_length -= m_indent_size;
+    }
+#endif  // GENERATE_NEW_LANG_CODE
 
     else
     {
         FAIL_MSG("Unknown language");
         m_language_wxPrefix = "wx";
-        m_lang_assignment = " = ";
         m_break_length = 90;
         // Always assume code has one tab at the beginning of the line
         m_break_length -= m_indent_size;
@@ -345,10 +479,10 @@ Code& Code::Eol(int flag)
     {
         if (size() && back() != '\n')
         {
-            // If we're in a brace section, the last line will end with \n\t
-            if (size() < 3 || back() != '\t' || at(size() - 2) != '\n')
+            // Check for single and nested indents
+            if (!ends_with("\n\t") && !ends_with("\n\t\t"))
             {
-                *this += '\n';
+                return Eol();
             }
         }
     }
@@ -359,16 +493,24 @@ Code& Code::Eol(int flag)
         *this += '\n';
     }
 
+#if 0
+    // REVIEW: [Randalphwa - 08-26-2024] m_within_braces is no longer set to true in OpenBrace()
     if (m_within_braces && is_cpp() && size() && back() != '\t')
     {
         *this += '\t';
         if (m_within_font_braces)
             *this += '\t';
     }
-    else if (m_indent > 0)
+    else if (m_indent > 0 && (empty() || back() != '\t'))
     {
         Tab(m_indent);
     }
+#else
+    if (m_indent > 0 && (empty() || back() != '\t'))
+    {
+        Tab(m_indent);
+    }
+#endif
 
     if (m_auto_break)
     {
@@ -378,46 +520,72 @@ Code& Code::Eol(int flag)
     return *this;
 }
 
-Code& Code::OpenBrace()
+Code& Code::OpenBrace(bool all_languages)
 {
-    if (is_cpp())
+    if (!all_languages && !is_cpp() && !is_perl() && !is_rust())
     {
-        m_within_braces = true;
-        if (size() && back() != '\n')
-        {
-            *this += '\n';
-        }
-        *this += '{';
-        Eol();
+        return *this;
     }
+
+    if (is_cpp() || is_perl() || is_rust())
+    {
+        // Perl and Rust place the brace at the end of the function. wxUiEditor
+        // follows CppCoreGuidelines and places the brace on the next line for
+        // C++ code.
+        if (is_cpp())
+        {
+            Eol(eol_if_needed);
+        }
+        *this += "{";
+        Indent();
+        Eol();
+        // m_within_braces = true;
+    }
+    else
+    {
+        Indent();
+        Eol(eol_if_needed);
+    }
+
     return *this;
 }
 
-Code& Code::CloseBrace()
+Code& Code::CloseBrace(bool all_languages, bool close_ruby)
 {
-    if (is_cpp())
+    if (!all_languages && !is_cpp() && !is_perl() && !is_rust())
+    {
+        return *this;
+    }
+
+    // Ensure there are no trailing tabs
+    while (size() && tt::is_whitespace(back()))
+        pop_back();
+    Unindent();
+
+    if (is_cpp() || is_perl() || is_rust())
     {
         m_within_braces = false;
-        while (size() && tt::is_whitespace(back()))
-            pop_back();
-        Eol().Str("}").Eol();
+        Eol();
+        *this += "}";
     }
+    if (all_languages && is_ruby() && close_ruby)
+    {
+        Eol();
+        *this += "end";
+    }
+
     return *this;
 }
 
 void Code::OpenFontBrace()
 {
+    // REVIEW: [Randalphwa - 09-26-2024] Will this be needed for wxPerl as well?
     if (is_cpp())
     {
-        if (size() && back() != '\n')
-        {
-            *this += '\n';
-        }
         m_within_font_braces = true;
-        if (m_within_braces)
-            *this += '\t';
+        Eol(eol_if_needed);
         *this += '{';
-        ++m_indent;
+        Indent();
         Eol();
     }
 }
@@ -426,9 +594,9 @@ void Code::CloseFontBrace()
 {
     if (is_cpp())
     {
-        while (tt::is_whitespace(back()))
+        while (size() && tt::is_whitespace(back()))
             pop_back();
-        --m_indent;
+        Unindent();
         m_within_font_braces = false;
         Eol().Str("}").Eol();
     }
@@ -436,9 +604,40 @@ void Code::CloseFontBrace()
 
 Code& Code::AddAuto()
 {
-    if (is_cpp() && is_local_var())
+    if (is_local_var())
     {
-        *this += "auto* ";
+        if (is_cpp())
+        {
+            *this += "auto* ";
+        }
+        else if (is_lua())
+        {
+            *this += "local ";
+        }
+        else if (is_perl())
+        {
+            *this += "my $";
+        }
+        else if (is_python())
+        {
+            *this += "self.";
+        }
+        else if (is_ruby())
+        {
+            *this += "@";
+        }
+        else if (is_fortran())
+        {
+            *this += "type(";
+        }
+        else if (is_haskell())
+        {
+            *this += "let ";
+        }
+        else if (is_rust())
+        {
+            *this += "let ";
+        }
     }
     return *this;
 }
@@ -482,7 +681,7 @@ Code& Code::as_string(PropName prop_name)
             *this << '$' << result;
             return *this;
         }
-        else if (!is_cpp())
+        else if (!is_cpp() && !is_perl())
         {
             result.Replace("wx", m_language_wxPrefix);
         }
@@ -515,6 +714,17 @@ Code& Code::AddType(tt_string_view text)
     return *this;
 }
 
+Code& Code::AddConstant(tt_string_view text)
+{
+    if (is_cpp() || is_perl())
+    {
+        CheckLineLength(text.size());
+        *this += text;
+        return *this;
+    }
+    return Add(text);
+}
+
 Code& Code::Add(tt_string_view text)
 {
     bool old_linebreak = m_auto_break;
@@ -542,6 +752,11 @@ Code& Code::Add(tt_string_view text)
             {
                 // wxRuby prefers ('') for an empty string instead of the expected Wx::empty_string
                 *this += "('')";
+                return *this;
+            }
+            else if (text == "wxDefaultCoord")
+            {
+                *this += "Wx::DEFAULT_COORD";
                 return *this;
             }
             else if (text == "wxDefaultSize")
@@ -578,6 +793,14 @@ Code& Code::Add(tt_string_view text)
                     *this += '|';
                 if (iter.is_sameprefix("wx") && !is_cpp())
                 {
+                    if (is_perl() && (HasPerlMapConstant(text) || set_perl_constants.contains(text)))
+                    {
+                        CheckLineLength(text.size());
+                        *this += text;
+                        initial_combined_value_set = true;
+                        continue;
+                    }
+
                     if (std::string_view language_prefix = GetLanguagePrefix(text, m_language); language_prefix.size())
                     {
                         // Some languages will have a module added after their standard prefix.
@@ -602,7 +825,32 @@ Code& Code::Add(tt_string_view text)
         }
         else if (text.is_sameprefix("wx") && !is_cpp())
         {
-            if (std::string_view language_prefix = GetLanguagePrefix(text, m_language); language_prefix.size())
+            if (is_perl())
+            {
+                if (HasPerlMapConstant(text) || set_perl_constants.contains(text))
+                {
+                    CheckLineLength(text.size());
+                    *this += text;
+                    return *this;
+                }
+                else if (text == "wxEmptyString")
+                {
+                    *this << "\"\"";
+                    return *this;
+                }
+
+                if (std::string_view language_prefix = GetLanguagePrefix(text, m_language); language_prefix.size())
+                {
+                    CheckLineLength(language_prefix.size() + text.size() - 2);
+                    *this << language_prefix << text.substr(2);
+                }
+                else
+                {
+                    CheckLineLength(m_language_wxPrefix.size() + text.size() - 2);
+                    *this << m_language_wxPrefix << text.substr(2);
+                }
+            }
+            else if (std::string_view language_prefix = GetLanguagePrefix(text, m_language); language_prefix.size())
             {
                 CheckLineLength(language_prefix.size() + text.size() - 2);
                 *this << language_prefix << text.substr(2);
@@ -698,6 +946,10 @@ Code& Code::Function(tt_string_view text, bool add_operator)
                 }
             }
         }
+        else if (is_lua())
+        {
+            *this << '.' << text;
+        }
         else
         {
             *this << "->" << text;
@@ -754,6 +1006,14 @@ Code& Code::FormFunction(tt_string_view text)
         *this += ConvertToSnakeCase(text);
         return *this;
     }
+    else if (is_perl())
+    {
+        *this += "$self->";
+    }
+    else if (is_lua())
+    {
+        *this += "this:";
+    }
 
     *this += text;
     return *this;
@@ -761,7 +1021,7 @@ Code& Code::FormFunction(tt_string_view text)
 
 Code& Code::Class(tt_string_view text)
 {
-    if (is_cpp())
+    if (is_cpp() || is_haskell())
     {
         *this += text;
     }
@@ -776,11 +1036,33 @@ Code& Code::Class(tt_string_view text)
             *this += text;
         }
     }
-    else if (is_ruby())
+    else if (is_ruby() || is_perl())
     {
         if (text.is_sameprefix("wx"))
         {
             *this << "Wx::" << text.substr(2);
+        }
+        else
+        {
+            *this += text;
+        }
+    }
+    else if (is_lua())
+    {
+        if (text.is_sameprefix("wx"))
+        {
+            *this << "wx." << text;
+        }
+        else
+        {
+            *this += text;
+        }
+    }
+    else if (is_fortran())
+    {
+        if (text.is_sameprefix("wx"))
+        {
+            *this << "wx%" << text;
         }
         else
         {
@@ -833,16 +1115,17 @@ Code& Code::CreateClass(bool use_generic, tt_string_view override_name, bool ass
     if (is_cpp())
     {
         *this += "new ";
-        if (m_node->hasValue(prop_derived_class))
+        if (m_node->hasValue(prop_subclass))
         {
-            *this += m_node->as_string(prop_derived_class);
+            *this += m_node->as_string(prop_subclass);
             *this += '(';
             if (m_node->hasValue(prop_derived_params))
             {
                 *this += m_node->as_string(prop_derived_params);
+                RightTrim();
                 if (back() != ',')
-                    *this += ", ";
-                if (back() != ' ')
+                    Comma();
+                else
                     *this += ' ';
             }
             return *this;
@@ -882,13 +1165,31 @@ Code& Code::CreateClass(bool use_generic, tt_string_view override_name, bool ass
         {
             *this += class_name;
         }
-        if (is_ruby())
+
+        if (is_perl())
+        {
+            *this += "->new";
+        }
+        else if (is_ruby())
         {
             *this += ".new";
+        }
+        else if (is_rust())
+        {
+            *this += "::new";
         }
     }
 
     *this += '(';
+    if (m_node->hasValue(prop_derived_params))
+    {
+        *this += m_node->as_string(prop_derived_params);
+        RightTrim();
+        if (back() != ',')
+            Comma();
+        else
+            *this += ' ';
+    }
     return *this;
 }
 
@@ -926,7 +1227,7 @@ Code& Code::EndFunction()
         *this += ')';
     }
 
-    if (is_cpp())
+    if (is_cpp() || is_perl() || is_rust())
     {
         *this += ';';
     }
@@ -937,26 +1238,47 @@ Code& Code::NodeName(Node* node)
 {
     if (!node)
         node = m_node;
-    auto& node_name = node->getNodeName();
-    if (is_python() && !node->isForm() && !node->isLocal())
+    auto node_name = node->getNodeName(get_language());
+    if ((is_python() || is_lua()) && !node->isForm() && !node->isLocal() && !node_name.starts_with("self."))
     {
         *this += "self.";
     }
-    if (is_ruby() && !node->isForm() && !node->isLocal())
+    else if (is_ruby() && !node->isForm() && !node->isLocal() && node_name[0] != '@')
     {
         *this += "@";
     }
-
-    // We don't create these, preferring to add them like the above, however the user can
-    // create them. For Ruby and Python, they will get duplicated since they already got added
-    // above, and for C++ the @ is invalid, and the _ not recommended.
-    if (node_name[0] == '@' || node_name[0] == '_')
-        *this += node_name.subview(1);
-    // m_ prefix should only be used for C++ code, so remove it if this isn't C++ code
-    else if (!is_cpp() && node_name.is_sameprefix("m_"))
-        *this += node_name.subview(2);
-    else
-        *this += node_name;
+    else if (is_perl() && !node->isForm())
+    {
+        if (node->isLocal())
+        {
+            if (!node_name.starts_with("$") && (size() < 1 || back() != '$'))
+            {
+                *this += "$";
+            }
+            *this += node_name;
+            return *this;
+        }
+        else
+        {
+            if (node_name.starts_with("$self->"))
+            {
+                *this += node_name;
+                return *this;
+            }
+            *this += "$self->{";
+            if (node_name.is_sameprefix("$"))
+            {
+                *this += node_name.subview(1);
+            }
+            else
+            {
+                *this += node_name;
+            }
+            *this += "}";
+            return *this;
+        }
+    }
+    *this += node_name;
     return *this;
 }
 
@@ -978,10 +1300,24 @@ Code& Code::VarName(tt_string_view var_name, bool class_access)
             *this += "self.";
         else if (is_ruby())
             *this += "@";
+        else if (is_perl())
+        {
+            Str("$self->{");
+            if (var_name.is_sameprefix("m_"))
+                *this += var_name.subview(2);
+            else
+                *this += var_name;
+            *this += "}";
+            return *this;
+        }
+    }
+
+    else if (is_perl())
+    {
+        *this += "$";
     }
 
     if (var_name.is_sameprefix("m_"))
-
         *this += var_name.subview(2);
     else
         *this += var_name;
@@ -1032,6 +1368,7 @@ static constexpr GenType s_GenParentTypes[] = {
     type_container,
     type_listbook,
     type_notebook,
+    type_panel,
     type_propgridpage,
     type_ribbonpanel,
     type_simplebook,
@@ -1066,7 +1403,18 @@ Code& Code::ValidParentName()
         }
         else if (parent->isForm())
         {
-            *this += (is_cpp()) ? "this" : "self";
+            if (is_cpp())
+            {
+                *this += "this";
+            }
+            else if (is_perl())
+            {
+                *this += "$self";
+            }
+            else
+            {
+                *this += "self";
+            }
             return *this;
         }
 
@@ -1116,7 +1464,7 @@ Code& Code::QuotedString(GenEnum::PropName prop_name)
 
 Code& Code::QuotedString(tt_string_view text)
 {
-    auto cur_pos = size();
+    auto cur_pos = this->size();
 
     if (Project.as_bool(prop_internationalize))
     {
@@ -1153,8 +1501,17 @@ Code& Code::QuotedString(tt_string_view text)
 
     // bool text_has_single_quote = (text.find('\'') != tt::npos);
 
+    auto begin_quote = this->size();
+    bool has_escape = false;
+
     if (is_ruby())
         *this += '\'';
+    else if (is_perl())
+    {
+        // Perl should use single-quotes if there are no escape characters, otherwise it should use
+        // double-quotes.
+        *this += '\'';
+    }
     else
         *this += '"';
     for (auto c: text)
@@ -1163,27 +1520,33 @@ Code& Code::QuotedString(tt_string_view text)
         {
             case '"':
                 *this += "\\\"";
+                has_escape = true;
                 break;
 
             // This generally isn't needed for C++, but is needed for other languages
             case '\'':
                 *this += "\\'";
+                has_escape = true;
                 break;
 
             case '\\':
                 *this += "\\\\";
+                has_escape = true;
                 break;
 
             case '\t':
                 *this += "\\t";
+                has_escape = true;
                 break;
 
             case '\n':
                 *this += "\\n";
+                has_escape = true;
                 break;
 
             case '\r':
                 *this += "\\r";
+                has_escape = true;
                 break;
 
             default:
@@ -1193,6 +1556,18 @@ Code& Code::QuotedString(tt_string_view text)
     }
     if (is_ruby())
         *this += '\'';
+    else if (is_perl())
+    {
+        if (has_escape)
+        {
+            *this += '"';
+            at(begin_quote) = '"';
+        }
+        else
+        {
+            *this += '\'';
+        }
+    }
     else
         *this += '"';
 
@@ -1212,35 +1587,44 @@ Code& Code::QuotedString(tt_string_view text)
 
     return *this;
 }
-
-Code& Code::WxSize(GenEnum::PropName prop_name, bool enable_dlg_units)
+Code& Code::WxSize(GenEnum::PropName prop_name, int enable_dpi_scaling)
 {
+    return WxSize(m_node->as_wxSize(prop_name), enable_dpi_scaling);
+}
+
+Code& Code::WxSize(wxSize size, int enable_dpi_scaling)
+{
+    auto cur_pos = this->size();
+    auto size_scaling = is_ScalingEnabled(prop_size, enable_dpi_scaling);
+
     if (is_ruby())
     {
-        if (m_node->as_wxSize(prop_name) == wxDefaultSize)
+        if (size == wxDefaultSize)
         {
             CheckLineLength((sizeof("Wx::DEFAULT_SIZE") - 1));
             *this += "Wx::DEFAULT_SIZE";
             return *this;
         }
 
-        auto cur_pos = size();
-        bool dialog_units = m_node->as_string(prop_name).contains("d", tt::CASE::either);
-        if (dialog_units && enable_dlg_units)
+        if (size_scaling)
         {
-            CheckLineLength(sizeof(", convert_dialog_to_pixels(Wx::Size.new(999, 999))"));
-            FormFunction("ConvertDialogToPixels(");
+            CheckLineLength(sizeof(", from_DIP(Wx::Size.new(999, 999))"));
         }
         else
         {
-            CheckLineLength((sizeof(" Wx::Size.new") - 1));
+            CheckLineLength(sizeof("Wx::Size.new(999, 999)"));
         }
 
-        auto size = m_node->as_wxSize(prop_name);
-        Class("Wx::Size.new(").itoa(size.x).Comma().itoa(size.y) << ')';
-
-        if (dialog_units && enable_dlg_units)
+        if (size_scaling)
+        {
+            FormFunction("FromDIP(");
+            Class("Wx::Size.new(").itoa(size.x).Comma().itoa(size.y) << ')';
             *this += ')';
+        }
+        else
+        {
+            Class("Wx::Size.new(").itoa(size.x).Comma().itoa(size.y) << ')';
+        }
 
         if (m_auto_break && this->size() > m_break_at)
         {
@@ -1252,40 +1636,51 @@ Code& Code::WxSize(GenEnum::PropName prop_name, bool enable_dlg_units)
 
     // The following code is for non-Ruby languages
 
-    if (m_node->as_wxSize(prop_name) == wxDefaultSize)
+    if (size == wxDefaultSize)
     {
         CheckLineLength((sizeof("DefaultSize") - 1) + m_language_wxPrefix.size());
-        *this << m_language_wxPrefix << "DefaultSize";
+        if (is_perl())
+            *this << "wxDefaultSize";
+        else
+            *this << m_language_wxPrefix << "DefaultSize";
         return *this;
     }
 
-    auto cur_pos = size();
-
-    bool dialog_units = m_node->as_string(prop_name).contains("d", tt::CASE::either);
-    if (dialog_units && enable_dlg_units)
+    if (size_scaling)
     {
         if (is_cpp())
         {
-            CheckLineLength(sizeof("ConvertDialogToPixels(wxSize(999, 999))"));
-            FormFunction("ConvertDialogToPixels(");
+            if (Project.is_wxWidgets31())
+            {
+                CheckLineLength(sizeof("wxSize(999, 999)"));
+                Class("wxSize(").itoa(size.x).Comma().itoa(size.y) << ')';
+            }
+            else
+            {
+                CheckLineLength(sizeof("FromDIP(wxSize(999, 999))"));
+                FormFunction("FromDIP(");
+                Class("wxSize(").itoa(size.x).Comma().itoa(size.y) << ')';
+                *this += ')';
+            }
         }
         else if (is_python())
         {
-            CheckLineLength(sizeof("self.ConvertDialogToPixels(wxSize(999, 999))"));
-            FormFunction("ConvertDialogToPixels(");
+            CheckLineLength(sizeof("self.FromDIP(wxSize(999, 999))"));
+            FormFunction("FromDIP(");
+            Class("wxSize(").itoa(size.x).Comma().itoa(size.y) << ')';
+            *this += ')';
         }
-        else if (is_ruby())
+        else if (is_lua())
         {
-            CheckLineLength(sizeof("convert_pixels_to_dialog(Wx::Size(999, 999))"));
-            FormFunction("convert_pixels_to_dialog(");
+            CheckLineLength(sizeof("wx.wxSize(999, 999)"));
+            Class("wxSize(").itoa(size.x).Comma().itoa(size.y) << ')';
         }
     }
-
-    auto size = m_node->as_wxSize(prop_name);
-    Class("wxSize(").itoa(size.x).Comma().itoa(size.y) << ')';
-
-    if (dialog_units && enable_dlg_units)
-        *this += ')';
+    else
+    {
+        CheckLineLength(sizeof("wxSize(999, 999)"));
+        Class("wxSize(").itoa(size.x).Comma().itoa(size.y) << ')';
+    }
 
     if (m_auto_break && this->size() > m_break_at)
     {
@@ -1295,8 +1690,18 @@ Code& Code::WxSize(GenEnum::PropName prop_name, bool enable_dlg_units)
     return *this;
 }
 
-Code& Code::Pos(GenEnum::PropName prop_name, bool enable_dlg_units)
+Code& Code::Pos(GenEnum::PropName prop_name, int enable_dpi_scaling)
 {
+    auto cur_pos = size();
+    auto point = m_node->as_wxPoint(prop_name);
+    auto pos_scaling = is_ScalingEnabled(prop_pos, enable_dpi_scaling);
+
+    if (m_node->as_string(prop_name).contains("d", tt::CASE::either))
+    {
+        FAIL_MSG("Pos() should not be used with a string that contains 'd'");
+        point = wxGetMainFrame()->getWindow()->ConvertDialogToPixels(point);
+    }
+
     if (is_ruby())
     {
         if (m_node->as_wxPoint(prop_name) == wxDefaultPosition)
@@ -1306,23 +1711,18 @@ Code& Code::Pos(GenEnum::PropName prop_name, bool enable_dlg_units)
             return *this;
         }
 
-        auto cur_pos = size();
-        bool dialog_units = m_node->as_string(prop_name).contains("d", tt::CASE::either);
-        if (dialog_units && enable_dlg_units)
+        if (pos_scaling)
         {
-            CheckLineLength(sizeof(", convert_dialog_to_pixels(Wx::Point.new(999, 999))"));
-            FormFunction("ConvertDialogToPixels(");
+            CheckLineLength(sizeof(", from_DIP(Wx::Point.new(999, 999))"));
+            FormFunction("FromDIP(");
+            Class("Wx::Point.new(").itoa(point.x).Comma().itoa(point.y) << ')';
+            *this += ')';
         }
         else
         {
-            CheckLineLength((sizeof(" Wx::Point.new") - 1));
+            CheckLineLength(sizeof("Wx::Point.new(999, 999)"));
+            Class("Wx::Point.new(").itoa(point.x).Comma().itoa(point.y) << ')';
         }
-
-        auto size = m_node->as_wxSize(prop_name);
-        Class("Wx::Point.new(").itoa(size.x).Comma().itoa(size.y) << ')';
-
-        if (dialog_units && enable_dlg_units)
-            *this += ')';
 
         if (m_auto_break && this->size() > m_break_at)
         {
@@ -1337,25 +1737,32 @@ Code& Code::Pos(GenEnum::PropName prop_name, bool enable_dlg_units)
     if (m_node->as_wxPoint(prop_name) == wxDefaultPosition)
     {
         CheckLineLength((sizeof("DefaultPosition") - 1) + m_language_wxPrefix.size());
-        *this << m_language_wxPrefix << "DefaultPosition";
+        if (is_perl())
+            *this << "wxDefaultPosition";
+        else
+            *this << m_language_wxPrefix << "DefaultPosition";
         return *this;
     }
 
-    auto cur_pos = size();
-
-    bool dialog_units = m_node->as_string(prop_name).contains("d", tt::CASE::either);
-    if (dialog_units && enable_dlg_units)
+    if (pos_scaling)
     {
-        CheckLineLength(sizeof("self.ConvertDialogToPixels(wxPoint(999, 999))"));
-        FormFunction("ConvertDialogToPixels(");
-    }
-
-    auto size = m_node->as_wxSize(prop_name);
-    Class("wxPoint(").itoa(size.x).Comma().itoa(size.y) << ')';
-
-    if (dialog_units && enable_dlg_units)
+        if (is_cpp())
+        {
+            CheckLineLength(sizeof("FromDIP(wxPoint(999, 999))"));
+        }
+        else if (is_python())
+        {
+            CheckLineLength(sizeof("self.FromDIP(wxPoint(999, 999))"));
+        }
+        FormFunction("FromDIP(");
+        Class("wxPoint(").itoa(point.x).Comma().itoa(point.y) << ')';
         *this += ')';
-
+    }
+    else
+    {
+        CheckLineLength(sizeof("wxPoint(999, 999)"));
+        Class("wxPoint(").itoa(point.x).Comma().itoa(point.y) << ')';
+    }
     if (m_auto_break && this->size() > m_break_at)
     {
         InsertLineBreak(cur_pos);
@@ -1396,7 +1803,7 @@ Code& Code::Style(const char* prefix, tt_string_view force_style)
         if (style_set)
             *this += '|';
         style_set = true;
-        Add("wxRE_MULTILINE");
+        AddConstant("wxRE_MULTILINE");
     }
 
     if (m_node->hasValue(prop_style))
@@ -1442,7 +1849,7 @@ Code& Code::Style(const char* prefix, tt_string_view force_style)
         }
         else
         {
-            as_string(prop_style);
+            AddConstant(m_node->as_string(prop_style));
             cur_pos = size();
         }
         style_set = true;
@@ -1453,7 +1860,7 @@ Code& Code::Style(const char* prefix, tt_string_view force_style)
         if (style_set)
             *this += '|';
         style_set = true;
-        as_string(prop_window_style);
+        AddConstant(m_node->as_string(prop_window_style));
         cur_pos = size();
     }
 
@@ -1479,13 +1886,16 @@ Code& Code::Style(const char* prefix, tt_string_view force_style)
     return *this;
 }
 
-Code& Code::PosSizeFlags(bool uses_def_validator, tt_string_view def_style)
+Code& Code::PosSizeFlags(ScalingType enable_dpi_scaling, bool uses_def_validator, tt_string_view def_style)
 {
+    auto pos_scaling = is_ScalingEnabled(prop_pos, enable_dpi_scaling);
+    auto size_scaling = is_ScalingEnabled(prop_size, enable_dpi_scaling);
+
     if (m_node->hasValue(prop_window_name))
     {
         // Window name is always the last parameter, so if it is specified, everything has to be generated.
         Comma();
-        Pos().Comma().WxSize().Comma();
+        Pos(prop_pos, pos_scaling).Comma().WxSize(prop_size, size_scaling).Comma();
         Style();
         if (uses_def_validator)
             Comma().Add("wxDefaultValidator");
@@ -1516,7 +1926,7 @@ Code& Code::PosSizeFlags(bool uses_def_validator, tt_string_view def_style)
     if (style_needed)
     {
         Comma();
-        Pos().Comma().WxSize().Comma().Style();
+        Pos(prop_pos, pos_scaling).Comma().WxSize(prop_size, size_scaling).Comma().Style();
         if (def_style.size() && ends_with(def_style))
         {
             erase(size() - def_style.size());
@@ -1527,12 +1937,12 @@ Code& Code::PosSizeFlags(bool uses_def_validator, tt_string_view def_style)
     else if (m_node->as_wxSize(prop_size) != wxDefaultSize)
     {
         Comma();
-        Pos().Comma().WxSize();
+        Pos(prop_pos, pos_scaling).Comma().WxSize(prop_size, size_scaling);
     }
     else if (m_node->as_wxPoint(prop_pos) != wxDefaultPosition)
     {
         Comma();
-        Pos();
+        Pos(prop_pos, pos_scaling);
     }
     EndFunction();
     return *this;
@@ -1952,6 +2362,11 @@ void Code::GenWindowSettings()
 Code& Code::GenFont(GenEnum::PropName prop_name, tt_string_view font_function)
 {
     FontProperty fontprop(m_node->getPropPtr(prop_name));
+    if (is_perl())
+    {
+        // REVIEW: [Randalphwa - 01-07-2025] As of wx-3.005, wxPerl doesn't support wxFontinfo
+        return *this;
+    }
     if (fontprop.isDefGuiFont())
     {
         OpenFontBrace();
@@ -1988,7 +2403,14 @@ Code& Code::GenFont(GenEnum::PropName prop_name, tt_string_view font_function)
 
         if (m_node->isForm())
         {
-            FormFunction("SetFont(font").EndFunction();
+            if (m_node->isGen(gen_wxPropertySheetDialog))
+            {
+                FormFunction("GetBookCtrl()").Function("SetFont(").Add("font").EndFunction();
+            }
+            else
+            {
+                FormFunction("SetFont(font").EndFunction();
+            }
             CloseFontBrace();
         }
         else if (m_node->isGen(gen_wxStyledTextCtrl))
@@ -2018,7 +2440,12 @@ Code& Code::GenFont(GenEnum::PropName prop_name, tt_string_view font_function)
         }
         else
         {
-            Eol(eol_if_needed).Add("font_info").CreateClass(false, "wxFontInfo");
+            Eol(eol_if_needed);
+            if (is_perl())
+            {
+                *this += "my $";
+            }
+            Add("font_info").CreateClass(false, "wxFontInfo");
         }
 
         if (point_size != static_cast<int>(point_size))  // is there a fractional value?
@@ -2086,56 +2513,76 @@ Code& Code::GenFont(GenEnum::PropName prop_name, tt_string_view font_function)
             }
         }
 
-        if (fontprop.GetFaceName().size() && fontprop.GetFaceName() != "default")
-            VariableMethod("FaceName(").QuotedString(tt_string() << fontprop.GetFaceName().utf8_string()) += ")";
-        if (fontprop.GetFamily() != wxFONTFAMILY_DEFAULT)
-            VariableMethod("Family(").Add(font_family_pairs.GetValue(fontprop.GetFamily())) += ")";
-        if (fontprop.GetStyle() != wxFONTSTYLE_NORMAL)
-            VariableMethod("Style(").Add(font_style_pairs.GetValue(fontprop.GetStyle())) += ")";
-        if (fontprop.GetWeight() != wxFONTWEIGHT_NORMAL)
+        if (is_perl())
         {
-            if (is_cpp() && Project.is_wxWidgets31())
+            if (fontprop.GetFaceName().size() && fontprop.GetFaceName() != "default")
             {
-                Eol().Str("#if !wxCHECK_VERSION(3, 1, 2)").Eol().Tab();
+                Eol().Str("$font_info->").Str("FaceName = ");
+                QuotedString(tt_string() << fontprop.GetFaceName().utf8_string()) += ";";
+            }
+            if (fontprop.GetFamily() != wxFONTFAMILY_DEFAULT)
+            {
+                Eol().Str("$font_info->").Str("Family = ");
+                Add(font_family_pairs.GetValue(fontprop.GetFamily())) += ";";
+            }
+            if (fontprop.GetStyle() != wxFONTSTYLE_NORMAL)
+            {
+                Eol().Str("$font_info->").Str("Style = ");
+                Add(font_style_pairs.GetValue(fontprop.GetStyle())) += ";";
+            }
+        }
+        else
+        {
+            if (fontprop.GetFaceName().size() && fontprop.GetFaceName() != "default")
+                VariableMethod("FaceName(").QuotedString(tt_string() << fontprop.GetFaceName().utf8_string()) += ")";
+            if (fontprop.GetFamily() != wxFONTFAMILY_DEFAULT)
+                VariableMethod("Family(").Add(font_family_pairs.GetValue(fontprop.GetFamily())) += ")";
+            if (fontprop.GetStyle() != wxFONTSTYLE_NORMAL)
+                VariableMethod("Style(").Add(font_style_pairs.GetValue(fontprop.GetStyle())) += ")";
+            if (fontprop.GetWeight() != wxFONTWEIGHT_NORMAL)
+            {
+                if (is_cpp() && Project.is_wxWidgets31())
                 {
-                    // wxFontInfo::SetFlag() would have worked around this, unfortunately it is a private: function
-                    bool is_code_added = false;
-                    if (fontprop.GetWeight() == wxFONTWEIGHT_LIGHT)
+                    Eol().Str("#if !wxCHECK_VERSION(3, 1, 2)").Eol().Tab();
                     {
-                        VariableMethod("Light();");
-                        is_code_added = true;
-                    }
-                    else if (fontprop.GetWeight() == wxFONTWEIGHT_BOLD)
-                    {
-                        VariableMethod("Bold()");
-                        is_code_added = true;
-                    }
+                        // wxFontInfo::SetFlag() would have worked around this, unfortunately it is a private: function
+                        bool is_code_added = false;
+                        if (fontprop.GetWeight() == wxFONTWEIGHT_LIGHT)
+                        {
+                            VariableMethod("Light();");
+                            is_code_added = true;
+                        }
+                        else if (fontprop.GetWeight() == wxFONTWEIGHT_BOLD)
+                        {
+                            VariableMethod("Bold()");
+                            is_code_added = true;
+                        }
 
-                    if (!is_code_added)
+                        if (!is_code_added)
+                        {
+                            Str("// Only Bold and Light are supported in wxWidgets 3.1.1 and earlier");
+                        }
+                    }
+                    Eol().Str("#else // Weight() is new to wxWidgets 3.1.2").Eol().Tab();
                     {
-                        Str("// Only Bold and Light are supported in wxWidgets 3.1.1 and earlier");
+                        VariableMethod("Weight(").Add(font_weight_pairs.GetValue(fontprop.GetWeight())) += ")";
+                    }
+                    Eol().Str("#endif").Eol();
+                    if (!fontprop.IsUnderlined() && !fontprop.IsStrikethrough())
+                    {
+                        Str(";").Eol();
                     }
                 }
-                Eol().Str("#else // Weight() is new to wxWidgets 3.1.2").Eol().Tab();
+                else
                 {
                     VariableMethod("Weight(").Add(font_weight_pairs.GetValue(fontprop.GetWeight())) += ")";
                 }
-                Eol().Str("#endif").Eol();
-                if (!fontprop.IsUnderlined() && !fontprop.IsStrikethrough())
-                {
-                    Str(";").Eol();
-                }
             }
-            else
-            {
-                VariableMethod("Weight(").Add(font_weight_pairs.GetValue(fontprop.GetWeight())) += ")";
-            }
+            if (fontprop.IsUnderlined())
+                VariableMethod("Underlined()");
+            if (fontprop.IsStrikethrough())
+                VariableMethod("Strikethrough()");
         }
-        if (fontprop.IsUnderlined())
-            VariableMethod("Underlined()");
-        if (fontprop.IsStrikethrough())
-            VariableMethod("Strikethrough()");
-
         if (back() == '.')
         {
             pop_back();
@@ -2151,11 +2598,23 @@ Code& Code::GenFont(GenEnum::PropName prop_name, tt_string_view font_function)
 
         if (m_node->isForm())
         {
-            FormFunction(font_function).Object("wxFont").Str("font_info").Str(")").EndFunction();
+            if (m_node->isGen(gen_wxPropertySheetDialog))
+            {
+                FormFunction("GetBookCtrl()")
+                    .Function(font_function)
+                    .Object("wxFont")
+                    .Str("font_info")
+                    .Str(")")
+                    .EndFunction();
+            }
+            else
+            {
+                FormFunction(font_function).Object("wxFont").VarName("font_info", false).Str(")").EndFunction();
+            }
         }
         else
         {
-            NodeName().Function(font_function).Object("wxFont").Str("font_info").Str(")").EndFunction();
+            NodeName().Function(font_function).Object("wxFont").VarName("font_info", false).Str(")").EndFunction();
         }
         CloseFontBrace();
     }
@@ -2176,7 +2635,14 @@ void Code::GenFontColourSettings()
         Eol(eol_if_needed);
         if (node->isForm())
         {
-            FormFunction("SetForegroundColour(");
+            if (m_node->isGen(gen_wxPropertySheetDialog))
+            {
+                FormFunction("GetBookCtrl()").Function("SetForegroundColour(");
+            }
+            else
+            {
+                FormFunction("SetForegroundColour(");
+            }
         }
         else
         {
@@ -2221,40 +2687,59 @@ void Code::GenFontColourSettings()
         {
             if (bg_clr.starts_with('#'))
             {
-                Object("wxColour").QuotedString(bg_clr) += ')';
+                if (is_lua())
+                {
+                    // Lua 3.2 doesn't allow passing a string to SetBackgroundColour
+                    Class("wxColour(").QuotedString(bg_clr) += ')';
+                }
+                else
+                {
+                    Object("wxColour").QuotedString(bg_clr) += ')';
+                }
             }
             else
             {
                 // This handles older project versions, and hand-edited project files
                 const auto colour = m_node->as_wxColour(prop_background_colour);
-                Object("wxColour").QuotedString(colour.GetAsString(wxC2S_HTML_SYNTAX).ToStdString()) += ')';
+                if (is_lua())
+                {
+                    // Lua 3.2 doesn't allow passing a string to SetBackgroundColour
+                    Class("wxColour(").QuotedString(colour.GetAsString(wxC2S_HTML_SYNTAX).ToStdString()) += ')';
+                }
+                else
+                {
+                    Object("wxColour").QuotedString(colour.GetAsString(wxC2S_HTML_SYNTAX).ToStdString()) += ')';
+                }
             }
         }
+
         EndFunction();
-    }
-}
 
-Code& Code::AddComment(tt_string_view text)
-{
-    if (empty() || !tt::is_whitespace(back()))
-    {
-        *this << ' ';
-    }
+        // For background color, set both the background of the dialog and the background of the book control
+        if (m_node->isGen(gen_wxPropertySheetDialog))
+        {
+            FormFunction("GetBookCtrl()").Function("SetBackgroundColour(");
+            if (bg_clr.contains("wx"))
+            {
+                Add("wxSystemSettings").ClassMethod("GetColour(").Add(bg_clr) += ")";
+            }
+            else
+            {
+                if (bg_clr.starts_with('#'))
+                {
+                    Object("wxColour").QuotedString(bg_clr) += ')';
+                }
+                else
+                {
+                    // This handles older project versions, and hand-edited project files
+                    const auto colour = m_node->as_wxColour(prop_background_colour);
+                    Object("wxColour").QuotedString(colour.GetAsString(wxC2S_HTML_SYNTAX).ToStdString()) += ')';
+                }
+            }
 
-    if (is_cpp())
-    {
-        *this << "// " << text;
+            EndFunction();
+        }
     }
-    else if (is_python() || is_ruby())
-    {
-        *this << "# " << text;
-    }
-    else
-    {
-        // Default for any new languages
-        *this << "# " << text;
-    }
-    return *this;
 }
 
 Code& Code::ColourCode(GenEnum::PropName prop_name)
@@ -2297,7 +2782,175 @@ Code& Code::Bundle(GenEnum::PropName prop_name)
             case GEN_LANG_RUBY:
                 RubyBundleCode(*this, prop_name);
                 break;
+            case GEN_LANG_PERL:
+                // PerlBundleCode(*this, prop_name);
+                break;
+
+            case GEN_LANG_RUST:
+                // RustBundleCode(*this, prop_name);
+                break;
+
+#if GENERATE_NEW_LANG_CODE
+            case GEN_LANG_HASKELL:
+                // HaskellBundleCode(*this, prop_name);
+                break;
+
+            case GEN_LANG_LUA:
+                // LuaBundleCode(*this, prop_name);
+                break;
+#endif
+
+            default:
+                break;
         }
+    }
+
+    return *this;
+}
+
+bool Code::is_ScalingEnabled(GenEnum::PropName prop_name, int enable_dpi_scaling) const
+{
+    if (enable_dpi_scaling == code::no_dpi_scaling ||
+        tt::contains(m_node->as_string(prop_name), 'n', tt::CASE::either) == true)
+        return false;
+    else if (m_language == GEN_LANG_CPLUSPLUS && Project.is_wxWidgets31())
+        return false;
+    if (enable_dpi_scaling == code::conditional_scaling && m_node->isForm())
+        return false;
+
+    return true;
+}
+
+Code& Code::AddComment(std::string_view comment, bool force)
+{
+    if (!UserPrefs.is_AddComments() && !force)
+        return *this;
+    Eol(eol_if_needed);
+    switch (m_language)
+    {
+        case GEN_LANG_CPLUSPLUS:
+            *this << "// " << comment;
+            break;
+        case GEN_LANG_PYTHON:
+        case GEN_LANG_RUBY:
+        case GEN_LANG_PERL:
+            *this << "# " << comment;
+            break;
+        default:
+            *this << "# " << comment;
+            break;
+    }
+
+    Eol(eol_if_needed);
+
+    return *this;
+}
+
+Code& Code::BeginConditional()
+{
+    if (is_cpp())
+    {
+        *this << "if (";
+    }
+    else
+    {
+        *this << "if ";
+    }
+    return *this;
+}
+
+Code& Code::AddConditionalAnd()
+{
+    if (is_cpp() || is_ruby() || is_perl() || is_rust() || is_haskell())
+    {
+        *this << " && ";
+    }
+    else if (is_python() || is_lua())
+    {
+        *this << " and ";
+    }
+    else if (is_fortran())
+    {
+        *this << " .AND. ";
+    }
+
+    else
+    {
+        MSG_WARNING("unknown language");
+    }
+
+    return *this;
+}
+Code& Code::AddConditionalOr()
+{
+    if (is_cpp() || is_ruby() || is_perl() || is_rust() || is_haskell())
+    {
+        *this << " || ";
+    }
+    else if (is_python() || is_lua())
+    {
+        *this << " or ";
+    }
+    else if (is_fortran())
+    {
+        *this << " .OR. ";
+    }
+    else
+    {
+        MSG_WARNING("unknown language");
+    }
+
+    return *this;
+}
+
+Code& Code::EndConditional()
+{
+    if (is_cpp() || is_perl())
+
+    {
+        *this << ')';
+    }
+    else if (is_python() || is_lua())
+    {
+        *this << ':';
+    }
+
+    // Ruby doesn't need anything to complete the conditional statement
+
+    return *this;
+}
+
+Code& Code::True()
+{
+    if (is_python())
+    {
+        *this << "True";
+    }
+    else if (is_perl())
+    {
+        *this << "1";
+    }
+    else
+    {
+        *this << "true";
+    }
+
+    return *this;
+}
+
+Code& Code::False()
+{
+    if (is_python())
+    {
+        *this << "False";
+    }
+    else if (is_perl())
+    {
+        *this << "0";
+    }
+    else
+    {
+        *this << "false";
     }
 
     return *this;

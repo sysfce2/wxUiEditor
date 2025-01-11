@@ -23,9 +23,9 @@ wxObject* RadioBoxGenerator::CreateMockup(Node* node, wxObject* parent)
         choices.Add("at least one choice required");
     }
 
-    auto widget = new wxRadioBox(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
-                                 DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), choices,
-                                 node->as_int(prop_majorDimension), GetStyleInt(node, "rb_"));
+    auto widget =
+        new wxRadioBox(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label), DlgPoint(node, prop_pos),
+                       DlgSize(node, prop_size), choices, node->as_int(prop_majorDimension), GetStyleInt(node, "rb_"));
 
     if (int selection = node->as_int(prop_selection); (to_size_t) selection < choices.Count())
     {
@@ -123,7 +123,7 @@ bool RadioBoxGenerator::SettingsCode(Code& code)
 }
 
 bool RadioBoxGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/radiobox.h>", set_src, set_hdr);
     if (node->as_string(prop_validator_variable).size())

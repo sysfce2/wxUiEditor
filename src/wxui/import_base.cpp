@@ -81,7 +81,7 @@ bool ImportBase::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     box_sizer7->Add(m_staticImportList, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP, wxSizerFlags::GetDefaultBorder()));
 
     m_checkListProjects = new wxCheckListBox(m_import_staticbox->GetStaticBox(), wxID_ANY);
-    m_checkListProjects->SetMinSize(wxSize(-1, 240));
+    m_checkListProjects->SetMinSize(FromDIP(wxSize(-1, 240)));
     box_sizer7->Add(m_checkListProjects, wxSizerFlags().Expand().Border(wxALL));
 
     auto* box_sizer_2 = new wxBoxSizer(wxHORIZONTAL);
@@ -101,7 +101,24 @@ bool ImportBase::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     m_stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     parent_sizer->Add(CreateSeparatedSizer(m_stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(parent_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(parent_sizer);
+    }
+    else
+    {
+        SetSizer(parent_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers

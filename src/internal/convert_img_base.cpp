@@ -53,7 +53,7 @@ bool ConvertImageBase::Create(wxWindow* parent, wxWindowID id, const wxString& t
 
     m_fileOriginal = new wxFilePickerCtrl(this, wxID_ANY, wxEmptyString, wxFileSelectorPromptStr,
         "Select file(s)\", \"All files|*.*|PNG|*.png|XPM|*.xpm|Tiff|*.tif;*.tiff|Bitmaps|*.bmp|Icon|*.ico||", wxDefaultPosition,
-        wxSize(300, -1), wxFLP_USE_TEXTCTRL|wxFLP_OPEN|wxFLP_FILE_MUST_EXIST);
+        FromDIP(wxSize(300, -1)), wxFLP_USE_TEXTCTRL|wxFLP_OPEN|wxFLP_FILE_MUST_EXIST);
     flex_grid_sizer->Add(m_fileOriginal, wxSizerFlags().Expand().Border(wxALL));
 
     m_staticHeader = new wxStaticText(this, wxID_ANY, "O&utput:");
@@ -94,7 +94,7 @@ bool ConvertImageBase::Create(wxWindow* parent, wxWindowID id, const wxString& t
     box_sizer_3->AddSpacer(10);
 
     m_comboHdrMask = new wxComboBox(hdr_static_box->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition,
-        wxSize(150, -1), 0, nullptr, wxCB_READONLY);
+        FromDIP(wxSize(150, -1)), 0, nullptr, wxCB_READONLY);
     box_sizer_3->Add(m_comboHdrMask, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxBOTTOM, wxSizerFlags::GetDefaultBorder()));
 
     box_sizer_2->Add(box_sizer_3, wxSizerFlags().Border(wxALL));
@@ -137,7 +137,7 @@ bool ConvertImageBase::Create(wxWindow* parent, wxWindowID id, const wxString& t
     box_sizer_4->AddSpacer(10);
 
     m_comboXpmMask = new wxComboBox(mask_static_box->GetStaticBox(), wxID_ANY, wxEmptyString, wxDefaultPosition,
-        wxSize(150, -1), 0, nullptr, wxCB_READONLY);
+        FromDIP(wxSize(150, -1)), 0, nullptr, wxCB_READONLY);
     box_sizer_4->Add(m_comboXpmMask, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxBOTTOM, wxSizerFlags::GetDefaultBorder()));
 
     box_sizer7->Add(box_sizer_4, wxSizerFlags().Border(wxALL));
@@ -210,7 +210,24 @@ bool ConvertImageBase::Create(wxWindow* parent, wxWindowID id, const wxString& t
 
     parent_sizer->Add(grid_sizer, wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(parent_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(parent_sizer);
+    }
+    else
+    {
+        SetSizer(parent_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers

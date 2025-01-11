@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Main application class
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -18,14 +18,16 @@
 
 #include "mainapp.h"
 
-#include "bitmaps.h"          // Contains various images handling functions
-#include "gen_results.h"      // Code generation file writing functions
-#include "mainframe.h"        // MainFrame -- Main window frame
-#include "node.h"             // Node -- Node class
-#include "node_creator.h"     // NodeCreator class
-#include "preferences.h"      // Set/Get wxUiEditor preferences
-#include "project_handler.h"  // ProjectHandler class
-#include "utils.h"            // Utility functions that work with properties
+#include "bitmaps.h"               // Contains various images handling functions
+#include "gen_common.h"            // Common component functions
+#include "gen_results.h"           // Code generation file writing functions
+#include "internal/msg_logging.h"  // MsgLogging -- Message logging class
+#include "mainframe.h"             // MainFrame -- Main window frame
+#include "node.h"                  // Node -- Node class
+#include "node_creator.h"          // NodeCreator class
+#include "preferences.h"           // Set/Get wxUiEditor preferences
+#include "project_handler.h"       // ProjectHandler class
+#include "utils.h"                 // Utility functions that work with properties
 
 #include "ui/startup_dlg.h"  // StartupDlg -- Dialog to display if wxUE is launched with no arguments
 
@@ -67,6 +69,9 @@ wxIMPLEMENT_APP(App);
 
 #endif  // _WIN32 && defined(_DEBUG)
 
+void ttAssertionHandler(const wxString& filename, int line, const wxString& function, const wxString& cond,
+                        const wxString& msg);
+
 tt_string tt_empty_cstr;
 
 #if defined(_WIN32)
@@ -84,10 +89,6 @@ App::App() {}
 
 bool App::OnInit()
 {
-#if defined(INTERNAL_TESTING) || defined(_DEBUG)
-    m_TestingMenuEnabled = true;
-#endif
-
 #if defined(_WIN32) && defined(_DEBUG)
     #if !defined(USE_CRT_MEMORY_DUMP)
 
@@ -155,6 +156,12 @@ int App::OnRun()
     parser.AddLongOption("gen_cpp", "generate C++ files and exit");
     parser.AddLongOption("gen_python", "generate python files and exit");
     parser.AddLongOption("gen_ruby", "generate ruby files and exit");
+    parser.AddLongOption("gen_haskell", "generate Haskell files and exit");
+    parser.AddLongOption("gen_lua", "generate Lua files and exit");
+    parser.AddLongOption("gen_perl", "generate Perl files and exit");
+    parser.AddLongOption("gen_rust", "generate Rust files and exit");
+
+    parser.AddLongOption("gen_all", "generate all language files and exit");
 
     // [Randalphwa - 02-08-2023] This probably works, but will remain hidden until it is
     // tested. That said, I'm doubtful that it has any actual value other than for testing -- I
@@ -165,18 +172,40 @@ int App::OnRun()
     // The "test" options will not write any files, it simply runs the code generation skipping
     // the part where files get written, and generates the log file.
 
-    parser.AddLongSwitch("test_cpp", "generate C++ files and exit", wxCMD_LINE_HIDDEN);
-    parser.AddLongSwitch("test_python", "generate python files and exit", wxCMD_LINE_HIDDEN);
-    parser.AddLongSwitch("test_ruby", "generate python files and exit", wxCMD_LINE_HIDDEN);
-    parser.AddLongSwitch("test_xrc", "generate XRC files and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_cpp", "generate C++ code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_python", "generate Python code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_ruby", "generate Ruby code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_haskell", "generate Haskell code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_lua", "generate Lua code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_perl", "generate Perl code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_rust", "generate Rust code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_xrc", "generate XRC code and exit", wxCMD_LINE_HIDDEN);
+    parser.AddLongSwitch("test_all", "generate all code and exit", wxCMD_LINE_HIDDEN);
 
     parser.AddLongSwitch("test_menu", "create test menu to the right of the Help menu",
                          wxCMD_LINE_HIDDEN | wxCMD_LINE_SWITCH_NEGATABLE);
+    parser.AddLongSwitch("load_last", "Load last opened project", wxCMD_LINE_HIDDEN | wxCMD_LINE_SWITCH_NEGATABLE);
 
     parser.Parse();
+#if defined(INTERNAL_TESTING)
+    m_TestingMenuEnabled = true;
+#endif
     if (auto result = parser.FoundSwitch("test_menu"); result != wxCMD_SWITCH_NOT_FOUND)
     {
         m_TestingMenuEnabled = (result == wxCMD_SWITCH_ON ? true : false);
+    }
+#if defined(_DEBUG)
+    m_TestingMenuEnabled = true;
+    m_is_testing_switch = true;
+#endif  // _DEBUG
+
+    if (wxGetApp().isTestingMenuEnabled() && !g_pMsgLogging)
+    {
+        g_pMsgLogging = new MsgLogging();
+        wxLog::SetActiveTarget(g_pMsgLogging);
+
+        // Use our own assertion handler
+        wxSetAssertHandler(ttAssertionHandler);
     }
 
     if (parser.GetParamCount() || parser.GetArguments().size())
@@ -188,11 +217,15 @@ int App::OnRun()
         }
 
         tt_string log_file;
-        auto generate_type = GEN_LANG_NONE;
+        size_t generate_type = GEN_LANG_NONE;
         bool test_only = false;
         if (parser.Found("gen_cpp", &filename))
         {
             generate_type = GEN_LANG_CPLUSPLUS;
+        }
+        else if (parser.Found("gen_perl", &filename))
+        {
+            generate_type = GEN_LANG_PERL;
         }
         else if (parser.Found("gen_python", &filename))
         {
@@ -202,31 +235,75 @@ int App::OnRun()
         {
             generate_type = GEN_LANG_RUBY;
         }
+        else if (parser.Found("gen_rust", &filename))
+        {
+            generate_type = GEN_LANG_RUST;
+        }
         else if (parser.Found("gen_xrc", &filename))
         {
             generate_type = GEN_LANG_XRC;
         }
+#if GENERATE_NEW_LANG_CODE
+        else if (parser.Found("gen_haskell", &filename))
+        {
+            generate_type = GEN_LANG_HASKELL;
+        }
+        else if (parser.Found("gen_lua", &filename))
+        {
+            generate_type = GEN_LANG_LUA;
+        }
+#endif  // GENERATE_NEW_LANG_CODE
 
-        else if (parser.Found("test_cpp", &filename))
+        else if (parser.Found("gen_all", &filename))
         {
-            generate_type = GEN_LANG_CPLUSPLUS;
+            generate_type = (GEN_LANG_CPLUSPLUS | GEN_LANG_PERL | GEN_LANG_PYTHON | GEN_LANG_RUBY | GEN_LANG_RUST);
+#if GENERATE_NEW_LANG_CODE
+            generate_type |= (GEN_LANG_FORTRAN | GEN_LANG_HASKELL | GEN_LANG_LUA);
+#endif  // GENERATE_NEW_LANG_CODE
+        }
+
+        if (parser.Found("test_cpp", &filename))
+        {
+            generate_type = (generate_type | GEN_LANG_CPLUSPLUS);
             test_only = true;
         }
-        else if (parser.Found("test_python", &filename))
+        if (parser.Found("test_perl", &filename))
         {
-            generate_type = GEN_LANG_PYTHON;
+            generate_type = (generate_type | GEN_LANG_PERL);
             test_only = true;
         }
-        else if (parser.Found("test_ruby", &filename))
+        if (parser.Found("test_python", &filename))
         {
-            generate_type = GEN_LANG_PYTHON;
+            generate_type = (generate_type | GEN_LANG_PYTHON);
             test_only = true;
         }
-        else if (parser.Found("test_xrc", &filename))
+        if (parser.Found("test_ruby", &filename))
         {
-            generate_type = GEN_LANG_XRC;
+            generate_type = (generate_type | GEN_LANG_RUBY);
             test_only = true;
         }
+        if (parser.Found("test_rust", &filename))
+        {
+            generate_type = (generate_type | GEN_LANG_RUST);
+            test_only = true;
+        }
+        if (parser.Found("test_xrc", &filename))
+        {
+            generate_type = (generate_type | GEN_LANG_XRC);
+            test_only = true;
+        }
+#if GENERATE_NEW_LANG_CODE
+        if (parser.Found("test_haskell", &filename))
+        {
+            generate_type = (generate_type | GEN_LANG_HASKELL);
+            test_only = true;
+        }
+        if (parser.Found("test_lua", &filename))
+        {
+            generate_type = (generate_type | GEN_LANG_LUA);
+            test_only = true;
+        }
+#endif  // GENERATE_NEW_LANG_CODE
 
         if (generate_type != GEN_LANG_NONE && filename.empty())
         {
@@ -245,19 +322,6 @@ int App::OnRun()
             // If we're not generating code, then we need to create the main frame so that
             // LoadProject() and ImportProject() can fire events.
             m_frame = new MainFrame();
-
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-            g_pMsgLogging = new MsgLogging();
-            if (g_log_msgs.size())
-            {
-                g_pMsgLogging->ShowLogger();
-            }
-#endif
-
-#if defined(_DEBUG)
-            // wxLog only exists in _DEBUG builds
-            wxLog::SetActiveTarget(g_pMsgLogging);
-#endif  // _DEBUG
         }
 
         tt_string tt_filename = filename;
@@ -271,9 +335,8 @@ int App::OnRun()
             if (generate_type != GEN_LANG_NONE)
             {
                 m_is_generating = true;
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-                results.StartClock();
-#endif
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
             }
             if (!tt_filename.extension().is_sameas(".wxui", tt::CASE::either) &&
                 !tt_filename.extension().is_sameas(".wxue", tt::CASE::either))
@@ -306,10 +369,43 @@ int App::OnRun()
                 return 1;
             }
 
+            tt_string_vector log;
             std::vector<tt_string> class_list;
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-            results.StartClock();
-#endif
+
+            auto log_results = [&](std::string_view language_type = {})
+            {
+                results.msgs.emplace_back(language_type);
+                if (results.updated_files.size() || class_list.size())
+                {
+                    if (test_only)
+                    {
+                        for (auto& iter: class_list)
+                        {
+                            auto& log_msg = log.emplace_back();
+                            log_msg << "Needs updating: " << iter;
+                        }
+                    }
+                    else
+                    {
+                        for (auto& iter: results.updated_files)
+                        {
+                            auto& log_msg = log.emplace_back();
+                            log_msg << "Updated: " << iter;
+                        }
+                    }
+                }
+                else
+                {
+                    auto& log_msg = log.emplace_back();
+                    log_msg << "All " << results.file_count << " generated files are current";
+                }
+
+                for (auto& iter: results.msgs)
+                {
+                    auto& log_msg = log.emplace_back();
+                    log_msg << iter;
+                }
+            };
 
             // Passing a class_list reference will cause the code generator to process all the
             // top-level forms, but only populate class_list with the names of the forms that
@@ -317,61 +413,77 @@ int App::OnRun()
             // mechanism and write any special messages that code generation caused (warnings,
             // errors, timing, etc.) to a log file.
 
-            switch (generate_type)
+            if (generate_type & GEN_LANG_CPLUSPLUS)
             {
-                case GEN_LANG_CPLUSPLUS:
-                    GenerateCppFiles(results, test_only ? &class_list : nullptr);
-                    break;
-
-                case GEN_LANG_PYTHON:
-                    GeneratePythonFiles(results, test_only ? &class_list : nullptr);
-                    break;
-
-                case GEN_LANG_RUBY:
-                    GenerateRubyFiles(results, test_only ? &class_list : nullptr);
-                    break;
-
-                case GEN_LANG_XRC:
-                    GenerateXrcFiles(results, {}, test_only ? &class_list : nullptr);
-                    break;
-
-                default:
-                    break;
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateCppFiles(results, test_only ? &class_list : nullptr);
+                log_results("Generating C++ files");
             }
-
-            tt_string_vector log;
-
-            if (results.updated_files.size() || class_list.size())
+            if (generate_type & GEN_LANG_PERL)
             {
-                if (test_only)
-                {
-                    for (auto& iter: class_list)
-                    {
-                        auto& log_msg = log.emplace_back();
-                        log_msg << "Needs updating: " << iter;
-                    }
-                }
-                else
-                {
-                    for (auto& iter: results.updated_files)
-                    {
-                        auto& log_msg = log.emplace_back();
-                        log_msg << "Updated: " << iter;
-                    }
-                }
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateLanguageFiles(results, test_only ? &class_list : nullptr, GEN_LANG_PERL);
+                log_results("Generating Perl files");
             }
-            else
+            if (generate_type & GEN_LANG_PYTHON)
             {
-                auto& log_msg = log.emplace_back();
-                log_msg << "All " << results.file_count << " generated files are current";
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateLanguageFiles(results, test_only ? &class_list : nullptr, GEN_LANG_PYTHON);
+                log_results("Generating Python files");
             }
+            if (generate_type & GEN_LANG_RUBY)
+            {
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateLanguageFiles(results, test_only ? &class_list : nullptr, GEN_LANG_RUBY);
+                log_results("Generating Ruby files");
+            }
+            if (generate_type & GEN_LANG_XRC)
+            {
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateXrcFiles(results, {}, test_only ? &class_list : nullptr);
+                log_results("Generating XRC files");
+            }
+            if (generate_type & GEN_LANG_RUST)
+            {
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateLanguageFiles(results, test_only ? &class_list : nullptr, GEN_LANG_RUST);
+                log_results("Generating Rust files");
+            }
+#if GENERATE_NEW_LANG_CODE
+            if (generate_type & GEN_LANG_HASKELL)
+            {
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateLanguageFiles(results, test_only ? &class_list : nullptr, GEN_LANG_HASKELL);
+                log_results("Generating Haskell files");
+            }
+            if (generate_type & GEN_LANG_LUA)
+            {
+                results.clear();
+                if (wxGetApp().isTestingMenuEnabled())
+                    results.StartClock();
+                GenerateLanguageFiles(results, test_only ? &class_list : nullptr, GEN_LANG_LUA);
+                log_results("Generating Lua files");
+            }
+#endif
 
-            for (auto& iter: results.msgs)
+            if (log.size())
             {
-                auto& log_msg = log.emplace_back();
-                log_msg << iter;
+                log.WriteFile(log_file);
             }
-            log.WriteFile(log_file);
 
             return 0;
         }
@@ -380,27 +492,17 @@ int App::OnRun()
     if (!m_frame)  // nothing passed on the command line, so frame not created yet
     {
         m_frame = new MainFrame();
-
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-        g_pMsgLogging = new MsgLogging();
-        if (g_log_msgs.size())
-        {
-            g_pMsgLogging->ShowLogger();
-        }
-
-#endif
-
-#if defined(_DEBUG)
-        // wxLog only exists in _DEBUG builds
-        wxLog::SetActiveTarget(g_pMsgLogging);
-#endif  // _DEBUG
     }
 
-    if (UserPrefs.is_LoadLastProject() && !is_project_loaded)
+    if (!is_project_loaded)
     {
-        auto& file_history = m_frame->getFileHistory();
-        tt_string file = file_history.GetHistoryFile(0).utf8_string();
-        is_project_loaded = Project.LoadProject(file);
+        if (auto result = parser.FoundSwitch("load_last");
+            result != wxCMD_SWITCH_NOT_FOUND || UserPrefs.is_LoadLastProject())
+        {
+            auto& file_history = m_frame->getFileHistory();
+            tt_string file = file_history.GetHistoryFile(0).utf8_string();
+            is_project_loaded = Project.LoadProject(file);
+        }
     }
 
     if (!is_project_loaded)
@@ -500,12 +602,10 @@ bool App::isPjtMemberPrefix() const
     return (UserPrefs.GetProjectFlags() & Prefs::PREFS_PJT_MEMBER_PREFIX);
 }
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
 bool App::AutoMsgWindow() const
 {
     return (UserPrefs.GetDebugFlags() & Prefs::PREFS_MSG_WINDOW);
 }
-#endif
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(wxUSE_ON_FATAL_EXCEPTION) && defined(wxUSE_STACKWALKER)
 
@@ -586,55 +686,15 @@ void App::OnFatalException()
 
 #endif  // defined(_MSC_VER) && defined(wxUSE_ON_FATAL_EXCEPTION)
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-
 void App::ShowMsgWindow()
 {
     g_pMsgLogging->ShowLogger();
 }
 
+#if defined(_DEBUG) || defined(INTERNAL_TESTING)
 void App::DbgCurrentTest(wxCommandEvent&)
 {
-    if (tt::file_exists("c:\\rwCode\\wxTest\\src\\ruby\\rb_main.rb"))
-    {
-        wxExecuteEnv env;
-        env.cwd = "c:\\rwCode\\wxTest\\src\\ruby";
-
-        wxExecute("ruby rb_main.rb", wxEXEC_SYNC, nullptr, &env);
-        return;
-    }
-
-    wxMessageBox("Add code you want to test to (mainapp.cpp) App::DbgCurrentTest()", txtVersion);
+    wxASSERT_MSG(false, "assert in MsgLogging");
 }
 
-#endif
-
-#if defined(_DEBUG)
-void App::DbgPythonTest(wxCommandEvent&)
-{
-    if (tt::file_exists("python\\py_main.py"))
-    {
-        wxExecuteEnv env;
-        env.cwd = wxGetCwd() + "\\python";
-
-        wxExecute("python py_main.py", wxEXEC_SYNC, nullptr, &env);
-        return;
-    }
-
-    wxMessageBox("Debug Python test not currently available", txtVersion);
-}
-
-void App::DbgRubyTest(wxCommandEvent&)
-{
-    if (tt::file_exists("ruby\\rb_main.rb"))
-    {
-        wxExecuteEnv env;
-        env.cwd = wxGetCwd() + "\\ruby";
-
-        wxExecute("ruby rb_main.rb", wxEXEC_SYNC, nullptr, &env);
-        return;
-    }
-
-    wxMessageBox("Debug Ruby test not currently available", txtVersion);
-}
 #endif

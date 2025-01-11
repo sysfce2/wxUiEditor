@@ -25,7 +25,7 @@ wxObject* BannerWindowGenerator::CreateMockup(Node* node, wxObject* parent)
     {
         auto* widget = new wxStaticText(wxStaticCast(parent, wxWindow), wxID_ANY, "wxBannerWindow not available in wxRuby3",
                                         wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL | wxBORDER_RAISED);
-        widget->Wrap(DlgPoint(parent, 150));
+        widget->Wrap(DlgPoint(150));
         return widget;
     }
     auto widget = new wxBannerWindow(wxStaticCast(parent, wxWindow),
@@ -65,7 +65,7 @@ bool BannerWindowGenerator::ConstructionCode(Code& code)
         code.Str("# unknown language") << "wxBannerWindow";
     }
 
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -109,7 +109,7 @@ bool BannerWindowGenerator::SettingsCode(Code& code)
 }
 
 bool BannerWindowGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                        int /* language */)
+                                        GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/bannerwindow.h>", set_src, set_hdr);
     return true;

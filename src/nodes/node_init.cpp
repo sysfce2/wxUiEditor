@@ -14,6 +14,7 @@
 #include "base_generator.h"  // BaseGenerator -- Base widget generator class
 #include "bitmaps.h"         // Contains various images handling functions
 #include "gen_enums.h"       // Enumerations for generators
+#include "mainapp.h"         // App -- Main application class
 #include "node.h"            // Node class
 #include "node_types.h"      // NodeType -- Class for storing node types and allowable child count
 #include "prop_decl.h"       // PropChildDeclaration and PropDeclaration classes
@@ -95,6 +96,7 @@ static const ParentChild lstParentChild[] = {
     { type_bookpage, type_gbsizer, one },
     { type_bookpage, type_sizer, one },
     { type_bookpage, type_bookpage, infinite },  // only valid when grandparent is a wxTreebook
+    { type_bookpage, type_widget, infinite },
 
     { type_page, type_auinotebook, one },
     { type_page, type_choicebook, one },
@@ -104,6 +106,7 @@ static const ParentChild lstParentChild[] = {
     { type_page, type_dataviewtreectrl, one },
     { type_page, type_listbook, one },
     { type_page, type_notebook, one },
+    { type_page, type_panel, one },
     { type_page, type_propgrid, one },
     { type_page, type_propgridman, one },
     { type_page, type_ribbonbar, one },
@@ -143,6 +146,7 @@ static const ParentChild lstParentChild[] = {
     { type_frame_form, type_sizer, one },
 
     { type_frame_form, type_container, infinite },
+    { type_frame_form, type_panel, infinite },
     { type_frame_form, type_splitter, infinite },
 
     { type_frame_form, type_statusbar, one },
@@ -150,7 +154,7 @@ static const ParentChild lstParentChild[] = {
     { type_frame_form, type_aui_toolbar, one },
     { type_frame_form, type_menubar, one },
     { type_frame_form, type_ctx_menu, one },
-    { type_frame_form, type_timer, one },
+    { type_frame_form, type_timer, infinite },
 
     { type_frame_form, type_choicebook, infinite },
     { type_frame_form, type_listbook, infinite },
@@ -161,7 +165,35 @@ static const ParentChild lstParentChild[] = {
     { type_form, type_ctx_menu, one },
     { type_form, type_gbsizer, one },
     { type_form, type_sizer, one },
-    { type_form, type_timer, one },
+    { type_form, type_timer, infinite },
+
+    { type_panel_form, type_gbsizer, one },
+    { type_panel_form, type_sizer, one },
+
+    { type_panel_form, type_ctx_menu, one },
+    { type_panel_form, type_timer, infinite },
+
+    { type_panel_form, type_aui_toolbar, infinite },
+    { type_panel_form, type_panel_form, infinite },
+    { type_panel_form, type_splitter, infinite },
+    { type_panel_form, type_toolbar, infinite },
+
+    { type_panel_form, type_auinotebook, infinite },
+    { type_panel_form, type_choicebook, infinite },
+    { type_panel_form, type_container, infinite },
+    { type_panel_form, type_dataviewctrl, infinite },
+    { type_panel_form, type_dataviewlistctrl, infinite },
+    { type_panel_form, type_dataviewtreectrl, infinite },
+    { type_panel_form, type_listbook, infinite },
+    { type_panel_form, type_notebook, infinite },
+    { type_panel_form, type_propgrid, infinite },
+    { type_panel_form, type_propgridman, infinite },
+    { type_panel_form, type_ribbonbar, infinite },
+    { type_panel_form, type_simplebook, infinite },
+    { type_panel_form, type_splitter, infinite },
+    { type_panel_form, type_treelistctrl, infinite },
+
+    { type_panel_form, type_widget, infinite },
 
     { type_propsheetform, type_bookpage, infinite },
 
@@ -186,6 +218,7 @@ static const ParentChild lstParentChild[] = {
     { type_project, type_frame_form, infinite },
     { type_project, type_images, one },
     { type_project, type_menubar_form, infinite },
+    { type_project, type_panel_form, infinite },
     { type_project, type_popup_menu, infinite },
     { type_project, type_ribbonbar_form, infinite },
     { type_project, type_toolbar_form, infinite },
@@ -199,6 +232,7 @@ static const ParentChild lstParentChild[] = {
     { type_folder, type_form, infinite },
     { type_folder, type_frame_form, infinite },
     { type_folder, type_menubar_form, infinite },
+    { type_folder, type_panel_form, infinite },
     { type_folder, type_popup_menu, infinite },
     { type_folder, type_ribbonbar_form, infinite },
     { type_folder, type_toolbar_form, infinite },
@@ -213,6 +247,7 @@ static const ParentChild lstParentChild[] = {
     { type_sub_folder, type_sub_folder, infinite },
     { type_sub_folder, type_frame_form, infinite },
     { type_sub_folder, type_menubar_form, infinite },
+    { type_sub_folder, type_panel_form, infinite },
     { type_sub_folder, type_popup_menu, infinite },
     { type_sub_folder, type_ribbonbar_form, infinite },
     { type_sub_folder, type_toolbar_form, infinite },
@@ -224,6 +259,34 @@ static const ParentChild lstParentChild[] = {
 
     { type_container, type_gbsizer, one },
     { type_container, type_sizer, one },
+
+    { type_panel, type_gbsizer, one },
+    { type_panel, type_sizer, one },
+
+    { type_panel, type_ctx_menu, one },
+    { type_panel, type_timer, infinite },
+
+    { type_panel, type_aui_toolbar, infinite },
+    { type_panel, type_panel, infinite },
+    { type_panel, type_splitter, infinite },
+    { type_panel, type_toolbar, infinite },
+
+    { type_panel, type_auinotebook, infinite },
+    { type_panel, type_choicebook, infinite },
+    { type_panel, type_container, infinite },
+    { type_panel, type_dataviewctrl, infinite },
+    { type_panel, type_dataviewlistctrl, infinite },
+    { type_panel, type_dataviewtreectrl, infinite },
+    { type_panel, type_listbook, infinite },
+    { type_panel, type_notebook, infinite },
+    { type_panel, type_propgrid, infinite },
+    { type_panel, type_propgridman, infinite },
+    { type_panel, type_ribbonbar, infinite },
+    { type_panel, type_simplebook, infinite },
+    { type_panel, type_splitter, infinite },
+    { type_panel, type_treelistctrl, infinite },
+
+    { type_panel, type_widget, infinite },
 
     // DataView
 
@@ -254,8 +317,8 @@ static const ParentChild lstParentChild[] = {
 
     // Sizers
 
-    { type_sizer, type_auinotebook, infinite },
     { type_sizer, type_aui_toolbar, infinite },
+    { type_sizer, type_auinotebook, infinite },
     { type_sizer, type_choicebook, infinite },
     { type_sizer, type_container, infinite },
     { type_sizer, type_dataviewctrl, infinite },
@@ -264,16 +327,17 @@ static const ParentChild lstParentChild[] = {
     { type_sizer, type_gbsizer, infinite },
     { type_sizer, type_listbook, infinite },
     { type_sizer, type_notebook, infinite },
+    { type_sizer, type_panel, infinite },
     { type_sizer, type_propgrid, infinite },
     { type_sizer, type_propgridman, infinite },
     { type_sizer, type_ribbonbar, infinite },
     { type_sizer, type_simplebook, infinite },
     { type_sizer, type_sizer, infinite },
     { type_sizer, type_splitter, infinite },
+    { type_sizer, type_staticbox, infinite },
     { type_sizer, type_toolbar, infinite },
     { type_sizer, type_treelistctrl, infinite },
     { type_sizer, type_widget, infinite },
-    { type_sizer, type_staticbox, infinite },
 
     // Toolbars
 
@@ -296,17 +360,18 @@ static const ParentChild lstParentChild[] = {
 
     // Misc
 
-    { type_splitter, type_container, two },
     { type_splitter, type_auinotebook, two },
     { type_splitter, type_choicebook, two },
-    { type_splitter, type_listbook, two },
-    { type_splitter, type_notebook, two },
-    { type_splitter, type_simplebook, two },
+    { type_splitter, type_container, two },
     { type_splitter, type_dataviewctrl, two },
     { type_splitter, type_dataviewlistctrl, two },
     { type_splitter, type_dataviewtreectrl, two },
+    { type_splitter, type_listbook, two },
+    { type_splitter, type_notebook, two },
+    { type_splitter, type_panel, two },
     { type_splitter, type_propgrid, two },
     { type_splitter, type_propgridman, two },
+    { type_splitter, type_simplebook, two },
     { type_splitter, type_splitter, two },
     { type_splitter, type_treelistctrl, two },
     { type_splitter, type_widget, two },
@@ -437,33 +502,34 @@ void NodeCreator::parseGeneratorFile(const char* xml_data)
         {
             class_name.erase(0, sizeof("gen_") - 1);
         }
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-        if (is_interface)
+        if (wxGetApp().isTestingMenuEnabled())
         {
-            if (!rmap_GenNames.contains(class_name))
+            if (is_interface)
             {
-                MSG_WARNING(tt_string("Unrecognized interface name -- ") << class_name);
+                if (!rmap_GenNames.contains(class_name))
+                {
+                    MSG_WARNING(tt_string("Unrecognized interface name -- ") << class_name);
+                }
+            }
+            else
+            {
+                if (!rmap_GenNames.contains(class_name))
+                {
+                    MSG_WARNING(tt_string("Unrecognized class name -- ") << class_name);
+                }
             }
         }
-        else
-        {
-            if (!rmap_GenNames.contains(class_name))
-            {
-                MSG_WARNING(tt_string("Unrecognized class name -- ") << class_name);
-            }
-        }
-#endif  // _DEBUG
 
         // This code makes it possible to add `enable="internal"` to an XML class/interface to
-        // prevent it from being used in non-internal release builds.
+        // prevent it from being used when not testing.
         if (auto enable = generator.attribute("enable"); enable.as_sview() == "internal")
         {
-#if !defined(INTERNAL_TESTING)
-            // Skip this class if we're not doing an internal build (debug is always an
-            // internal build)
-            generator = generator.next_sibling("gen");
-            continue;
-#endif
+            if (!wxGetApp().isTestingMenuEnabled())
+            {
+                // Skip this class if we're not testing
+                generator = generator.next_sibling("gen");
+                continue;
+            }
         }
 
         GenType type { gen_type_unknown };
@@ -583,6 +649,11 @@ void NodeCreator::parseGeneratorFile(const char* xml_data)
                     class_info->AddBaseClass(getNodeDeclaration("C++ Derived Class Settings"));
                     class_info->AddBaseClass(getNodeDeclaration("wxPython Settings"));
                     class_info->AddBaseClass(getNodeDeclaration("wxRuby Settings"));
+                    class_info->AddBaseClass(getNodeDeclaration("wxFortran Settings"));
+                    class_info->AddBaseClass(getNodeDeclaration("wxHaskell Settings"));
+                    class_info->AddBaseClass(getNodeDeclaration("wxLua Settings"));
+                    class_info->AddBaseClass(getNodeDeclaration("wxPerl Settings"));
+                    class_info->AddBaseClass(getNodeDeclaration("wxRust Settings"));
 
                     elem_base = elem_base.next_sibling("inherits");
                     continue;

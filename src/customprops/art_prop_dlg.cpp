@@ -26,8 +26,8 @@ bool ArtBrowserDialog::Create(wxWindow* parent, wxWindowID id, const wxString& t
 
     auto* box_sizer4 = new wxBoxSizer(wxVERTICAL);
 
-    m_list = new wxListView(this, wxID_ANY, wxDefaultPosition, wxSize(250, 400), wxLC_REPORT|wxLC_NO_HEADER|wxLC_SINGLE_SEL|
-        wxBORDER_SUNKEN|wxLC_REPORT);
+    m_list = new wxListView(this, wxID_ANY, wxDefaultPosition, FromDIP(wxSize(250, 400)),
+        wxLC_REPORT|wxLC_NO_HEADER|wxLC_SINGLE_SEL|wxBORDER_SUNKEN|wxLC_REPORT);
     box_sizer4->Add(m_list, wxSizerFlags().Border(wxRIGHT, 10));
 
     box_sizer->Add(box_sizer4, wxSizerFlags().Border(wxALL));
@@ -61,11 +61,29 @@ bool ArtBrowserDialog::Create(wxWindow* parent, wxWindowID id, const wxString& t
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     parent_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(parent_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(parent_sizer);
+    }
+    else
+    {
+        SetSizer(parent_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers
     m_choice_client->Bind(wxEVT_CHOICE, &ArtBrowserDialog::OnChooseClient, this);
+    Bind(wxEVT_INIT_DIALOG, &ArtBrowserDialog::OnInit, this);
     m_list->Bind(wxEVT_LIST_ITEM_SELECTED, &ArtBrowserDialog::OnSelectItem, this);
 
     return true;
@@ -80,15 +98,10 @@ bool ArtBrowserDialog::Create(wxWindow* parent, wxWindowID id, const wxString& t
 // clang-format on
 // ***********************************************
 
-//
-// The original file was missing the comment block ending the generated code!
-//
-// The entire original file has been copied below this comment block.
-
 /////////////////// Non-generated Copyright/License Info ////////////////////
 // Purpose:   Art Property Dialog for image property
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2021-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2021-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -119,6 +132,7 @@ ArtBrowserDialog::ArtBrowserDialog(wxWindow* parent, const ImageProperties& img_
     if (auto pos = img_props.image.find('|'); tt::is_found(pos))
     {
         m_client = img_props.image.subview(pos + 1).make_wxString();
+        m_org_id = img_props.image.subview(0, pos);
     }
     else
     {
@@ -149,6 +163,30 @@ ArtBrowserDialog::ArtBrowserDialog(wxWindow* parent, const ImageProperties& img_
 
     m_choice_client->SetStringSelection(m_client);
     ChangeClient();
+}
+
+void ArtBrowserDialog::OnInit(wxInitDialogEvent& WXUNUSED(event))
+{
+    m_choice_client->SetStringSelection(m_client);
+    for (long pos = 0; pos < m_list->GetItemCount(); pos++)
+    {
+        if (m_list->GetItemText(pos) == m_org_id)
+        {
+            m_list->SetItemState(pos, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+            auto bmp = wxArtProvider::GetBitmap(m_org_id, wxART_MAKE_CLIENT_ID_FROM_STR(m_client));
+            ASSERT(bmp.IsOk());
+            if (bmp.IsOk())
+            {
+                m_canvas->SetSize(bmp.GetWidth(), bmp.GetHeight());
+                m_canvas->SetBitmap(bmp);
+                m_text->SetLabel(wxString().Format("Size: %d x %d", bmp.GetWidth(), bmp.GetHeight()));
+                Layout();
+            }
+            Refresh();
+
+            break;
+        }
+    }
 }
 
 void ArtBrowserDialog::ChangeClient()

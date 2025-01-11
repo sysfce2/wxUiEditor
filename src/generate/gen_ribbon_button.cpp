@@ -19,8 +19,8 @@
 
 wxObject* RibbonButtonBarGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxRibbonButtonBar((wxRibbonPanel*) parent, wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                        DlgSize(parent, node, prop_size), 0);
+    auto widget =
+        new wxRibbonButtonBar((wxRibbonPanel*) parent, wxID_ANY, DlgPoint(node, prop_pos), DlgSize(node, prop_size), 0);
 
     widget->Bind(wxEVT_LEFT_DOWN, &BaseGenerator::OnLeftClick, this);
 
@@ -54,7 +54,7 @@ bool RibbonButtonBarGenerator::ConstructionCode(Code& code)
 }
 
 bool RibbonButtonBarGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                           int /* language */)
+                                           GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/ribbon/buttonbar.h>", set_src, set_hdr);
 

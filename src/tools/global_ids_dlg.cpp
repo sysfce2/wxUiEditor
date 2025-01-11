@@ -29,7 +29,7 @@ bool GlobalCustomIDS::Create(wxWindow* parent, wxWindowID id, const wxString& ti
     box_sizer_13->Add(staticText, wxSizerFlags().Border(wxALL));
 
     m_lb_folders = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_MULTIPLE);
-    m_lb_folders->SetMinSize(ConvertDialogToPixels(wxSize(-1, 80)));
+    m_lb_folders->SetMinSize(FromDIP(wxSize(-1, 200)));
     box_sizer_13->Add(m_lb_folders, wxSizerFlags().Expand().Border(wxALL));
 
     auto* box_sizer_9 = new wxBoxSizer(wxHORIZONTAL);
@@ -50,7 +50,7 @@ bool GlobalCustomIDS::Create(wxWindow* parent, wxWindowID id, const wxString& ti
     box_sizer_14->Add(staticText_2, wxSizerFlags().Border(wxALL));
 
     m_lb_forms = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_MULTIPLE|wxLB_SORT);
-    m_lb_forms->SetMinSize(ConvertDialogToPixels(wxSize(-1, 80)));
+    m_lb_forms->SetMinSize(FromDIP(wxSize(-1, 200)));
     box_sizer_14->Add(m_lb_forms, wxSizerFlags().Expand().Border(wxALL));
 
     auto* box_sizer_10 = new wxBoxSizer(wxHORIZONTAL);
@@ -162,7 +162,24 @@ bool GlobalCustomIDS::Create(wxWindow* parent, wxWindowID id, const wxString& ti
     stdBtn->GetCancelButton()->SetDefault();
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     m_lb_folders->SetFocus();
 
     Centre(wxBOTH);

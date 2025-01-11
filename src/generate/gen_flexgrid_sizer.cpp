@@ -161,7 +161,8 @@ bool FlexGridSizerGenerator::AfterChildrenCode(Code& code)
     }
 
     auto parent = code.node()->getParent();
-    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm))
+    if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm) &&
+        !parent->isGen(gen_wxPopupTransientWindow))
     {
         code.Eol(eol_if_needed);
         if (parent->isGen(gen_wxRibbonPanel))
@@ -170,7 +171,7 @@ bool FlexGridSizerGenerator::AfterChildrenCode(Code& code)
         }
         else
         {
-            if (GetParentName(code.node()) != "this")
+            if (GetParentName(code.node(), code.get_language()) != "this")
             {
                 code.ValidParentName().Function("SetSizerAndFit(");
             }
@@ -189,7 +190,7 @@ bool FlexGridSizerGenerator::AfterChildrenCode(Code& code)
 }
 
 bool FlexGridSizerGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                         int /* language */)
+                                         GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/sizer.h>", set_src, set_hdr);
     return true;

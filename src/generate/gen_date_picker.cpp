@@ -17,9 +17,8 @@
 
 wxObject* DatePickerCtrlGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget =
-        new wxDatePickerCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, wxDefaultDateTime, DlgPoint(parent, node, prop_pos),
-                             DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxDatePickerCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, wxDefaultDateTime, DlgPoint(node, prop_pos),
+                                       DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->as_string(prop_style).contains("wxDP_ALLOWNONE"))
         widget->SetNullText(node->as_wxString(prop_null_text));
@@ -42,7 +41,7 @@ bool DatePickerCtrlGenerator::ConstructionCode(Code& code)
         code.Add("wxDefaultDateTime");
     }
 
-    code.PosSizeFlags(true, "wxDP_DEFAULT|wxDP_SHOWCENTURY");
+    code.PosSizeFlags(code::allow_scaling, true, "wxDP_DEFAULT|wxDP_SHOWCENTURY");
 
     return true;
 }
@@ -58,7 +57,7 @@ bool DatePickerCtrlGenerator::SettingsCode(Code& code)
 }
 
 bool DatePickerCtrlGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/datectrl.h>", set_src, set_hdr);
     InsertGeneratorInclude(node, "#include <wx/dateevt.h>", set_src, set_hdr);

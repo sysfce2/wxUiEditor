@@ -80,7 +80,24 @@ bool NewWizard::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     parent_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(parent_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(parent_sizer);
+    }
+    else
+    {
+        SetSizer(parent_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers
@@ -127,7 +144,7 @@ void NewWizard::OnInit(wxInitDialogEvent& event)
 
 void NewWizard::createNode()
 {
-    auto new_node = NodeCreation.createNode(gen_wxWizard, nullptr);
+    auto new_node = NodeCreation.createNode(gen_wxWizard, nullptr).first;
     ASSERT(new_node);
 
     if (m_title.size())
@@ -137,12 +154,12 @@ void NewWizard::createNode()
 
     for (int count = 0; count < m_num_pages; ++count)
     {
-        if (auto page = NodeCreation.createNode(gen_wxWizardPageSimple, new_node.get()); page)
+        if (auto page = NodeCreation.createNode(gen_wxWizardPageSimple, new_node.get()).first; page)
         {
             page->set_value(prop_var_name, tt_string("wizard_page_") << count + 1);
-            auto sizer = NodeCreation.createNode(gen_VerticalBoxSizer, page.get());
+            auto sizer = NodeCreation.createNode(gen_VerticalBoxSizer, page.get()).first;
 
-            auto static_text = NodeCreation.createNode(gen_wxStaticText, sizer.get());
+            auto static_text = NodeCreation.createNode(gen_wxStaticText, sizer.get()).first;
             static_text->set_value(prop_class_access, "none");
             static_text->set_value(prop_var_name, tt_string("static_text_") << count + 1);
             sizer->adoptChild(static_text);
