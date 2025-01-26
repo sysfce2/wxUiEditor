@@ -7,9 +7,11 @@
 
 #include "node_creator.h"
 
-#include "gen_enums.h"  // Enumerations for nodes
-#include "node.h"       // Node class
-#include "prop_decl.h"  // PropChildDeclaration and PropDeclaration classes
+#include "base_generator.h"   // BaseGenerator -- Base Generator class
+#include "gen_enums.h"        // Enumerations for nodes
+#include "node.h"             // Node class
+#include "project_handler.h"  // ProjectHandler class
+#include "prop_decl.h"        // PropChildDeclaration and PropDeclaration classes
 
 NodeCreator& NodeCreation = NodeCreator::getInstance();
 
@@ -79,7 +81,7 @@ NodeSharedPtr NodeCreator::newNode(NodeDeclaration* node_decl)
     return node;
 }
 
-size_t NodeCreator::countChildrenWithSameType(Node* parent, GenType type)
+size_t NodeCreator::countChildrenWithSameType(Node* parent, GenType type) const
 {
     size_t count = 0;
     for (const auto& child: parent->getChildNodePtrs())
@@ -108,15 +110,15 @@ size_t NodeCreator::countChildrenWithSameType(Node* parent, GenType type)
 */
 
 // The parent parameter is used to determine if the parent allows this type of child, and if so how many of those
-// children are allowed.
-NodeSharedPtr NodeCreator::createNode(GenName name, Node* parent)
+// children are allowed. The second part of the pair is a Node:: error code (see enum in node.h).
+std::pair<NodeSharedPtr, int> NodeCreator::createNode(GenName name, Node* parent, bool verify_language_support)
 {
     NodeSharedPtr node;
     NodeDeclaration* node_decl;
 
     ASSERT(name != gen_unknown);
     if (name == gen_unknown)
-        return node;
+        return { node, 0 };
 
     // This is a way for a ribbon panel button to indicate a wxBoxSizer with vertical orientation
     if (name == gen_VerticalBoxSizer)
@@ -133,36 +135,36 @@ NodeSharedPtr NodeCreator::createNode(GenName name, Node* parent)
         if (name == gen_wxAuiToolBar)
             node_decl = m_a_declarations[gen_wxToolBar];
         else
-            return NodeSharedPtr();
+            return { NodeSharedPtr(), Node::unknown_gen_name };
     }
 
     if (!parent)
-        return newNode(node_decl);
+        return { newNode(node_decl), 0 };
 
     // This happens when importing wxFormBuilder projects
     if (isOldHostType(node_decl->declName()))
-        return newNode(node_decl);
+        return { newNode(node_decl), 0 };
 
     // Check for widgets which can ONLY have a frame for a parent.
     if (node_decl->isType(type_statusbar) || node_decl->isType(type_menubar) || node_decl->isType(type_toolbar))
     {
         if (parent->isType(type_form) && !parent->isGen(gen_wxFrame))
         {
-            return NodeSharedPtr();
+            return { NodeSharedPtr(), Node::parent_not_wxFrame };  // -1 indicates failure
         }
     }
     else if (parent->isType(type_tool))
     {
         auto grand_parent = parent->getParent();
         if (grand_parent->isGen(gen_wxToolBar) && node_decl->isType(type_menu))
-            return NodeSharedPtr();
+            return { NodeSharedPtr(), Node::invalid_tool_grandparent };  // -1 indicates failure
     }
     else if (name == gen_BookPage && parent->isType(type_bookpage))
     {
         auto grand_parent = parent->getParent();
         if (!grand_parent || !grand_parent->isGen(gen_wxTreebook))
         {
-            return NodeSharedPtr();
+            return { NodeSharedPtr(), Node::invalid_page_grandparent };  // -1 indicates failure
         }
     }
 
@@ -219,19 +221,142 @@ NodeSharedPtr NodeCreator::createNode(GenName name, Node* parent)
         // it. It's the caller's responsibility to try to find a proper parent.
     }
 
-    return node;
+    if (verify_language_support && node)
+    {
+        if (auto gen = node->getGenerator(); gen)
+        {
+            auto result = gen->isLanguageVersionSupported(Project.getCodePreference());
+            if (!result.first)
+            {
+                if (wxMessageBox(result.second + ". Create anyway?", "Unsupported widget", wxYES_NO | wxICON_QUESTION) ==
+                    wxNO)
+                {
+                    // Because node only has a sigle reference, it will be deleted when it goes out
+                    // of scope via this return.
+                    return { NodeSharedPtr(), Node::unsupported_language };
+                }
+            }
+        }
+    }
+    return { node, 0 };
+}
+
+Node* NodeCreator::isValidCreateParent(GenName name, Node* parent, bool use_recursion) const
+{
+    ASSERT(name != gen_unknown);
+    if (name == gen_unknown)
+        return nullptr;
+
+    ASSERT(parent);
+    if (!parent)
+        return nullptr;
+
+    NodeDeclaration* node_decl;
+
+    // This is a way for a ribbon panel button to indicate a wxBoxSizer with vertical orientation
+    if (name == gen_VerticalBoxSizer)
+        node_decl = m_a_declarations[gen_wxBoxSizer];
+    else
+        node_decl = m_a_declarations[name];
+
+    if (!node_decl)
+    {
+        // Unless the toolbar is a child of a wxAui frame window, there's little to no difference between a wxAuiToolBar and
+        // a wxToolBar. Checking it here allows us to automatically convert imported projects, and then if we ever do decide
+        // to support wxAuiToolBar, imports will immediately switch without having to touch the import code.
+
+        if (name == gen_wxAuiToolBar)
+            node_decl = m_a_declarations[gen_wxToolBar];
+        else
+            return nullptr;
+    }
+
+    // Check for widgets which can ONLY have a frame for a parent.
+    if (node_decl->isType(type_statusbar) || node_decl->isType(type_menubar) || node_decl->isType(type_toolbar))
+    {
+        if (!parent->isType(type_frame_form))
+        {
+            return parent->getParent();
+        }
+    }
+    else if (parent->isType(type_tool))
+    {
+        auto grand_parent = parent->getParent();
+        if (grand_parent->isGen(gen_wxToolBar) && node_decl->isType(type_menu))
+            return nullptr;
+    }
+    else if (name == gen_BookPage && parent->isType(type_bookpage))
+    {
+        if (auto grandfather = parent->getParent(); grandfather)
+        {
+            return isValidCreateParent(name, grandfather);
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
+    auto max_children = parent->getAllowableChildren(node_decl->getGenType());
+
+    if (max_children == child_count::infinite)
+    {
+        return parent;
+    }
+    else if (max_children != child_count::none)
+    {
+        if (node_decl->isType(type_sizer))
+        {
+            auto count = countChildrenWithSameType(parent, node_decl->getGenType());
+            if (count < (to_size_t) max_children)
+            {
+                return parent;
+            }
+        }
+        else if (node_decl->isType(type_gbsizer))
+        {
+            auto count = countChildrenWithSameType(parent, node_decl->getGenType());
+            if (count < (to_size_t) max_children)
+            {
+                return parent;
+            }
+        }
+        else if (parent->isGen(gen_wxSplitterWindow))
+        {
+            // for splitters, we only care if the type is allowed, and if the splitter only has one child so far.
+            if (parent->getChildCount() < 2)
+                return parent;
+        }
+        else
+        {
+            auto count = countChildrenWithSameType(parent, node_decl->getGenType());
+            if (count < (to_size_t) max_children)
+            {
+                return parent;
+            }
+        }
+    }
+    else if (use_recursion)
+    {
+        if (auto grandfather = parent->getParent(); grandfather)
+        {
+            return isValidCreateParent(name, grandfather);
+        }
+    }
+
+    return nullptr;
 }
 
 // Called when the GenName isn't availalble
-NodeSharedPtr NodeCreator::createNode(tt_string_view name, Node* parent)
+std::pair<NodeSharedPtr, int> NodeCreator::createNode(tt_string_view name, Node* parent, bool verify_language_support)
 {
     if (auto result = rmap_GenNames.find(name); result != rmap_GenNames.end())
     {
-        return createNode(result->second, parent);
+        return createNode(result->second, parent, verify_language_support);
     }
 
     FAIL_MSG(tt_string() << "No component definition for " << name);
-    return {};
+    return { NodeSharedPtr(), Node::unknown_gen_name };  // -1 indicates failure
 }
 
 NodeSharedPtr NodeCreator::makeCopy(Node* node, Node* parent)
@@ -265,35 +390,35 @@ NodeSharedPtr NodeCreator::makeCopy(Node* node, Node* parent)
 
     copyObj->copyEventsFrom(node);
 
-    // It will be rare, but sometimes a user may want to copy a form such as FormPanel and paste it into a sizer or a book.
-    // In that case, we need to create the non-form version of the control.
+    // It will be rare, but sometimes a user may want to copy a form such as FormPanel and paste it into a sizer or a
+    // book. In that case, we need to create the non-form version of the control.
     if (parent && !parent->isGen(gen_Project) && node->isForm())
     {
         NodeSharedPtr child_object;
         if (node->isGen(gen_ToolBar))
         {
-            child_object = createNode(gen_wxToolBar, parent);
+            child_object = createNode(gen_wxToolBar, parent).first;
             // REVIEW: [Randalphwa - 10-06-2022] This will fail if the parent is a wxFrame and it already has a toolbar.
             // Should we let the user know?
         }
         else if (node->isGen(gen_MenuBar))
         {
-            child_object = createNode(gen_wxMenuBar, parent);
+            child_object = createNode(gen_wxMenuBar, parent).first;
         }
         else if (node->isGen(gen_RibbonBar))
         {
-            child_object = createNode(gen_wxRibbonBar, parent);
+            child_object = createNode(gen_wxRibbonBar, parent).first;
         }
         else if (node->isGen(gen_PanelForm))
         {
             if (parent->isType(type_choicebook) || parent->isType(type_listbook) || parent->isType(type_notebook) ||
                 parent->isType(type_simplebook))
             {
-                child_object = createNode(gen_BookPage, parent);
+                child_object = createNode(gen_BookPage, parent).first;
             }
             else
             {
-                child_object = createNode(gen_wxPanel, parent);
+                child_object = createNode(gen_wxPanel, parent).first;
             }
         }
 

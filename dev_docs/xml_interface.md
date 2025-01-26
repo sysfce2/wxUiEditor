@@ -1,6 +1,6 @@
 # XML Files
 
-The XML files in this directory declare every node type that can be created. Properties and events are either specified in the XML file, or they are created by the generator class calling `AddPropsAndEvents()`. Before changes to these files show up in wxUiEditor, you _must_ regenerate the `wxUiEditor.wxui` project file in order to update the generated `wxue_data` files. Generating `wxue_data.cpp` and `wxue_data.h` strips out all comments and whitespace before compressing it using `zlib`.
+The XML files in the `src/xml` directory declare every node type that can be created. Properties and events are either specified in the XML file, or they are created by the generator class calling `AddPropsAndEvents()`. Before changes to these files show up in wxUiEditor, you _must_ regenerate the `wxUiEditor.wxui` project file in order to update the generated `wxue_data` files. Generating `wxue_data.cpp` and `wxue_data.h` strips out all comments and whitespace before compressing it using `zlib`.
 
 ## Inheriting interface classes
 
@@ -33,24 +33,6 @@ When an interface is inherited (`<inherits class=`) you can add child nodes call
 The files `gen_enums.h` and `gen_enums.cpp` _must_ be updated any time you add a new component or a property, or if you change an existing class name or property type. In a DEBUG build you will get warnings if you forget to update one or more of the enumeration lists and there's a fairly good chance the program will not work correctly or even crash if you try to use a component with the missing enumeration.
 
 You can hide a specific property by including the attribute `hide="1"`.
-
-## Adding a new generator
-
-- Add the declaration to one of the XML files.
-- Add the generator class to gen_enums.cpp and gen_enums.h.
-- Add any unique property types to gen_enums.cpp and gen_enums.h.
-- Add the generator class to one of the files in generate/ or create a new file
-- Add any required wxWidgets header file to gen_initialize.cpp
-- Add the generator class name to the InitGenerators() in gen_initialize.cpp
-- If the generator has a var_name property, and you want the default class access to be "none", then add the generator name to the lst_no_class_access list in node_init.cpp
-- If the generator uses a new type, you will need to specify parents and children in the lstParentChild array in node_init.cpp.
-
-While testing, you can use any existing image, and insert the control using the Edit menu's `Insert Widget` command. Once ready for release, then take the following steps:
-
-- Create a new graphic for the class and add it to the `(images)` node in the **wxUiEditor.wxue** project.
-- Add the name to xpm.cpp
-- Change the name of the bitmap in the XML declaration to match the shortname you specified in xpm.cpp.
-- If the control isn't part of a drop-down, add it to `RibbonPanelBase` in `wxUiEditor.wxue`. If it's part of a dropdown list of controls, add it to the matching drop-down menu in `wxUiEditor.wxue`.
 
 ## Adding a new form
 

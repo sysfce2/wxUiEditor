@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Menu Item Generator
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -227,6 +227,15 @@ bool MenuItemGenerator::SettingsCode(Code& code)
             code.NodeName().Function("SetBitmap(");
             code.Bundle(prop_bitmap).EndFunction();
         }
+        else if (code.is_perl())
+        {
+            code.AddComment("# TODO: wxBitmapBundle in wxPerl not currently supported");
+        }
+        else if (code.is_rust())
+        {
+            code.AddComment(
+                "wxRust does not currently support wxBitmapBundle, currently wxUE does not support non-bundle bitmaps");
+        }
         else
         {
             ASSERT_MSG(false, "Unknown language in MenuItemGenerator::SettingsCode()");
@@ -235,8 +244,7 @@ bool MenuItemGenerator::SettingsCode(Code& code)
 
     if (code.hasValue(prop_unchecked_bitmap))
     {
-        code.Eol();
-        code.AddComment("Set the unchecked bitmap").Eol();
+        code.AddComment("Set the unchecked bitmap");
         if (code.is_cpp())
         {
             auto& description = node->as_string(prop_unchecked_bitmap);
@@ -336,7 +344,7 @@ bool MenuItemGenerator::SettingsCode(Code& code)
 }
 
 bool MenuItemGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/menu.h>", set_src, set_hdr);
     if (node->hasValue(prop_extra_accels))
@@ -442,6 +450,18 @@ bool MenuItemGenerator::modifyProperty(NodeProperty* prop, tt_string_view value)
             wxGetFrame().PushUndoAction(undo_stock_id);
             return true;
         }
+    }
+    return false;
+}
+
+bool MenuItemGenerator::GetImports(Node* /* node */, std::set<std::string>& set_imports, GenLang language)
+{
+    if (language == GEN_LANG_PERL)
+    {
+        // REVIEW: [Randalphwa - 01-09-2025] Currently, wxEVT_UPDATE_UI cannot be imported from the
+        // Wx::Event module.
+        set_imports.emplace("use Wx::Event qw(EVT_MENU);");
+        return true;
     }
     return false;
 }

@@ -1,12 +1,13 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Load wxUiEditor project
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
-#include <wx/stc/stc.h>  // A wxWidgets implementation of Scintilla.
-#include <wx/utils.h>    // Miscellaneous utilities
+#include <wx/filename.h>  // wxFileName - encapsulates a file path
+#include <wx/stc/stc.h>   // A wxWidgets implementation of Scintilla.
+#include <wx/utils.h>     // Miscellaneous utilities
 
 #include "base_generator.h"   // BaseGenerator -- Base widget generator class
 #include "dlg_msgs.h"         // wxMessageDialog dialogs
@@ -34,9 +35,7 @@ using namespace GenEnum;
 
 #include "../ui/code_preference_dlg.h"  // CodePreferenceDlg -- Dialog to set code generation preference
 
-#if defined(INTERNAL_TESTING)
-    #include "../internal/import_panel.h"  // ImportPanel -- Panel to display original imported file
-#endif
+#include "../internal/import_panel.h"  // ImportPanel -- Panel to display original imported file
 
 using namespace GenEnum;
 
@@ -152,12 +151,14 @@ bool ProjectHandler::LoadProject(const tt_string& file, bool allow_ui)
         return false;
     }
 
-#if defined(INTERNAL_TESTING)
-    // This should NOT be necessary if all alignment in the project file has been set
-    // correctly. However, it it has not been set correctly, this will correct it and issue a
-    // MSG_WARNING about what got fixed.
-    RecursiveNodeCheck(project.get());
-#endif
+    if (wxGetApp().isTestingMenuEnabled())
+    {
+        // This should NOT be necessary if all alignment in the project file has been set correctly.
+        // However, it it has not been set correctly, this will correct it and issue a MSG_WARNING
+        // about what got fixed.
+        RecursiveNodeCheck(project.get());
+    }
+
     // Calling this will also initialize the ImageHandler class
     Project.Initialize(project);
     Project.setProjectFile(file);
@@ -177,9 +178,9 @@ bool ProjectHandler::LoadProject(const tt_string& file, bool allow_ui)
     {
         wxGetFrame().setImportedFlag(false);
         wxGetFrame().FireProjectLoadedEvent();
-#if defined(INTERNAL_TESTING)
-        wxGetFrame().getImportPanel()->SetImportFile(file);
-#endif
+        if (wxGetApp().isTestingMenuEnabled())
+            wxGetFrame().getImportPanel()->SetImportFile(file);
+
         if (m_isProject_updated || m_ProjectVersion < minRequiredVer)
             wxGetFrame().setModified();
     }
@@ -256,7 +257,7 @@ NodeSharedPtr NodeCreator::createNodeFromXml(pugi::xml_node& xml_obj, Node* pare
     if (class_name == "wxListCtrl")
         class_name = "wxListView";
 
-    auto new_node = createNode(class_name, parent);
+    auto new_node = createNode(class_name, parent).first;
     if (!new_node)
     {
         FAIL_MSG(tt_string() << "Invalid project file: could not create " << class_name);
@@ -310,14 +311,44 @@ NodeSharedPtr NodeCreator::createNodeFromXml(pugi::xml_node& xml_obj, Node* pare
                     if (Project.getProjectVersion() < 18)
                     {
                         Project.ForceProjectVersion(18);
-                        Project.setProjectUpdated();
                     }
                 };
+
+                // If there is a mainframe window, then convert dialog units to pixels since
+                // starting with wxUiEditor 21 (1.3.0) all positions and sizes are scaled
+                // automatically using FromDIP().
+                if (Project.getOriginalProjectVersion() < 21 && allow_ui &&
+                    (prop->type() == type_wxSize || prop->type() == type_wxPoint) &&
+                    tt::contains(iter.value(), 'd', tt::CASE::either))
+                {
+                    auto convertToWxSize = [](std::string_view value) -> wxSize
+                    {
+                        wxSize result { -1, -1 };
+                        if (value.size())
+                        {
+                            tt_view_vector tokens(value, ',');
+                            if (tokens.size())
+                            {
+                                if (tokens[0].size())
+                                    result.x = tokens[0].atoi();
+
+                                if (tokens.size() > 1 && tokens[1].size())
+                                    result.y = tokens[1].atoi();
+                            }
+                        }
+                        return result;
+                    };
+
+                    auto pixel_value = wxGetMainFrame()->getWindow()->ConvertDialogToPixels(convertToWxSize(iter.value()));
+                    prop->set_value(pixel_value);
+                    Project.ForceProjectVersion(21);
+                    continue;
+                }
 
                 // wxUiEditor 1.2.0 mistakenly added both prop_hidden and prop_hide_children.
                 // 1.2.1 removes the duplicate prop_hide_children, so this sets prop_hidden to
                 // true if prop_hide_children is true.
-                if (prop->get_name() == prop_hide_children && new_node->isGen(gen_wxStaticBoxSizer) && iter.as_bool())
+                else if (prop->get_name() == prop_hide_children && new_node->isGen(gen_wxStaticBoxSizer) && iter.as_bool())
                 {
                     new_node->set_value(prop_hidden, true);
                     prop->set_value(false);
@@ -458,13 +489,34 @@ NodeSharedPtr NodeCreator::createNodeFromXml(pugi::xml_node& xml_obj, Node* pare
             }
             else  // property was not found
             {
-                if (find_prop->second == prop_base_hdr_includes)
+                // In version 1.3.0, the wxWindow property derived class property names have been
+                // replaced with subclass names.
+                if (find_prop->second == prop_derived_class)
+                {
+                    new_node->set_value(prop_subclass, iter.value());
+                    Project.setProjectUpdated();
+                    Project.ForceProjectVersion(curSupportedVer);
+                }
+                else if (find_prop->second == prop_derived_header)
+                {
+                    new_node->set_value(prop_subclass_header, iter.value());
+                    Project.setProjectUpdated();
+                    Project.ForceProjectVersion(curSupportedVer);
+                }
+                else if (find_prop->second == prop_derived_params)
+                {
+                    new_node->set_value(prop_subclass_params, iter.value());
+                    Project.setProjectUpdated();
+                    Project.ForceProjectVersion(curSupportedVer);
+                }
+
+                else if (find_prop->second == prop_base_hdr_includes)
                 {
                     new_node->set_value(prop_header_preamble, iter.value());
                     Project.setProjectUpdated();
                     Project.ForceProjectVersion(curSupportedVer);
                 }
-                if (find_prop->second == prop_base_src_includes)
+                else if (find_prop->second == prop_base_src_includes)
                 {
                     new_node->set_value(prop_source_preamble, iter.value());
                     Project.setProjectUpdated();
@@ -672,72 +724,52 @@ NodeSharedPtr NodeCreator::createProjectNode(pugi::xml_node* xml_obj, bool allow
     return new_node;
 }
 
-bool ProjectHandler::ImportProject(tt_string& file,
-#if defined(INTERNAL_TESTING)
-                                   bool allow_ui
-#else
-                                   bool /* allow_ui */
-#endif
-)
+bool ProjectHandler::ImportProject(tt_string& file, bool allow_ui)
 {
-#if defined(INTERNAL_TESTING)
     // Importers will change the file extension, so make a copy here
     tt_string import_file = file;
-#endif
     bool result = false;
     if (file.has_extension(".wxcp"))
     {
         WxCrafter crafter;
         result = Import(crafter, file);
-#if defined(INTERNAL_TESTING)
-        if (result && allow_ui)
+        if (result && allow_ui && wxGetApp().isTestingMenuEnabled())
             wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_JSON);
-#endif
     }
     else if (file.has_extension(".fbp"))
     {
         FormBuilder fb;
         result = Import(fb, file);
-#if defined(INTERNAL_TESTING)
-        if (result && allow_ui)
+        if (result && allow_ui && wxGetApp().isTestingMenuEnabled())
             wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
     }
     else if (file.has_extension(".rc") || file.has_extension(".dlg"))
     {
         WinResource winres;
         result = Import(winres, file);
-#if defined(INTERNAL_TESTING)
-        if (result && allow_ui)
+        if (result && allow_ui && wxGetApp().isTestingMenuEnabled())
             wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_CPP);
-#endif
     }
     else if (file.has_extension(".wxs") || file.has_extension(".xrc"))
     {
         WxSmith smith;
         result = Import(smith, file);
-#if defined(INTERNAL_TESTING)
-        if (result && allow_ui)
+        if (result && allow_ui && wxGetApp().isTestingMenuEnabled())
             wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
     }
     else if (file.has_extension(".wxg"))
     {
         WxGlade glade;
         result = Import(glade, file);
-#if defined(INTERNAL_TESTING)
-        if (result && allow_ui)
+        if (result && allow_ui && wxGetApp().isTestingMenuEnabled())
             wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
     }
     else if (file.has_extension(".pjd"))
     {
         DialogBlocks db;
         result = Import(db, file);
-#if defined(INTERNAL_TESTING)
-        if (result && allow_ui)
+        if (result && allow_ui && wxGetApp().isTestingMenuEnabled())
             wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
     }
 
     return result;
@@ -748,14 +780,12 @@ bool ProjectHandler::Import(ImportXML& import, tt_string& file, bool append, boo
     m_ProjectVersion = ImportProjectVersion;
     if (import.Import(file))
     {
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-        if (allow_ui)
+        if (allow_ui && wxGetApp().isTestingMenuEnabled())
         {
             tt_string full_path(file);
             full_path.make_absolute();
             wxGetFrame().GetAppendImportHistory()->AddFileToHistory(full_path.make_wxString());
         }
-#endif  // _DEBUG
 
         // By having the importer create an XML document, we can pass it through NodeCreation.createNodeFromXml() which will
         // fix bitflag conflicts, convert wxWidgets constants to friendly names, and handle old-project style
@@ -827,8 +857,16 @@ bool ProjectHandler::Import(ImportXML& import, tt_string& file, bool append, boo
                 project_node->set_value(prop_code_preference, "C++");
             else if (language & GEN_LANG_PYTHON)
                 project_node->set_value(prop_code_preference, "Python");
+            else if (language & GEN_LANG_PERL)  // wxGlade can generate Perl
+                project_node->set_value(prop_code_preference, "Perl");
+            else if (language & GEN_LANG_LUA)  // wxFormBuilder can generate Lua
+                project_node->set_value(prop_code_preference, "Lua");
+            else if (language & GEN_LANG_RUST)  // wxFormBuilder can generate Rust
+                project_node->set_value(prop_code_preference, "Rust");
             else if (language & GEN_LANG_XRC)
                 project_node->set_value(prop_code_preference, "XRC");
+
+            // None of the other designers generate code for wxRuby3 or wxHaskell
 
             SetLangFilenames();
         }
@@ -845,6 +883,22 @@ bool ProjectHandler::Import(ImportXML& import, tt_string& file, bool append, boo
                 else if (dlg.is_gen_python())
                 {
                     project_node->set_value(prop_code_preference, "Ruby");
+                }
+                else if (dlg.is_gen_haskell())
+                {
+                    project_node->set_value(prop_code_preference, "Haskell");
+                }
+                else if (dlg.is_gen_lua())
+                {
+                    project_node->set_value(prop_code_preference, "Lua");
+                }
+                else if (dlg.is_gen_perl())
+                {
+                    project_node->set_value(prop_code_preference, "Perl");
+                }
+                else if (dlg.is_gen_rust())
+                {
+                    project_node->set_value(prop_code_preference, "Rust");
                 }
                 else if (dlg.is_gen_xrc())
                 {
@@ -937,6 +991,22 @@ bool ProjectHandler::NewProject(bool create_empty, bool allow_ui)
                 {
                     project->set_value(prop_code_preference, "Ruby");
                 }
+                else if (dlg.is_gen_haskell())
+                {
+                    project->set_value(prop_code_preference, "Haskell");
+                }
+                else if (dlg.is_gen_lua())
+                {
+                    project->set_value(prop_code_preference, "Lua");
+                }
+                else if (dlg.is_gen_perl())
+                {
+                    project->set_value(prop_code_preference, "Perl");
+                }
+                else if (dlg.is_gen_rust())
+                {
+                    project->set_value(prop_code_preference, "Rust");
+                }
                 else if (dlg.is_gen_xrc())
                 {
                     project->set_value(prop_code_preference, "XRC");
@@ -990,58 +1060,50 @@ bool ProjectHandler::NewProject(bool create_empty, bool allow_ui)
         {
             try
             {
-#if defined(INTERNAL_TESTING)
                 // Importers will change the file extension, so make a copy here
                 tt_string import_file = iter;
-#endif
 
                 if (iter.has_extension(".wxcp"))
                 {
                     WxCrafter crafter;
                     Import(crafter, iter, true);
-#if defined(INTERNAL_TESTING)
-                    wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_JSON);
-#endif
+                    if (wxGetApp().isTestingMenuEnabled())
+                        wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_JSON);
                 }
                 else if (iter.has_extension(".fbp"))
                 {
                     FormBuilder fb;
                     Import(fb, iter, true);
-#if defined(INTERNAL_TESTING)
-                    wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
+                    if (wxGetApp().isTestingMenuEnabled())
+                        wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
                 }
                 else if (iter.has_extension(".wxs") || iter.has_extension(".xrc"))
                 {
                     WxSmith smith;
                     Import(smith, iter, true);
-#if defined(INTERNAL_TESTING)
-                    wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
+                    if (wxGetApp().isTestingMenuEnabled())
+                        wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
                 }
                 else if (iter.has_extension(".wxg"))
                 {
                     WxGlade glade;
                     Import(glade, iter, true);
-#if defined(INTERNAL_TESTING)
-                    wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
+                    if (wxGetApp().isTestingMenuEnabled())
+                        wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
                 }
                 else if (iter.has_extension(".rc") || iter.has_extension(".dlg"))
                 {
                     WinResource winres;
                     Import(winres, iter, true);
-#if defined(INTERNAL_TESTING)
-                    wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_CPP);
-#endif
+                    if (wxGetApp().isTestingMenuEnabled())
+                        wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_CPP);
                 }
                 else if (iter.has_extension(".pjd"))
                 {
                     DialogBlocks db;
                     Import(db, iter, true);
-#if defined(INTERNAL_TESTING)
-                    wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
-#endif
+                    if (wxGetApp().isTestingMenuEnabled())
+                        wxGetFrame().getImportPanel()->SetImportFile(import_file, wxSTC_LEX_XML);
                 }
 
                 if (imported_from.size())
@@ -1063,17 +1125,12 @@ bool ProjectHandler::NewProject(bool create_empty, bool allow_ui)
             m_project_node->set_value(prop_src_preamble, preamble);
         }
 
-        // Set the current working directory to the first file imported.
-        tt_string path(file_list[0]);
-        if (path.size())
+        wxFileName path(file_list[0]);
+        if (path.IsOk())
         {
-            path.replace_extension(".wxui");
-            path.make_absolute();
-            path.backslashestoforward();
-            m_projectFile = path;
-            m_projectPath = m_projectFile;
-            m_projectPath.make_absolute();
-            m_projectPath.remove_filename();
+            path.SetExt("wxui");
+            path.MakeAbsolute();
+            setProjectPath(&path);
         }
         wxGetFrame().setImportedFlag();
     }
@@ -1424,9 +1481,7 @@ void ProjectHandler::RecursiveNodeCheck(Node* node)
     {
         if (auto parent = node->getParent(); parent && parent->isSizer())
         {
-#if defined(INTERNAL_TESTING)
             tt_string old_value = prop_ptr->as_string();
-#endif
             if (parent->as_string(prop_orientation).contains("wxVERTICAL"))
             {
                 // You can't set vertical alignment flags if the parent sizer is vertical
@@ -1458,25 +1513,27 @@ void ProjectHandler::RecursiveNodeCheck(Node* node)
                 prop_ptr->get_value().Replace("wxALIGN_CENTER_HORIZONTAL", "");
                 prop_ptr->get_value().Replace("wxALIGN_CENTER", "");
             }
-#if defined(INTERNAL_TESTING)
-            if (old_value != prop_ptr->as_string())
+            if (wxGetApp().isTestingMenuEnabled())
             {
-                tt_string msg;
-                if (prop_ptr->as_string().empty())
+                if (old_value != prop_ptr->as_string())
                 {
-                    msg = "Alignment flags for " + node->as_string(prop_var_name) + " in " +
-                          parent->as_string(prop_var_name) + " changed from " + old_value + " to no flags";
-                }
-                else
-                {
-                    msg = "Alignment flags for " + node->as_string(prop_var_name) + " in " +
-                          parent->as_string(prop_var_name) + " changed from " + old_value + " to " + prop_ptr->as_string();
-                }
-                MSG_INFO(msg);
+                    tt_string msg;
+                    if (prop_ptr->as_string().empty())
+                    {
+                        msg = "Alignment flags for " + node->as_string(prop_var_name) + " in " +
+                              parent->as_string(prop_var_name) + " changed from " + old_value + " to no flags";
+                    }
+                    else
+                    {
+                        msg = "Alignment flags for " + node->as_string(prop_var_name) + " in " +
+                              parent->as_string(prop_var_name) + " changed from " + old_value + " to " +
+                              prop_ptr->as_string();
+                    }
+                    MSG_INFO(msg);
 
-                m_isProject_updated = true;
+                    m_isProject_updated = true;
+                }
             }
-#endif
         }
     }
 
@@ -1491,11 +1548,7 @@ void ProjectHandler::RecursiveNodeCheck(Node* node)
             // figure this out. We could set it whenver we generate the code for it.
             node->set_value(prop_rows, 0);
             m_isProject_updated = true;
-#if defined(INTERNAL_TESTING)
-            {
-                MSG_INFO(tt_string("Removed row setting from ") << node->as_string(prop_var_name) << " since cols is set");
-            }
-#endif
+            MSG_INFO(tt_string("Removed row setting from ") << node->as_string(prop_var_name) << " since cols is set");
         }
     }
 
@@ -1520,7 +1573,7 @@ void ProjectHandler::FinalImportCheck(Node* parent, bool set_line_length)
         parent->set_value(prop_ruby_line_length, UserPrefs.get_RubyLineLength());
         if (!parent->hasValue(prop_wxWidgets_version))
         {
-            parent->set_value(prop_wxWidgets_version, "3.1");
+            parent->set_value(prop_wxWidgets_version, "3.1.0");
         }
     }
 

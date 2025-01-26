@@ -73,31 +73,31 @@ constexpr auto map_id_generator = frozen::make_map<int, GenEnum::GenName>({
     { 4467, gen_wxStdDialogButtonSizer },  // verified
     { 4469, gen_wxDataViewListCtrl },
     { 4470, gen_wxDataViewTreeCtrl },
-    { 4471, gen_wxBannerWindow },          // verified
-    { 4474, gen_wxCommandLinkButton },     // verified
-    { 4475, gen_wxCollapsiblePane },       // verified
-    { 4477, gen_wxInfoBar },               // verified
-    { 4479, gen_wxWebView },               // verified
-    { 4483, gen_wxTimer },                 // verified
-    { 4484, gen_wxPopupTransientWindow },  // no way for wxCrafter to create this
-    { 4485, gen_wxPropertyGridManager },   // verified
-    { 4486, gen_propGridItem },            // verified
-    { 4488, gen_wxRibbonBar },             // verified
-    { 4489, gen_wxRibbonPage },            // verified
-    { 4490, gen_wxRibbonPanel },           // verified
-    { 4491, gen_wxRibbonButtonBar },       // verified
-    { 4492, gen_ribbonButton },            // normal button
-    { 4493, gen_ribbonButton },            // hybrid button
-    { 4494, gen_ribbonButton },            // dropdown button
-    { 4495, gen_ribbonButton },            // toggle button
-    { 4496, gen_wxRibbonGallery },         // verified
-    { 4497, gen_ribbonGalleryItem },       // verified
-    { 4498, gen_wxRibbonToolBar },         // verified
-    { 4499, gen_ribbonTool },              // normal tool
-    { 4500, gen_ribbonTool },              // hybrid tool
-    { 4501, gen_ribbonTool },              // dropdown tool
-    { 4502, gen_ribbonTool },              // toggle tool
-    { 4503, gen_ribbonSeparator },         // verified
+    { 4471, gen_wxBannerWindow },         // verified
+    { 4474, gen_wxCommandLinkButton },    // verified
+    { 4475, gen_wxCollapsiblePane },      // verified
+    { 4477, gen_wxInfoBar },              // verified
+    { 4479, gen_wxWebView },              // verified
+    { 4483, gen_wxTimer },                // verified
+    { 4484, gen_wxPopupWindow },          // ???
+    { 4485, gen_wxPropertyGridManager },  // verified
+    { 4486, gen_propGridItem },           // verified
+    { 4488, gen_wxRibbonBar },            // verified
+    { 4489, gen_wxRibbonPage },           // verified
+    { 4490, gen_wxRibbonPanel },          // verified
+    { 4491, gen_wxRibbonButtonBar },      // verified
+    { 4492, gen_ribbonButton },           // normal button
+    { 4493, gen_ribbonButton },           // hybrid button
+    { 4494, gen_ribbonButton },           // dropdown button
+    { 4495, gen_ribbonButton },           // toggle button
+    { 4496, gen_wxRibbonGallery },        // verified
+    { 4497, gen_ribbonGalleryItem },      // verified
+    { 4498, gen_wxRibbonToolBar },        // verified
+    { 4499, gen_ribbonTool },             // normal tool
+    { 4500, gen_ribbonTool },             // hybrid tool
+    { 4501, gen_ribbonTool },             // dropdown tool
+    { 4502, gen_ribbonTool },             // toggle tool
+    { 4503, gen_ribbonSeparator },        // verified
     { 4504, gen_toolSeparator },
     { 4509, gen_wxTreeListCtrl },      // verified
     { 4510, gen_TreeListCtrlColumn },  // verified
@@ -148,7 +148,7 @@ constexpr auto map_crafter_props = frozen::make_map<std::string_view, GenEnum::P
     { "bitmap size", prop_bitmapsize },
     { "choices", prop_contents },
     { "class decorator", prop_class_decoration },
-    { "class name", prop_derived_class },
+    { "class name", prop_subclass },
     { "col label horizontal align", prop_col_label_horiz_alignment },
     { "col label vertical align", prop_col_label_vert_alignment },
     { "column flags", prop_flags },
@@ -166,7 +166,7 @@ constexpr auto map_crafter_props = frozen::make_map<std::string_view, GenEnum::P
     { "horizontal gap", prop_hgap },
     { "hover colour", prop_hover_color },
     { "html code", prop_html_content },
-    { "include file", prop_derived_header },
+    { "include file", prop_subclass_header },
     { "inherited class", prop_class_name },
     { "load and play", prop_play },
     { "major dimension", prop_majorDimension },

@@ -21,8 +21,8 @@
 
 wxObject* PropertyGridManagerGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxPropertyGridManager(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                            DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxPropertyGridManager(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                            DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->hasValue(prop_extra_style))
     {
@@ -87,7 +87,7 @@ void PropertyGridManagerGenerator::AfterCreation(wxObject* wxobject, wxWindow* /
 bool PropertyGridManagerGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass().ValidParentName().Comma().as_string(prop_id);
-    code.PosSizeFlags(false, "wxPGMAN_DEFAULT_STYLE");
+    code.PosSizeFlags(code::allow_scaling, false, "wxPGMAN_DEFAULT_STYLE");
 
     if (code.hasValue(prop_extra_style))
         code.Eol().NodeName().Function("SetExtraStyle(").Add(prop_extra_style).EndFunction();
@@ -96,7 +96,7 @@ bool PropertyGridManagerGenerator::ConstructionCode(Code& code)
 }
 
 bool PropertyGridManagerGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                               int /* language */)
+                                               GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/propgrid/propgrid.h>", set_src, set_hdr);
     InsertGeneratorInclude(node, "#include <wx/propgrid/manager.h>", set_src, set_hdr);
@@ -121,10 +121,17 @@ bool PropertyGridManagerGenerator::AfterChildrenCode(Code& code)
     }
 }
 
-bool PropertyGridManagerGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool PropertyGridManagerGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/pg'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/pg'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }
 
 //////////////////////////////////////////  PropertyGridPageGenerator  //////////////////////////////////////////

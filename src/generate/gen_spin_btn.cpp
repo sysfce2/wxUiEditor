@@ -19,8 +19,8 @@ using namespace code;
 
 wxObject* SpinButtonGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxSpinButton(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                   DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxSpinButton(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                   DlgSize(node, prop_size), GetStyleInt(node));
 
     widget->SetRange(node->as_int(prop_min), node->as_int(prop_max));
     widget->SetValue(node->as_int(prop_initial));
@@ -36,7 +36,7 @@ wxObject* SpinButtonGenerator::CreateMockup(Node* node, wxObject* parent)
 bool SpinButtonGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass().ValidParentName().Comma().as_string(prop_id);
-    code.PosSizeFlags(false, "wxSP_VERTICAL");
+    code.PosSizeFlags(code::allow_scaling, false, "wxSP_VERTICAL");
 
     // If the last parameter is wxID_ANY, then remove it. This is the default value, so it's
     // not needed.
@@ -63,7 +63,7 @@ bool SpinButtonGenerator::SettingsCode(Code& code)
 }
 
 bool SpinButtonGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/spinbutt.h>", set_src, set_hdr);
     if (node->hasValue(prop_validator_variable))

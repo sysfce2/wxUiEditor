@@ -18,8 +18,8 @@
 
 wxObject* SimplebookGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxSimplebook(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                   DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxSimplebook(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                   DlgSize(node, prop_size), GetStyleInt(node));
 
     widget->SetEffects((wxShowEffect) node->as_mockup(prop_show_effect, "info_"),
                        (wxShowEffect) node->as_mockup(prop_hide_effect, "info_"));
@@ -45,7 +45,7 @@ void SimplebookGenerator::OnPageChanged(wxBookCtrlEvent& event)
 bool SimplebookGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
-    code.ValidParentName().Comma().as_string(prop_id).PosSizeFlags(false);
+    code.ValidParentName().Comma().as_string(prop_id).PosSizeFlags();
 
     return true;
 }
@@ -67,7 +67,7 @@ bool SimplebookGenerator::SettingsCode(Code& code)
 }
 
 bool SimplebookGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/simplebook.h>", set_src, set_hdr);
 

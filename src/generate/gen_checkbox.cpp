@@ -20,9 +20,8 @@ wxObject* CheckBoxGenerator::CreateMockup(Node* node, wxObject* parent)
     if (node->as_string(prop_style).contains("wxALIGN_RIGHT"))
         style_value |= wxALIGN_RIGHT;
 
-    auto widget =
-        new wxCheckBox(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
-                       DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), style_value | GetStyleInt(node));
+    auto widget = new wxCheckBox(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
+                                 DlgPoint(node, prop_pos), DlgSize(node, prop_size), style_value | GetStyleInt(node));
 
     if (node->as_bool(prop_checked))
         widget->SetValue(true);
@@ -52,7 +51,7 @@ bool CheckBoxGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id).Comma().QuotedString(prop_label);
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -67,7 +66,7 @@ bool CheckBoxGenerator::SettingsCode(Code& code)
 }
 
 bool CheckBoxGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                    int /* language */)
+                                    GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/checkbox.h>", set_src, set_hdr);
     if (node->as_string(prop_validator_variable).size())
@@ -108,7 +107,7 @@ wxObject* Check3StateGenerator::CreateMockup(Node* node, wxObject* parent)
     long style_value = wxCHK_3STATE | GetStyleInt(node);
 
     auto widget = new wxCheckBox(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
-                                 DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), style_value);
+                                 DlgPoint(node, prop_pos), DlgSize(node, prop_size), style_value);
 
     auto& state = node->as_string(prop_initial_state);
     if (state == "wxCHK_UNCHECKED")
@@ -183,7 +182,7 @@ bool Check3StateGenerator::SettingsCode(Code& code)
 }
 
 bool Check3StateGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                       int /* language */)
+                                       GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/checkbox.h>", set_src, set_hdr);
     // 3-state checkboxes don't support validators

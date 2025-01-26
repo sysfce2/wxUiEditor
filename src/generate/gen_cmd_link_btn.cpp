@@ -19,8 +19,8 @@
 wxObject* CommandLinkBtnGenerator::CreateMockup(Node* node, wxObject* parent)
 {
     auto widget = new wxCommandLinkButton(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_main_label),
-                                          node->as_wxString(prop_note), DlgPoint(parent, node, prop_pos),
-                                          DlgSize(parent, node, prop_size), GetStyleInt(node));
+                                          node->as_wxString(prop_note), DlgPoint(node, prop_pos), DlgSize(node, prop_size),
+                                          GetStyleInt(node));
 
     if (node->as_bool(prop_default))
         widget->SetDefault();
@@ -64,7 +64,7 @@ bool CommandLinkBtnGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id).Comma().QuotedString(prop_main_label);
-    code.Comma().QuotedString(prop_note).PosSizeFlags(true);
+    code.Comma().QuotedString(prop_note).PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -92,7 +92,7 @@ bool CommandLinkBtnGenerator::SettingsCode(Code& code)
 }
 
 bool CommandLinkBtnGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/commandlinkbutton.h>", set_src, set_hdr);
     return true;

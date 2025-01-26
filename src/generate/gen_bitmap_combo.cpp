@@ -18,8 +18,7 @@
 wxObject* BitmapComboBoxGenerator::CreateMockup(Node* node, wxObject* parent)
 {
     auto widget = new wxBitmapComboBox(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_value),
-                                       DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), 0, nullptr,
-                                       GetStyleInt(node));
+                                       DlgPoint(node, prop_pos), DlgSize(node, prop_size), 0, nullptr, GetStyleInt(node));
 
     if (node->hasValue(prop_hint))
         widget->SetHint(node->as_wxString(prop_hint));
@@ -90,7 +89,7 @@ bool BitmapComboBoxGenerator::ConstructionCode(Code& code)
         if (code.WhatParamsNeeded() != nothing_needed)
         {
             code.Comma().Add("wxEmptyString");
-            code.PosSizeFlags(true);
+            code.PosSizeFlags(code::allow_scaling, true);
         }
         else
         {
@@ -160,7 +159,7 @@ bool BitmapComboBoxGenerator::SettingsCode(Code& code)
 }
 
 bool BitmapComboBoxGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/bmpcbox.h>", set_src, set_hdr);
     if (node->as_string(prop_validator_variable).size())

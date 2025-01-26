@@ -43,6 +43,14 @@ void BaseCodeGenerator::GenConstruction(Node* node)
         m_warnings.emplace(warning_msg.value());
     }
 
+    if (auto supported = generator->isLanguageVersionSupported(m_language); !supported.first)
+    {
+        Code gen_code(node, m_language);
+        gen_code.AddComment(supported.second, true);
+        m_source->writeLine(gen_code);
+        return;
+    }
+
     bool need_closing_brace = false;
     Code gen_code(node, m_language);
 
@@ -179,7 +187,8 @@ void BaseCodeGenerator::GenConstruction(Node* node)
 
     if (node->isSizer())
     {
-        if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm))
+        if (!parent->isSizer() && !parent->isGen(gen_wxDialog) && !parent->isGen(gen_PanelForm) &&
+            !parent->isGen(gen_wxPopupTransientWindow))
         {
             // The parent node is not a sizer -- which is expected if this is the parent sizer underneath a form or
             // wxPanel.
@@ -193,7 +202,7 @@ void BaseCodeGenerator::GenConstruction(Node* node)
             }
             else
             {
-                if (GetParentName(node) != "this")
+                if (GetParentName(node, m_language) != "this")
                     gen_code.ParentName();
                 else if (gen_code.is_python())
                     gen_code.Str("self");
@@ -262,6 +271,7 @@ const char* BaseCodeGenerator::LangPtr() const
     switch (m_language)
     {
         case GEN_LANG_CPLUSPLUS:
+        case GEN_LANG_PERL:
             return "->";
 
         case GEN_LANG_PYTHON:
@@ -273,6 +283,9 @@ const char* BaseCodeGenerator::LangPtr() const
     }
 }
 
+#if defined(__WINDOWS__)
+#endif
+
 void BaseCodeGenerator::BeginPlatformCode(Code& code, const tt_string& platforms)
 {
     if (platforms.contains("Windows"))
@@ -283,12 +296,38 @@ void BaseCodeGenerator::BeginPlatformCode(Code& code, const tt_string& platforms
                 code.Eol() << "#if defined(__WINDOWS__)";
                 break;
 
+            case GEN_LANG_PERL:
+                code.Eol() << "if $^O eq 'MSWin32'";
+                break;
+
             case GEN_LANG_PYTHON:
                 code.Eol() << "if wx.Platform == \"msw\"";
                 break;
 
             case GEN_LANG_RUBY:
                 code.Eol() << "if Wx::PLATFORM == 'WXMSW'";
+                break;
+
+            case GEN_LANG_RUST:
+                code.Eol() << "if (PHP_OS == 'WINNT' || PHP_OS == 'WIN32')";
+                break;
+
+#if GENERATE_NEW_LANG_CODE
+            case GEN_LANG_FORTRAN:
+                code.Eol() << "if defined(__WINDOWS__)";
+                break;
+
+            case GEN_LANG_HASKELL:
+                code.Eol() << "if os == \"mingw32\"";
+                break;
+
+            case GEN_LANG_LUA:
+                code.Eol() << "if wxPlatform == \"msw\"";
+                break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+            default:
+                FAIL_MSG(tt_string() << "Unsupported language: " << m_language);
                 break;
         }
     }
@@ -302,6 +341,14 @@ void BaseCodeGenerator::BeginPlatformCode(Code& code, const tt_string& platforms
                 else
                     code.Eol() << "#if ";
                 code << "defined(__UNIX__)";
+                break;
+
+            case GEN_LANG_PERL:
+                if (code.size())
+                    code << " or ";
+                else
+                    code.Eol() << "if ";
+                code << "$^O eq 'linux' or $^O eq 'darwin'";
                 break;
 
             case GEN_LANG_PYTHON:
@@ -319,6 +366,43 @@ void BaseCodeGenerator::BeginPlatformCode(Code& code, const tt_string& platforms
                     code.Eol() << "if ";
                 code << "Wx::PLATFORM == 'WXUNIX'";
                 break;
+
+            case GEN_LANG_RUST:
+                if (code.size())
+                    code << " || ";
+                else
+                    code.Eol() << "if ";
+                code << "PHP_OS == 'Linux'";
+                break;
+
+#if GENERATE_NEW_LANG_CODE
+            case GEN_LANG_FORTRAN:
+                if (code.size())
+                    code << " .OR. ";
+                else
+                    code.Eol() << "if ";
+                code << "defined(__UNIX__)";
+                break;
+
+            case GEN_LANG_HASKELL:
+                if (code.size())
+                    code << " || ";
+                else
+                    code.Eol() << "if ";
+                code << "os == \"linux\"";
+                break;
+
+            case GEN_LANG_LUA:
+                if (code.size())
+                    code << " or ";
+                else
+                    code.Eol() << "if ";
+                code << "wxPlatform == \"gtk\"";
+                break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+            default:
+                break;
         }
     }
     if (platforms.contains("Mac"))
@@ -331,6 +415,14 @@ void BaseCodeGenerator::BeginPlatformCode(Code& code, const tt_string& platforms
                 else
                     code.Eol() << "#if ";
                 code << "defined(__WXOSX__)";
+                break;
+
+            case GEN_LANG_PERL:
+                if (code.size())
+                    code << " or ";
+                else
+                    code.Eol() << "if ";
+                code << "$^O eq 'darwin'";
                 break;
 
             case GEN_LANG_PYTHON:
@@ -348,6 +440,43 @@ void BaseCodeGenerator::BeginPlatformCode(Code& code, const tt_string& platforms
                     code.Eol() << "if ";
                 code << "Wx::PLATFORM == 'WXOSX'";
                 break;
+
+            case GEN_LANG_RUST:
+                if (code.size())
+                    code << " || ";
+                else
+                    code.Eol() << "if ";
+                code << "PHP_OS == 'Darwin'";
+                break;
+
+#if GENERATE_NEW_LANG_CODE
+            case GEN_LANG_FORTRAN:
+                if (code.size())
+                    code << " .OR. ";
+                else
+                    code.Eol() << "if ";
+                code << "defined(__WXOSX__)";
+                break;
+
+            case GEN_LANG_HASKELL:
+                if (code.size())
+                    code << " || ";
+                else
+                    code.Eol() << "if ";
+                code << "os == \"darwin\"";
+                break;
+
+            case GEN_LANG_LUA:
+                if (code.size())
+                    code << " or ";
+                else
+                    code.Eol() << "if ";
+                code << "wxPlatform == \"mac\"";
+                break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+            default:
+                break;
         }
     }
     if (m_language == GEN_LANG_PYTHON)
@@ -364,6 +493,9 @@ void BaseCodeGenerator::EndPlatformCode()
             m_source->writeLine("#endif  // limited to specific platforms");
             break;
 
+        case GEN_LANG_PERL:
+            break;
+
         case GEN_LANG_PYTHON:
             m_source->Unindent();
             break;
@@ -372,12 +504,33 @@ void BaseCodeGenerator::EndPlatformCode()
             m_source->Unindent();
             m_source->writeLine("end");
             break;
+
+        case GEN_LANG_RUST:
+            m_source->Unindent();
+            break;
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            m_source->Unindent();
+            break;
+
+        case GEN_LANG_HASKELL:
+            m_source->Unindent();
+            break;
+
+        case GEN_LANG_LUA:
+            m_source->Unindent();
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+        default:
+            break;
     }
 }
 
 void BaseCodeGenerator::BeginBrace()
 {
-    if (m_language == GEN_LANG_CPLUSPLUS)
+    if (m_language == GEN_LANG_CPLUSPLUS || m_language == GEN_LANG_PERL)
     {
         m_source->writeLine("{");
         m_source->Indent();
@@ -386,7 +539,7 @@ void BaseCodeGenerator::BeginBrace()
 
 void BaseCodeGenerator::EndBrace()
 {
-    if (m_language == GEN_LANG_CPLUSPLUS)
+    if (m_language == GEN_LANG_CPLUSPLUS || m_language == GEN_LANG_PERL)
     {
         m_source->Unindent();
         m_source->writeLine("}");
@@ -402,7 +555,7 @@ void BaseCodeGenerator::GenSettings(Node* node, bool within_brace)
     {
         if (code.size())
         {
-            if (m_language == GEN_LANG_CPLUSPLUS && within_brace)
+            if ((m_language == GEN_LANG_CPLUSPLUS || m_language == GEN_LANG_PERL) && within_brace)
             {
                 m_source->Indent();
                 m_source->writeLine(code);

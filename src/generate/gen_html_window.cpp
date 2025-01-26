@@ -17,8 +17,8 @@
 
 wxObject* HtmlWindowGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxHtmlWindow(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                   DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxHtmlWindow(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                   DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->as_int(prop_html_borders) >= 0)
         widget->SetBorders(wxStaticCast(parent, wxWindow)->FromDIP(node->as_int(prop_html_borders)));
@@ -58,7 +58,7 @@ wxObject* HtmlWindowGenerator::CreateMockup(Node* node, wxObject* parent)
 bool HtmlWindowGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass().ValidParentName().Comma().as_string(prop_id);
-    code.PosSizeFlags(false, "wxHW_SCROLLBAR_AUTO");
+    code.PosSizeFlags(code::allow_scaling, false, "wxHW_SCROLLBAR_AUTO");
 
     // If the last parameter is wxID_ANY, then remove it. This is the default value, so it's
     // not needed.
@@ -116,7 +116,7 @@ void HtmlWindowGenerator::RequiredHandlers(Node* /* node */, std::set<std::strin
 }
 
 bool HtmlWindowGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/html/htmlwin.h>", set_src, set_hdr);
     if (node->hasValue(prop_html_url))
@@ -126,8 +126,15 @@ bool HtmlWindowGenerator::GetIncludes(Node* node, std::set<std::string>& set_src
     return true;
 }
 
-bool HtmlWindowGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool HtmlWindowGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/html'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/html'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }

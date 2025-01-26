@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Scroll window component classes
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -17,8 +17,8 @@
 
 wxObject* ScrolledCanvasGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxScrolled<wxWindow>(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                           DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxScrolled<wxWindow>(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                           DlgSize(node, prop_size), GetStyleInt(node));
     widget->SetScrollRate(node->as_int(prop_scroll_rate_x), node->as_int(prop_scroll_rate_y));
 
     widget->Bind(wxEVT_LEFT_DOWN, &BaseGenerator::OnLeftClick, this);
@@ -30,7 +30,7 @@ bool ScrolledCanvasGenerator::ConstructionCode(Code& code)
 {
     if (code.is_cpp())
     {
-        code.AddAuto().NodeName().Str(" = new wxScrolled<wxWindow>(");
+        code.AddAuto().NodeName().Str(" = new wxScrolledCanvas(");
         code.ValidParentName().Comma().as_string(prop_id);
         code.PosSizeFlags();
     }
@@ -55,19 +55,43 @@ bool ScrolledCanvasGenerator::SettingsCode(Code& code)
 }
 
 bool ScrolledCanvasGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/scrolwin.h>", set_src, set_hdr);
 
     return true;
 }
 
+int ScrolledCanvasGenerator::GenXrcObject(Node* /* node */, pugi::xml_node& /* object */, size_t /* xrc_flags */)
+{
+    return xrc_not_supported;
+}
+
+std::optional<tt_string> ScrolledCanvasGenerator::GetWarning(Node* node, GenLang language)
+{
+    switch (language)
+    {
+        case GEN_LANG_XRC:
+            {
+                tt_string msg;
+                if (auto form = node->getForm(); form && form->hasValue(prop_class_name))
+                {
+                    msg << form->as_string(prop_class_name) << ": ";
+                }
+                msg << " XRC currently does not support wxScrolledCanvas ";
+                return msg;
+            }
+        default:
+            return {};
+    }
+}
+
 //////////////////////////////////////////  ScrolledWindowGenerator  //////////////////////////////////////////
 
 wxObject* ScrolledWindowGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxScrolled<wxPanel>(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                          DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxScrolledWindow(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                       DlgSize(node, prop_size), GetStyleInt(node));
     widget->SetScrollRate(node->as_int(prop_scroll_rate_x), node->as_int(prop_scroll_rate_y));
 
     widget->Bind(wxEVT_LEFT_DOWN, &BaseGenerator::OnLeftClick, this);
@@ -79,7 +103,7 @@ bool ScrolledWindowGenerator::ConstructionCode(Code& code)
 {
     if (code.is_cpp())
     {
-        code.AddAuto().NodeName().Str(" = new wxScrolled<wxPanel>(");
+        code.AddAuto().NodeName().Str(" = new wxScrolledWindow(");
         code.ValidParentName().Comma().as_string(prop_id);
         code.PosSizeFlags();
     }
@@ -104,7 +128,7 @@ bool ScrolledWindowGenerator::SettingsCode(Code& code)
 }
 
 bool ScrolledWindowGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/scrolwin.h>", set_src, set_hdr);
 

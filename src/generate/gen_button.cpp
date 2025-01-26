@@ -16,8 +16,8 @@
 
 wxObject* ButtonGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxButton(wxStaticCast(parent, wxWindow), node->as_id(prop_id), wxEmptyString,
-                               DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxButton(wxStaticCast(parent, wxWindow), node->as_id(prop_id), wxEmptyString, DlgPoint(node, prop_pos),
+                               DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->hasValue(prop_label))
     {
@@ -157,7 +157,7 @@ bool ButtonGenerator::ConstructionCode(Code& code)
         code.Add("wxEmptyString");
     }
 
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -259,7 +259,7 @@ void ButtonGenerator::RequiredHandlers(Node* node, std::set<std::string>& handle
 }
 
 bool ButtonGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                  int /* language */)
+                                  GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/button.h>", set_src, set_hdr);
     if (node->hasValue(prop_validator_variable))

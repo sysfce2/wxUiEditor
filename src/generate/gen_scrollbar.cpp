@@ -17,8 +17,8 @@
 
 wxObject* ScrollBarGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxScrollBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                  DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxScrollBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                  DlgSize(node, prop_size), GetStyleInt(node));
 
     widget->SetScrollbar(node->as_int(prop_position), node->as_int(prop_thumbsize), node->as_int(prop_range),
                          node->as_int(prop_pagesize));
@@ -72,7 +72,7 @@ void ScrollBarGenerator::RequiredHandlers(Node* /* node */, std::set<std::string
 }
 
 bool ScrollBarGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                     int /* language */)
+                                     GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/scrolbar.h>", set_src, set_hdr);
     if (node->hasValue(prop_validator_variable))

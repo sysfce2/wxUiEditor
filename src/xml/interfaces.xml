@@ -141,6 +141,17 @@
 	<gen class="Dialog Window Settings" type="interface">
 		<property name="id" type="id"
 			help="The identifier for the dialog.">wxID_ANY</property>
+		<property name="variant" type="option" help="Chooses a different variant of the window display to use (calls SetWindowVariant).">
+			<option name="normal"
+				help="Normal size"/>
+			<option name="small"
+				help="About 25% smaller than normal."/>
+			<option name="mini"
+				help="About 33% smaller than normal."/>
+			<option name="large"
+				help="About 35% larger than normal."/>
+			normal
+		</property>
 		<property name="pos" type="wxPoint"
 			help="Sets the dialog position. The default is (-1, -1) which indicates that wxWidgets should generate a default position for the dialog."/>
 		<property name="size" type="wxSize"
@@ -157,11 +168,11 @@
 			help="Sets the font for the dialog. This should not be used if you don't want the font to be inherited by the dialog's children"/>
 		<property name="window_name" type="string_escapes"
 			help="Used to associate a name with the window, allowing the application user to set Motif resource values for individual dialog boxes."/>
-		<property name="derived_class" type="string"
+		<property name="subclass" type="string"
 			help="If you have derived a class from wxDialog and you want to use your derived class, then specify that class name here. You will need to add the header file for your class to the base_hdr_includes property. Note that your base class must specify a constructor with no parameters to match a wxDialog() constructor."/>
 	</gen>
 
-	<!-- Using Language Settings will pull in all language settings -->
+	<!-- Using Language Settings will pull in all language settings in node_init.cpp (update if more settings are added! -->
 	<gen class="Language Settings" type="interface"/>
 
 	<gen class="C++ Settings" type="interface">
@@ -221,6 +232,13 @@
 			help="Check this to make all class member variables private: instead of protected:. This can only be done if you are *not* creating a derived class (use_derived_class is unchecked)."/>
 	</gen>
 
+	<gen class="wxPerl Settings" type="interface">
+		<property name="perl_file" type="file"
+			help="The filename to use if generating code for wxPerl."/>
+		<property name="insert_perl_code" type="code_edit"
+			help="Specify the code to insert into the perl file after the generated import statements. This can be any valid perl code for use before the class definition."/>
+	</gen>
+
 	<gen class="wxPython Settings" type="interface">
 		<property name="python_file" type="file"
 			help="The filename to use if generating code for wxPython."/>
@@ -238,13 +256,20 @@
 
 	<gen class="wxRuby Settings" type="interface">
 		<property name="ruby_file" type="file"
-			help="The filename to use if generating code for wxRuby."/>
+			help="The filename to use if generating code for wxRuby3."/>
 		<property name="insert_ruby_code" type="code_edit"
 			help="Specify the code to insert into the ruby file after the generated import statements. This can be any valid ruby code for use before the class definition."/>
 		<property name="relative_require_list" type="include_files"
 			help="Specifies the ruby modules that are required by this module. These will be added using the relative_require command, and are relative to the location of this generated file."/>
 		<property name="ruby_inherit_name" type="string"
 			help="The name to use for an inherited class. If specified, the Inherit tab in the Ruby panel will include a sample for creating an inherited class."/>
+	</gen>
+
+	<gen class="wxRust Settings" type="interface">
+		<property name="rust_file" type="file"
+			help="The filename to use if generating code for wxRust."/>
+		<property name="insert_rust_code" type="code_edit"
+			help="Specify the code to insert into the rust file after the generated import statements. This can be any valid rust code for use before the class definition."/>
 	</gen>
 
 	<gen class="XRC Settings" type="interface">
@@ -254,12 +279,34 @@
 			help="If checked, no leading whitespace will be used. This makes the file smaller, but less readable."> 0</property>
 	</gen>
 
+	<gen class="wxFortran Settings" type="interface">
+		<property name="fortran_file" type="file"
+			help="The filename to use if generating code for wxFortran."/>
+		<property name="insert_fortran_code" type="code_edit"
+			help="Specify the code to insert into the fortran file after the generated import statements. This can be any valid fortran code for use before the class definition."/>
+	</gen>
+
+	<gen class="wxHaskell Settings" type="interface">
+		<property name="fortran_file" type="file"
+			help="The filename to use if generating code for wxHaskell."/>
+		<property name="insert_fortran_code" type="code_edit"
+			help="Specify the code to insert into the fortran file after the generated import statements. This can be any valid fortran code for use before the class definition."/>
+	</gen>
+
+	<gen class="wxLua Settings" type="interface">
+		<property name="lua_file" type="file"
+			help="The filename to use if generating code for wxLua or wxLuaJIT."/>
+		<property name="insert_lua_code" type="code_edit"
+			help="Specify the code to insert into the lua file after the generated import statements. This can be any valid lua code for use before the class definition."/>
+	</gen>
+
 	<gen class="C++" type="interface">
 		<property name="wxWidgets_version" type="option"
 			help="If you specify a control or property that requires a wxWidgets version later than this number, then the code will be generated within a conditional block.">
-			<option name="3.1"/>
-			<option name="3.2"/>
-			<option name="3.3"/>
+			<option name="3.1.0"/>
+			<option name="3.2.0"/>
+			<option name="3.3.0"/>
+			3.2.0
 		</property>
 		<property name="base_directory" type="path"
 			help="The generated base class output directory. If a form's base_file contains only a filename (without a path), the files will be generated in this directory. Leave blank to generate the in the same directory as the project file."/>
@@ -308,6 +355,20 @@
 			help="The directory containing the images your XRC file will load.">./</property>
 	</gen>
 
+	<gen class="wxPerl" type="interface">
+		<property name="wxPerl_version" type="option"
+			help="Specifies the minimum version of wxPerl needed to run the generated code.">
+			<option name="3.005"/>
+			 3.005 </property>
+		<property name="perl_output_folder" type="path"
+			help="If a folder name is specified, it will be used for all perl code."/>
+		<property name="perl_line_length" type="uint"
+			help="Specifies a guideline for generated code line length. Most lines will be wrapped so that they do not exceed this length.">
+			80</property>
+		<property name="perl_project_preamble" type="code_edit"
+			help="Code to generate at the top of every source file after the comment block."/>
+	</gen>
+
 	<gen class="wxPython" type="interface">
 		<property name="wxPython_version" type="option"
 			help="Specifies the minimum version of wxPython needed to run the generated code.">
@@ -331,8 +392,9 @@
 	<gen class="wxRuby" type="interface">
 		<property name="wxRuby_version" type="option"
 			help="Specifies the minimum version of wxRuby needed to run the generated code.">
-			<option name="0.9.1"/>
-			<option name="1.0.0"/> 0.9.1 </property>
+			<option name="1.0.0"/>
+			<option name="1.2.1"/>
+			1.2.1 </property>
 		<property name="ruby_output_folder" type="path"
 			help="If a folder name is specified, it will be used for all ruby code."/>
 		<property name="ruby_line_length" type="uint"
@@ -342,6 +404,59 @@
 			help="If checked, all RuboCop warnings will be disabled within the generated code."> 0</property>
 		<property name="ruby_project_preamble" type="code_edit"
 			help="Code to generate at the top of every source file after the comment block and any disabled RuboCop warnings."/>
+	</gen>
+
+	<gen class="wxRust" type="interface">
+		<property name="wxRust_version" type="option"
+			help="Specifies the minimum version of wxRust needed to run the generated code.">
+			<option name="3.0.51"/> 3.0.51 </property>
+		<property name="rust_output_folder" type="path"
+			help="If a folder name is specified, it will be used for all rust code."/>
+		<property name="rust_line_length" type="uint"
+			help="Specifies a guideline for generated code line length. Most lines will be wrapped so that they do not exceed this length.">
+			80</property>
+		<property name="rust_project_preamble" type="code_edit"
+			help="Code to generate at the top of every source file after the comment block."/>
+	</gen>
+
+	<gen class="wxFortran" type="interface">
+		<property name="wxFortran_version" type="option"
+			help="Specifies the minimum version of wxFortran needed to run the generated code.">
+			<option name="1-0-0"/> 1-0-0 </property>
+		<property name="fortran_output_folder" type="path"
+			help="If a folder name is specified, it will be used for all fortran code."/>
+		<property name="fortran_line_length" type="uint"
+			help="Specifies a guideline for generated code line length. Most lines will be wrapped so that they do not exceed this length.">
+			80</property>
+		<property name="fortran_project_preamble" type="code_edit"
+			help="Code to generate at the top of every source file after the comment block."/>
+	</gen>
+
+	<gen class="wxHaskell" type="interface">
+		<property name="wxHaskell_version" type="option"
+			help="Specifies the minimum version of wxHaskell needed to run the generated code.">
+			<option name="1-0-0"/> 1-0-0 </property>
+		<property name="haskell_output_folder" type="path"
+			help="If a folder name is specified, it will be used for all haskell code."/>
+		<property name="haskell_line_length" type="uint"
+			help="Specifies a guideline for generated code line length. Most lines will be wrapped so that they do not exceed this length.">
+			80</property>
+		<property name="haskell_project_preamble" type="code_edit"
+			help="Code to generate at the top of every source file after the comment block."/>
+	</gen>
+
+	<gen class="wxLua" type="interface">
+		<property name="wxLua_version" type="option"
+			help="Specifies the minimum version of wxLua needed to run the generated code.">
+			<option name="wxLua 3.2.0"/>
+			wxLua 3.2.0 </property>
+		<property name="lua_output_folder" type="path"
+			help="If a folder name is specified, it will be used for all lua code."/>
+		<property name="lua_line_length" type="uint"
+			help="Specifies a guideline for generated code line length. Most lines will be wrapped so that they do not exceed this length.">
+			100</property>
+		<property name="lua_project_preamble" type="code_edit"
+			help="Code to generate at the top of every source file after the comment block."/>
 	</gen>
 
 	<gen class="Folder C++ Overrides" type="interface">
@@ -357,9 +472,14 @@
 			help="Overrides any project setting of the variable name to set in the .cmake file. Only affects the forms within this folder."/>
 	</gen>
 
+	<gen class="Folder wxPerl Overrides" type="interface">
+		<property name="folder_perl_output_folder" type="path"
+			help="Overrides any project setting of the output folder used for all generated wxPerl code. Only affects the forms within this folder."/>
+	</gen>
+
 	<gen class="Folder wxPython Overrides" type="interface">
 		<property name="folder_python_output_folder" type="path"
-			help="Overrides any project setting of the output folder used for all generated python code. Only affects the forms within this folder."/>
+			help="Overrides any project setting of the output folder used for all generated wxPython code. Only affects the forms within this folder."/>
 		<!-- 		<property name="folder_python_combine_forms" type="bool"
 			help="If checked, the code for all forms in this folder will be generated to a single file.\n\nThe code preview will
 		only display code for the currently selected form, even if this is checked.">0</property>
@@ -371,7 +491,7 @@
 
 	<gen class="Folder wxRuby Overrides" type="interface">
 		<property name="folder_ruby_output_folder" type="path"
-			help="Overrides any project setting of the output folder used for all generated ruby code. Only affects the forms within this folder."/>
+			help="Overrides any project setting of the output folder used for all generated wxRuby code. Only affects the forms within this folder."/>
 	</gen>
 
 	<gen class="Folder XRC Overrides" type="interface">
@@ -672,10 +792,7 @@
 		<property name="id" type="id"
 			help="Specifies the window identifier. When generating Python code, a non wx.Widgets id will be global unless prefixed with self.">
 			wxID_ANY</property>
-		<property name="minimum_size" type="wxSize"
-			help="Sets the minimum size of the window. Any positive value will override the automatic size calculation that would normally be done."/>
-		<property name="variant" type="option"
-			help="Chooses a different variant of the window display to use (calls SetWindowVariant).">
+		<property name="variant" type="option" help="Chooses a different variant of the window display to use (calls SetWindowVariant).">
 			<option name="normal"
 				help="Normal size"/>
 			<option name="small"
@@ -684,6 +801,8 @@
 				help="About 33% smaller than normal."/>
 			<option name="large"
 				help="About 35% larger than normal."/> normal </property>
+		<property name="minimum_size" type="wxSize"
+			help="Sets the minimum size of the window. Any positive value will override the automatic size calculation that would normally be done."/>
 		<property name="maximum_size" type="wxSize"
 			help="Sets the maximum allowable size of the window."/>
 		<property name="pos" type="wxPoint"
@@ -749,12 +868,12 @@
 			help="Sets the font for this window. This should not be used for a parent window if you don't want its font to be inherited by its children"/>
 		<property name="context_help" type="string_escapes"
 			help="Sets the help text to be used as context-sensitive help for this window."/>
-		<property name="derived_class" type="string"
-			help="If you have derived a class from a wxWidget class and you want this component to use your derived class, then specify that class name here. You will need to add the header file for your class to the derived_header property."/>
-		<property name="derived_params" type="string_escapes"
-			help="Specifies additional parameters to insert before the normal wxWidget class parameters."/>
-		<property name="derived_header" type="file"
-			help="Specify the name of the header file that declares your derived class."/>
+		<property name="subclass" type="string"
+			help="If you have derived a class from a wxWidget class and you want this component to use your subclass, then specify that class name here. You will need to add the header file for your class to the subclass_header property."/>
+		<property name="subclass_params" type="string_escapes"
+			help="Specifies additional parameters to insert before the normal wxWidget parameters when Create() is called."/>
+		<property name="subclass_header" type="file"
+			help="Specify the name of the header file that declares your subclass."/>
 		<property name="window_name" type="string_escapes"/>
 		<property name="platforms" type="bitlist">
 			<option name="Windows"

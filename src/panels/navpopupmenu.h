@@ -33,6 +33,8 @@ public:
         MenuMOVE_RIGHT,
         MenuMOVE_LEFT,
 
+        MenuInsertWidget,
+
         MenuNEW_PARENT_BOX_SIZER,
         MenuNEW_PARENT_STATIC_SIZER,
         MenuNEW_PARENT_WRAP_SIZER,
@@ -162,6 +164,12 @@ public:
         MenuSingleGenPython,
         MenuSingleGenRuby,
         MenuSingleGenXRC,
+        MenuSingleGenFortran,
+        MenuSingleGenHaskell,
+        MenuSingleGenLua,
+        MenuSingleGenPerl,
+        MenuSingleGenRust,
+
         MenuTESTING_INFO,
         MenuDEBUG_KEYHH,
     };

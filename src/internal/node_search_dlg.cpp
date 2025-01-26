@@ -32,7 +32,7 @@ bool NodeSearchDlg::Create(wxWindow* parent, wxWindowID id, const wxString& titl
     auto* dlg_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto* box_sizer_3 = new wxBoxSizer(wxHORIZONTAL);
-    box_sizer_3->SetMinSize(250, -1);
+    box_sizer_3->SetMinSize(500, -1);
 
     auto* radioBtn_Generators = new wxRadioButton(this, wxID_ANY, "&Generators", wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
     radioBtn_Generators->SetValue(true);
@@ -65,7 +65,7 @@ bool NodeSearchDlg::Create(wxWindow* parent, wxWindowID id, const wxString& titl
     dlg_sizer->Add(box_sizer, wxSizerFlags().Border(wxALL));
 
     auto* box_sizer_4 = new wxBoxSizer(wxHORIZONTAL);
-    box_sizer_4->SetMinSize(250, -1);
+    box_sizer_4->SetMinSize(500, -1);
 
     auto* box_sizer_5 = new wxBoxSizer(wxVERTICAL);
 
@@ -73,7 +73,7 @@ bool NodeSearchDlg::Create(wxWindow* parent, wxWindowID id, const wxString& titl
     box_sizer_5->Add(staticText, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP, wxSizerFlags::GetDefaultBorder()));
 
     m_listbox = new wxListBox(this, wxID_ANY);
-    m_listbox->SetMinSize(ConvertDialogToPixels(wxSize(120, 100)));
+    m_listbox->SetMinSize(FromDIP(wxSize(240, 250)));
     box_sizer_5->Add(m_listbox, wxSizerFlags(1).Expand().Border(wxALL));
 
     box_sizer_4->Add(box_sizer_5, wxSizerFlags(1).Expand().Border(wxALL));
@@ -84,7 +84,7 @@ bool NodeSearchDlg::Create(wxWindow* parent, wxWindowID id, const wxString& titl
     box_sizer_6->Add(staticText_2, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxTOP, wxSizerFlags::GetDefaultBorder()));
 
     m_listbox_forms = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_SINGLE|wxLB_SORT);
-    m_listbox_forms->SetMinSize(ConvertDialogToPixels(wxSize(-1, 100)));
+    m_listbox_forms->SetMinSize(FromDIP(wxSize(-1, 250)));
     box_sizer_6->Add(m_listbox_forms, wxSizerFlags(1).Expand().Border(wxALL));
 
     box_sizer_4->Add(box_sizer_6, wxSizerFlags(1).Expand().Border(wxALL));
@@ -94,7 +94,24 @@ bool NodeSearchDlg::Create(wxWindow* parent, wxWindowID id, const wxString& titl
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     m_text_search->SetFocus();
 
     Centre(wxBOTH);

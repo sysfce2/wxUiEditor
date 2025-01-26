@@ -4,9 +4,9 @@
   <node
     class="Project"
     art_directory="../art_src"
+    generate_languages="C++"
     cpp_line_length="125"
-    generate_cmake="1"
-    wxWidgets_version="3.2">
+    generate_cmake="1">
     <node
       class="Images"
       add_externs="1"
@@ -128,6 +128,9 @@
         bitmap="SVG;fontPicker.svg;[24,24]" />
       <node
         class="embedded_image"
+        bitmap="SVG;fortran_logo.svg;[24,24]" />
+      <node
+        class="embedded_image"
         bitmap="SVG;gauge.svg;[24,24]" />
       <node
         class="embedded_image"
@@ -144,6 +147,9 @@
       <node
         class="embedded_image"
         bitmap="SVG;grid_sizer.svg;[24,24]" />
+      <node
+        class="embedded_image"
+        bitmap="SVG;haskell-logo.svg;[24,24]" />
       <node
         class="embedded_image"
         bitmap="SVG;hide.svg;[24,24]" />
@@ -165,6 +171,9 @@
       <node
         class="embedded_image"
         bitmap="SVG;left.svg;[24,24]" />
+      <node
+        class="embedded_image"
+        bitmap="SVG;lua-logo.svg;[24,24]" />
       <node
         class="embedded_image"
         bitmap="SVG;menu.svg;[24,24]" />
@@ -189,6 +198,15 @@
       <node
         class="embedded_image"
         bitmap="SVG;pagectrl.svg;[24,24]" />
+      <node
+        class="embedded_image"
+        bitmap="SVG;perl-logo.svg;[24,24]" />
+      <node
+        class="embedded_image"
+        bitmap="SVG;php-logo.svg;[24,24]" />
+      <node
+        class="embedded_image"
+        bitmap="SVG;popup_transient.svg;[24,24]" />
       <node
         class="embedded_image"
         bitmap="SVG;popup_window.svg;[24,24]" />
@@ -258,6 +276,9 @@
       <node
         class="embedded_image"
         bitmap="SVG;ruby_logo.svg;[24,24]" />
+      <node
+        class="embedded_image"
+        bitmap="SVG;rust_logo.svg;[24,24]" />
       <node
         class="embedded_image"
         bitmap="SVG;saveas.svg;[24,24]" />
@@ -573,6 +594,7 @@
         class="wxFrame"
         class_name="MainFrameBase"
         base_file="mainframe_base"
+        generate_ids="0"
         local_src_includes="mainframe.h;project_handler.h"
         derived_class_name="MainFrame"
         minimum_size="800,800"
@@ -796,8 +818,8 @@
               class="wxPanel"
               class_access="protected:"
               var_name="m_nav_panel"
-              derived_class="NavigationPanel"
-              derived_header="../panels/nav_panel.h"
+              subclass="NavigationPanel"
+              subclass_header="../panels/nav_panel.h"
               window_style="0"
               flags="wxEXPAND" />
             <node
@@ -1020,6 +1042,9 @@
               wxEVT_MENU="OnDelete"
               wxEVT_UPDATE_UI="[](wxUpdateUIEvent&amp; event)@@{@@event.Enable(wxGetFrame().CanCopyNode());@@}" />
             <node
+              class="separator"
+              var_name="separator9" />
+            <node
               class="wxMenuItem"
               bitmap="SVG;duplicate.svg;[24,24]"
               help="Delete selected object without using clipboard."
@@ -1027,6 +1052,14 @@
               var_name="menu_duplicate"
               wxEVT_MENU="OnDuplicate"
               wxEVT_UPDATE_UI="[](wxUpdateUIEvent&amp; event)@@{@@event.Enable(wxGetFrame().CanCopyNode());@@}" />
+            <node
+              class="wxMenuItem"
+              bitmap="Art;wxART_EDIT|wxART_MENU"
+              help="Find text in the active code viewer."
+              id="id_insert_widget"
+              label="&amp;Insert Widget..."
+              var_name="menu_insert_widget"
+              wxEVT_MENU="OnInsertWidget" />
             <node
               class="separator"
               var_name="separator6" />
@@ -1038,14 +1071,6 @@
               label=""
               var_name="menu_find"
               wxEVT_MENU="OnFindDialog" />
-            <node
-              class="wxMenuItem"
-              bitmap="Art;wxART_EDIT|wxART_MENU"
-              help="Find text in the active code viewer."
-              id="id_insert_widget"
-              label="&amp;Insert widget..."
-              var_name="menu_insert_widget"
-              wxEVT_MENU="OnInsertWidget" />
             <node
               class="separator"
               var_name="separator7" />
@@ -1210,6 +1235,1099 @@
               shortcut="Alt+E"
               var_name="menu_item18"
               wxEVT_MENU="OnToggleExpandLayout" />
+          </node>
+          <node
+            class="wxMenu"
+            label="&amp;Add"
+            var_name="m_menu_add">
+            <node
+              class="submenu"
+              label="Add Forms"
+              var_name="submenu5">
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxDialog.svg;[24,24]"
+                help="wxDialog"
+                id="CreateNewDialog"
+                label="Dialog..."
+                var_name="menu_item21" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxFrame.svg;[24,24]"
+                help="wxFrame"
+                id="CreateNewFrame"
+                label="Frame..."
+                var_name="menu_item22" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxPanel.svg;[24,24]"
+                help="wxPanel"
+                id="CreateNewPanel"
+                label="Panel..."
+                var_name="menu_item23" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;prop_sheet_dlg.svg;[24,24]"
+                help="wxPropertySheetDialog"
+                id="CreateNewPropertySheet"
+                label="Property Sheet..."
+                var_name="menu_item24" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;popup_transient.svg;[24,24]"
+                help="wxPopupTransientWindow"
+                id="gen_wxPopupTransientWindow"
+                label="Popup Transient Window"
+                var_name="menu_item25" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;popup_window.svg;[24,24]"
+                help="wxPopupWindow"
+                label="Popup Window"
+                var_name="menu_item26" />
+              <node
+                class="separator"
+                var_name="separator12" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxWizard.svg;[24,24]"
+                help="wxWizard"
+                id="CreateNewWizard"
+                label="Add Wizard..."
+                var_name="menu_item27" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxWizardPageSimple.svg;[24,24]"
+                help="wxWizardPageSimple"
+                id="gen_wxWizardPageSimple"
+                label="Add Wizard Page"
+                var_name="menu_item28" />
+              <node
+                class="separator"
+                var_name="separator28" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;auitoolbar.svg;[24,24]"
+                help="wxAuiToolBar"
+                id="gen_AuiToolBar"
+                label="Aui Toolbar"
+                var_name="menu_item30" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxToolBar.svg;[24,24]"
+                help="wxToolBar"
+                id="gen_ToolBar"
+                label="Standard Toolbar"
+                var_name="menu_item29" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;ribbon_bar.svg;[24,24]"
+                help="wxRibbonBar"
+                id="CreateNewFormRibbon"
+                label="Ribbon Bar..."
+                var_name="menu_item31" />
+              <node
+                class="separator"
+                var_name="separator29" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxMenuBar.svg;[24,24]"
+                help="wxMenuBar"
+                id="gen_MenuBar"
+                label="Menu Bar"
+                var_name="menu_item32" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;menu.svg;[24,24]"
+                help="wxMenu"
+                id="gen_PopupMenu"
+                label="Popup Menu"
+                var_name="menu_item33" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;menuitem.svg;[24,24]"
+                help="wxContextMenuEvent"
+                id="gen_wxContextMenuEvent"
+                label="Context Menu"
+                var_name="menu_item34" />
+            </node>
+            <node
+              class="submenu"
+              label="Add Sizers"
+              var_name="submenu10">
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;sizer_horizontal.svg;[24,24]"
+                help="Horizontal wxBoxSizer"
+                id="gen_wxBoxSizer"
+                label="Horizontal Box Sizer"
+                var_name="menu_item41" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;sizer.svg;[24,24]"
+                help="Vertical wxBoxSizer"
+                id="gen_VerticalBoxSizer"
+                label="Vertical Box Sizer"
+                var_name="menu_item42" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxStaticBoxSizer.svg;[24,24]"
+                help="wxStaticBoxSizer"
+                id="gen_wxStaticBoxSizer"
+                label="Static Sizer"
+                var_name="menu_item43" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxStaticCheckBoxSizer.svg;[24,24]"
+                id="gen_StaticCheckboxBoxSizer"
+                label="Static CheckBox Sizer"
+                var_name="menu_item87" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxStaticRadioBtnSizer.svg;[24,24]"
+                id="gen_StaticRadioBtnBoxSizer"
+                label="Static RadioButton Sizer"
+                var_name="menu_item88" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wrap_sizer.svg;[24,24]"
+                help="wxWrapSizer"
+                id="gen_wxWrapSizer"
+                label="Wrap Sizer"
+                var_name="menu_item44" />
+              <node
+                class="separator"
+                var_name="separator13" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;grid_sizer.svg;[24,24]"
+                help="wxGridSizer"
+                id="gen_wxGridSizer"
+                label="Grid Sizer"
+                var_name="menu_item45" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;flex_grid_sizer.svg;[24,24]"
+                help="wxFlexGridSizer"
+                id="gen_wxFlexGridSizer"
+                label="Flex Grid Sizer"
+                var_name="menu_item46" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;grid_bag_sizer.svg;[24,24]"
+                help="wxGridBagSizer"
+                id="gen_wxGridBagSizer"
+                label="Grid Bag Sizer"
+                var_name="menu_item47" />
+              <node
+                class="separator"
+                var_name="separator14" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;stddialogbuttonsizer.svg;[24,24]"
+                help="wxStdDialogButtonSizer"
+                id="gen_wxStdDialogButtonSizer"
+                label="Standard Dialog Button Sizer"
+                var_name="menu_item48" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;spacer.svg;[24,24]"
+                help="spacer"
+                id="gen_spacer"
+                label="Spacer"
+                var_name="menu_item50" />
+            </node>
+            <node
+              class="submenu"
+              label="Add Common"
+              var_name="submenu11">
+              <node
+                class="submenu"
+                label="Controls"
+                var_name="submenu16">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxStaticText.svg;[24,24]"
+                  help="wxStaticText"
+                  id="gen_wxStaticText"
+                  label="Static Text"
+                  var_name="menu_item51" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxTextCtrl.svg;[24,24]"
+                  help="wxTextCtrl"
+                  id="gen_wxTextCtrl"
+                  label="Text Control"
+                  var_name="menu_item52" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxCheckBox.svg;[24,24]"
+                  help="Add a 2-state checkbox"
+                  id="gen_wxCheckBox"
+                  label="2-state CheckBox"
+                  var_name="menu_item53" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;check3state.svg;[24,24]"
+                  help="Add a 3-state checkbox"
+                  id="gen_Check3State"
+                  label="3-state CheckBox"
+                  var_name="menu_item54" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxRadioButton.svg;[24,24]"
+                  help="wxRadioButton"
+                  id="gen_wxRadioButton"
+                  label="Radio Button"
+                  var_name="menu_item55" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;spinbtn.svg;[24,24]"
+                  id="gen_wxSpinButton"
+                  label="Spin Button"
+                  var_name="menu_item65" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;spin_ctrl.svg;[24,24]"
+                  id="gen_wxSpinCtrl"
+                  label="Spin Control"
+                  var_name="menu_item63" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;spin_ctrl_double.svg;[24,24]"
+                  id="gen_wxSpinCtrlDouble"
+                  label="Spin Control Double"
+                  var_name="menu_item64" />
+              </node>
+              <node
+                class="submenu"
+                label="Buttons"
+                var_name="submenu20">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxButton.svg;[24,24]"
+                  help="wxButton"
+                  id="gen_wxButton"
+                  label="Standard Button"
+                  var_name="menu_item56" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;bitmap_toggle_button.svg;[24,24]"
+                  help="wxBitmapToggleButton"
+                  id="gen_wxBitmapToggleButton"
+                  label="Bitmap Toggle Button"
+                  var_name="menu_item57" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;toggle_button.svg;[24,24]"
+                  id="gen_wxToggleButton"
+                  label="Toggle Button"
+                  var_name="menu_item62" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;close_btn.svg;[24,24]"
+                  id="gen_CloseButton"
+                  label="Close Button"
+                  var_name="menu_item58" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxCommandLinkButton.svg;[24,24]"
+                  help="wxCommandLinkButton"
+                  id="gen_wxCommandLinkButton"
+                  label="Command Link Button"
+                  var_name="menu_item59" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ctx_help_btn.svg;[24,24]"
+                  id="gen_wxContextHelpButton"
+                  label="Context Help Button"
+                  var_name="menu_item60" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;stddialogbuttonsizer.svg;[24,24]"
+                  id="gen_wxStdDialogButtonSizer"
+                  label="Standard Dialog Buttons"
+                  var_name="menu_item61" />
+              </node>
+              <node
+                class="submenu"
+                label="Choices"
+                var_name="submenu17">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxComboBox.svg;[24,24]"
+                  id="gen_wxComboBox"
+                  label="ComboBox"
+                  var_name="menu_item66" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;bmp_combo_box.svg;[24,24]"
+                  id="gen_wxBitmapComboBox"
+                  label="Bitmap ComboBox"
+                  var_name="menu_item68" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxChoice.svg;[24,24]"
+                  id="gen_wxChoice"
+                  label="Choice"
+                  var_name="menu_item67" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxListBox.svg;[24,24]"
+                  id="gen_wxListBox"
+                  label="ListBox"
+                  var_name="menu_item69" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxCheckListBox.svg;[24,24]"
+                  id="gen_wxCheckListBox"
+                  label="CheckListBox"
+                  var_name="menu_item70" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxEditListBox.svg;[24,24]"
+                  id="gen_wxEditableListBox"
+                  label="Editable ListBox"
+                  var_name="menu_item71" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxListView.svg;[24,24]"
+                  id="gen_wxListView"
+                  label="ListView"
+                  var_name="menu_item72" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxRearrangeCtrl.svg;[24,24]"
+                  id="gen_wxRearrangeCtrl"
+                  label="RearrangeCtrl"
+                  var_name="menu_item73" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxSimpleHtmlListBox.svg;[24,24]"
+                  id="gen_wxSimpleHtmlListBox"
+                  label="Simple Html ListBox"
+                  var_name="menu_item74" />
+              </node>
+              <node
+                class="submenu"
+                label="Pickers"
+                var_name="submenu18">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;colourPickerIcon.svg;[24,24]"
+                  help="wxColourPickerCtrl"
+                  id="gen_wxColourPickerCtrl"
+                  label="Colour Picker"
+                  var_name="menu_item78" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;datepicker.svg;[24,24]"
+                  help="wxDatePickerCtrl"
+                  id="gen_wxDatePickerCtrl"
+                  label="Date Picker"
+                  var_name="menu_item79" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;dirPicker.svg;[24,24]"
+                  help="wxDirPickerCtrl"
+                  id="gen_wxDirPickerCtrl"
+                  label="Directory Picker"
+                  var_name="menu_item76" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;filePicker.svg;[24,24]"
+                  help="wxFilePickerCtrl"
+                  id="gen_wxFilePickerCtrl"
+                  label="File Picker"
+                  var_name="menu_item75" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;fontPicker.svg;[24,24]"
+                  help="wxFontPickerCtrl"
+                  id="gen_wxFontPickerCtrl"
+                  label="Font Picker"
+                  var_name="menu_item77" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;timepicker.svg;[24,24]"
+                  help="wxTimePickerCtrl"
+                  id="gen_wxTimePickerCtrl"
+                  label="Time Picker"
+                  var_name="menu_item80" />
+              </node>
+              <node
+                class="submenu"
+                label="Other"
+                var_name="submenu19">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;bitmap.svg;[24,24]"
+                  help="wxStaticBitmap"
+                  id="gen_wxStaticBitmap"
+                  label="Static Bitmap"
+                  var_name="menu_item81" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;static_line.svg;[24,24]"
+                  help="wxStaticLine"
+                  id="gen_wxStaticLine"
+                  label="Static Line"
+                  var_name="menu_item82" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;slider.svg;[24,24]"
+                  help="wxSlider"
+                  id="gen_wxSlider"
+                  label="Slider"
+                  var_name="menu_item83" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;gauge.svg;[24,24]"
+                  help="wxGauge"
+                  id="gen_wxGauge"
+                  label="Gauge"
+                  var_name="menu_item84" />
+              </node>
+            </node>
+            <node
+              class="submenu"
+              label="Add Container"
+              var_name="submenu12">
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxCollapsiblePane.svg;[24,24]"
+                help="wxCollapsiblePane"
+                id="gen_wxCollapsiblePane"
+                label="Collapsible Pane"
+                var_name="menu_item91" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxPanel.svg;[24,24]"
+                help="wxPanel"
+                id="gen_wxPanel"
+                label="Panel"
+                var_name="menu_item85" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxScrolledWindow.svg;[24,24]"
+                help="wxScrolled&lt;wxWindow>"
+                id="gen_wxScrolledCanvas"
+                label="Scrolled Canvas"
+                var_name="menu_item90" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxScrolledWindow.svg;[24,24]"
+                help="wxScrolled&lt;wxPanel>"
+                id="gen_wxScrolledWindow"
+                label="Scrolled Window"
+                var_name="menu_item89" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxSplitterWindow.svg;[24,24]"
+                help="wxSplitterWindow"
+                id="gen_wxSplitterWindow"
+                label="Splitter Window"
+                var_name="menu_item86" />
+              <node
+                class="separator"
+                var_name="separator15" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;notebook_aui.svg;[24,24]"
+                help="wxAuiNotebook"
+                id="gen_wxAuiNotebook"
+                label="Aui Notebook"
+                var_name="menu_item92" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;notebook_choice.svg;[24,24]"
+                help="wxChoicebook"
+                id="gen_wxChoicebook"
+                label="ChoiceBook"
+                var_name="menu_item93" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;notebook_list.svg;[24,24]"
+                help="wxListbook"
+                id="gen_wxListbook"
+                label="ListBook"
+                var_name="menu_item94" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;notebook.svg;[24,24]"
+                help="wxNotebook"
+                id="gen_wxNotebook"
+                label="NoteBook"
+                var_name="menu_item95" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxSimplebook.svg;[24,24]"
+                help="wxSimplebook"
+                id="gen_wxSimplebook"
+                label="SimpleBook"
+                var_name="menu_item96" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxToolbook.svg;[24,24]"
+                help="wxToolbook"
+                id="gen_wxToolbook"
+                label="ToolBook"
+                var_name="menu_item97" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxTreebook.svg;[24,24]"
+                help="wxTreebook"
+                id="gen_wxTreebook"
+                label="TreeBook"
+                var_name="menu_item98" />
+              <node
+                class="separator"
+                var_name="separator16" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;book_page.svg;[24,24]"
+                help="Adds a wxPanel, allowing for multiple controls"
+                id="gen_BookPage"
+                label="Book Page"
+                var_name="menu_item99" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;pagectrl.svg;[24,24]"
+                help="Adds a single control as the page"
+                id="gen_PageCtrl"
+                label="Page Control"
+                var_name="menu_item100" />
+            </node>
+            <node
+              class="submenu"
+              label="Add Data"
+              var_name="submenu13">
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;grid.svg;[24,24]"
+                help="wxGrid"
+                id="gen_wxGrid"
+                label="Grid"
+                var_name="menu_item101" />
+              <node
+                class="separator"
+                var_name="separator17" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxPropertyGrid.svg;[24,24]"
+                help="wxPropertyGrid"
+                id="gen_wxPropertyGrid"
+                label="Property Grid"
+                var_name="menu_item102" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxPropertyGridManager.svg;[24,24]"
+                help="wxPropertyGridManager"
+                id="gen_wxPropertyGridManager"
+                label="Property Grid Manager"
+                var_name="menu_item103" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;propgridpage.svg;[24,24]"
+                help="wxPropertyGrid Page"
+                id="gen_propGridPage"
+                label="PropertyGrid Page"
+                var_name="menu_item104" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;propgrid_cat.svg;[24,24]"
+                help="wxPropertyGrid Category"
+                id="gen_propGridCategory"
+                label="PropertyGrid Category"
+                var_name="menu_item105" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;propgriditem.svg;[24,24]"
+                help="wxPropertyGrid Item"
+                id="gen_propGridItem"
+                label="PropertyGrid Item"
+                var_name="menu_item106" />
+              <node
+                class="separator"
+                var_name="separator18" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;tree_ctrl.svg;[24,24]"
+                help="wxTreeCtrl"
+                id="gen_wxTreeCtrl"
+                label="Tree Control"
+                var_name="menu_item107" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;treelistctrl.svg;[24,24]"
+                help="wxTreeListCtrl"
+                id="gen_wxTreeListCtrl"
+                label="Tree List Control"
+                var_name="menu_item108" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;treelistctrlcolumn.svg;[24,24]"
+                help="wxTreeListCtrl Column"
+                id="gen_TreeListCtrlColumn"
+                label="TreeListCtrl Column"
+                var_name="menu_item109" />
+              <node
+                class="separator"
+                var_name="separator19" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;dataview_ctrl.svg;[24,24]"
+                id="gen_wxDataViewCtrl"
+                label="DataView Control"
+                var_name="menu_item110" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;dataviewtree_ctrl.svg;[24,24]"
+                id="gen_wxDataViewTreeCtrl"
+                label="DataView Tree Control"
+                var_name="menu_item111" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;dataviewlist_ctrl.svg;[24,24]"
+                id="gen_wxDataViewListCtrl"
+                label="DataView List Control"
+                var_name="menu_item112" />
+            </node>
+            <node
+              class="submenu"
+              label="Add Bar"
+              var_name="submenu14">
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxMenuBar.svg;[24,24]"
+                help="wxMenuBar"
+                id="gen_wxMenuBar"
+                label="Menu Bar"
+                var_name="menu_item113" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;menu.svg;[24,24]"
+                help="wxMenu"
+                id="gen_wxMenu"
+                label="Menu"
+                var_name="menu_item114" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;menuitem.svg;[24,24]"
+                help="wxMenuItem"
+                id="gen_wxMenuItem"
+                label="Menu Item"
+                var_name="menu_item115" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;submenu.svg;[24,24]"
+                help="submenu"
+                id="gen_submenu"
+                label="SubMenu"
+                var_name="menu_item116" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;separator.svg;[24,24]"
+                help="separator"
+                id="gen_separator"
+                label="Separator"
+                var_name="menu_item117" />
+              <node
+                class="separator"
+                var_name="separator23" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;auitoolbar.svg;[24,24]"
+                help="wxAuiToolBar"
+                id="gen_wxAuiToolBar"
+                label="Aui Toolbar"
+                var_name="menu_item120" />
+              <node
+                class="submenu"
+                label="Aui Tools"
+                var_name="submenu24">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;tool.svg;[24,24]"
+                  help="Insert a normal button tool"
+                  id="gen_auitool"
+                  label="Add Tool"
+                  var_name="menu_item122" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxStaticText.svg;[24,24]"
+                  help="Insert a Label"
+                  id="gen_auitool_label"
+                  label="Add Label"
+                  var_name="menu_item123" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;toolseparator.svg;[24,24]"
+                  help="Add space to separate tools"
+                  id="gen_toolSeparator"
+                  label="Add Separator"
+                  var_name="menu_item124" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;toolspacer.svg;[24,24]"
+                  help="Add space to separate tools"
+                  id="gen_auitool_spacer"
+                  label="Add Spacer"
+                  var_name="menu_item125" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;toolStretchable.svg;[24,24]"
+                  help="Add space to separate tools"
+                  id="gen_auitool_stretchable"
+                  label="Add Stretchable Space"
+                  var_name="menu_item126" />
+                <node
+                  class="separator"
+                  var_name="separator21" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxComboBox.svg;[24,24]"
+                  help="Add a wxComboBox control"
+                  id="gen_wxComboBox"
+                  label="Add Combobox"
+                  var_name="menu_item127" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;slider.svg;[24,24]"
+                  help="Add a wxSlider control"
+                  id="gen_wxSlider"
+                  label="Add Slider"
+                  var_name="menu_item128" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;spin_ctrl.svg;[24,24]"
+                  help="Add a wxSpinCtrl control"
+                  id="gen_wxSpinCtrl"
+                  label="Add Spin Control"
+                  var_name="menu_item129" />
+              </node>
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxToolBar.svg;[24,24]"
+                help="wxToolBar"
+                id="gen_wxToolBar"
+                label="Standard Toolbar"
+                var_name="menu_item121" />
+              <node
+                class="submenu"
+                label="Toolbar Tools"
+                var_name="submenu25">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;tool.svg;[24,24]"
+                  help="Insert a normal button tool"
+                  id="gen_tool"
+                  label="Add Tool"
+                  var_name="menu_item130" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;tool_dropdown.svg;[24,24]"
+                  help="Add Dropdown tool that you can add menu items to."
+                  id="gen_tool_dropdown"
+                  label="Add Dropdown"
+                  var_name="menu_item131" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;toolspacer.svg;[24,24]"
+                  help="Add space to separate tools"
+                  id="gen_toolSeparator"
+                  label="Add Space"
+                  var_name="menu_item132" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;toolStretchable.svg;[24,24]"
+                  help="Add space to separate tools"
+                  id="gen_toolStretchable"
+                  label="Add Stretchable Space"
+                  var_name="menu_item133" />
+                <node
+                  class="separator"
+                  var_name="separator22" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;wxComboBox.svg;[24,24]"
+                  help="Add a wxComboBox control"
+                  id="gen_wxComboBox"
+                  label="Add Combobox"
+                  var_name="menu_item134" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;slider.svg;[24,24]"
+                  help="Add a wxSlider control"
+                  id="gen_wxSlider"
+                  label="Add Slider"
+                  var_name="menu_item135" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;spin_ctrl.svg;[24,24]"
+                  help="Add a wxSpinCtrl control"
+                  id="gen_wxSpinCtrl"
+                  label="Add Spin Control"
+                  var_name="menu_item136" />
+              </node>
+              <node
+                class="submenu"
+                label="Ribbon"
+                var_name="submenu23">
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_bar.svg;[24,24]"
+                  help="wxRibbonBar"
+                  id="CreateNewRibbon"
+                  label="Ribbon Bar..."
+                  var_name="menu_item137" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_page.svg;[24,24]"
+                  help="wxRibbonPage"
+                  id="gen_wxRibbonPage"
+                  label="Ribbon Page"
+                  var_name="menu_item138" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_panel.svg;[24,24]"
+                  help="wxRibbonPanel"
+                  id="gen_wxRibbonPanel"
+                  label="Ribbon Panel"
+                  var_name="menu_item139" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_buttonbar.svg;[24,24]"
+                  id="gen_wxRibbonButtonBar"
+                  label="Add RibbonButtonBar"
+                  var_name="menu_item140" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_toolbar.svg;[24,24]"
+                  id="gen_wxRibbonToolBar"
+                  label="Add RibbonToolBar"
+                  var_name="menu_item141" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_gallery.svg;[24,24]"
+                  id="gen_wxRibbonGallery"
+                  label="Add RibbonGallery"
+                  var_name="menu_item142" />
+                <node
+                  class="separator"
+                  var_name="separator24" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_button.svg;[24,24]"
+                  help="Ribbon Button"
+                  id="gen_ribbonButton"
+                  label="Add Button"
+                  var_name="menu_item143" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_separator.svg;[24,24]"
+                  help="Tool Separator"
+                  id="gen_ribbonSeparator"
+                  label="Add Separator"
+                  var_name="menu_item144" />
+                <node
+                  class="wxMenuItem"
+                  bitmap="SVG;ribbon_gallery_item.svg;[24,24]"
+                  help="Ribbon Gallery Item"
+                  id="gen_ribbonGalleryItem"
+                  label="Add Gallery Item"
+                  var_name="menu_item145" />
+              </node>
+              <node
+                class="separator"
+                var_name="separator20" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;statusbar.svg;[24,24]"
+                help="wxStatusBar"
+                id="gen_wxStatusBar"
+                label="Status Bar"
+                var_name="menu_item118" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;infobar.svg;[24,24]"
+                help="wxInfoBar"
+                id="gen_wxInfoBar"
+                label="Info Bar"
+                var_name="menu_item119" />
+            </node>
+            <node
+              class="submenu"
+              label="Add Other"
+              var_name="submenu15">
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;calendar.svg;[24,24]"
+                help="wxCalendarCtrl"
+                id="gen_wxCalendarCtrl"
+                label="Calendar Control"
+                var_name="menu_item150" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxFileCtrl.svg;[24,24]"
+                help="wxFileCtrl"
+                id="gen_wxFileCtrl"
+                label="File Control"
+                var_name="menu_item151" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;genericdir_ctrl.svg;[24,24]"
+                help="wxGenericDirCtrl"
+                id="gen_wxGenericDirCtrl"
+                label="Generic Directory Control"
+                var_name="menu_item152" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;hyperlink_ctrl.svg;[24,24]"
+                help="wxHyperlinkCtrl"
+                id="gen_wxHyperlinkCtrl"
+                label="Hyperlink Control"
+                var_name="menu_item148" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;richtextctrl.svg;[24,24]"
+                help="wxRichTextCtrl"
+                id="gen_wxRichTextCtrl"
+                label="Rich Text Control"
+                var_name="menu_item146" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;search.svg;[24,24]"
+                help="wxSearchCtrl"
+                id="gen_wxSearchCtrl"
+                label="Search Control"
+                var_name="menu_item149" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;scintilla.svg;[24,24]"
+                help="wxStyledTextCtrl"
+                id="gen_wxStyledTextCtrl"
+                label="Styled Text Control"
+                var_name="menu_item147" />
+              <node
+                class="separator"
+                var_name="separator30" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;CustomControl.svg;[24,24]"
+                help="Custom Control"
+                id="gen_CustomControl"
+                label="Custom Control"
+                var_name="menu_item160" />
+              <node
+                class="separator"
+                var_name="separator26" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxactivityIndicator.svg;[24,24]"
+                help="wxActivityIndicator"
+                id="gen_wxActivityIndicator"
+                label="Activity Indicator"
+                var_name="menu_item154" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxAnimation.svg;[24,24]"
+                help="wxAnimationCtrl"
+                id="gen_wxAnimationCtrl"
+                label="Animation Control"
+                var_name="menu_item155" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxBannerWindow.svg;[24,24]"
+                help="wxBannerWindow"
+                id="gen_wxBannerWindow"
+                label="Banner Window"
+                var_name="menu_item156" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;htmlwin.svg;[24,24]"
+                help="wxHtmlWindow"
+                id="gen_wxHtmlWindow"
+                label="Html Window"
+                var_name="menu_item158" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;scrollbar.svg;[24,24]"
+                help="wxScrollBar"
+                id="gen_wxScrollBar"
+                label="Scrollbar"
+                var_name="menu_item153" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;wxTimer.svg;[24,24]"
+                help="wxTimer"
+                id="gen_wxTimer"
+                label="Timer"
+                var_name="menu_item157" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;webview.svg;[24,24]"
+                help="wxWebView"
+                id="gen_wxWebView"
+                label="Web View"
+                var_name="menu_item159" />
+            </node>
+            <node
+              class="separator"
+              var_name="separator27" />
+            <node
+              class="submenu"
+              label="Project Files"
+              var_name="submenu21">
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;folder.svg;[24,24]"
+                help="Create a folder that can be used to organize forms."
+                id="gen_folder"
+                label="Add Folder"
+                var_name="menu_item35" />
+              <node
+                class="separator"
+                var_name="separator10" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;images.svg;[24,24]"
+                help="Create a file containing embedded images"
+                id="gen_Images"
+                label="Add Images File"
+                var_name="menu_item36" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;bitmap.svg;[24,24]"
+                help="Add an embedded image to an Images file"
+                id="gen_embedded_image"
+                label="Add Embedded Image"
+                var_name="menu_item37" />
+              <node
+                class="separator"
+                var_name="separator11" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;data_list.svg;[24,24]"
+                help="Create a file containing embedded data files"
+                id="gen_Data"
+                label="Add Data File"
+                var_name="menu_item38" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;text_file.svg;[24,24]"
+                help="Embed a string or binary file"
+                id="gen_data_string"
+                label="Add String/Binary Data"
+                var_name="menu_item39" />
+              <node
+                class="wxMenuItem"
+                bitmap="SVG;xml_file.svg;[24,24]"
+                help="Add an XML file"
+                id="gen_data_xml"
+                label="Add XML Data"
+                var_name="menu_item40" />
+            </node>
           </node>
           <node
             class="wxMenu"
@@ -1401,9 +2519,14 @@
                     id="CreateNewPropertySheet" />
                   <node
                     class="ribbonTool"
-                    bitmap="SVG;popup_window.svg;[24,24]"
+                    bitmap="SVG;popup_transient.svg;[24,24]"
                     help="wxPopupTransientWindow"
                     id="gen_wxPopupTransientWindow" />
+                  <node
+                    class="ribbonTool"
+                    bitmap="SVG;popup_window.svg;[24,24]"
+                    help="wxPopupWindow"
+                    id="gen_wxPopupWindow" />
                 </node>
               </node>
               <node
@@ -2304,6 +3427,8 @@
         class_name="GenerateDlg"
         title="Generate Code"
         base_file="..\tools\generate_dlg"
+        inserted_hdr_code="public:@@bool is_gen_base() const { return m_gen_base_code; }@@bool is_gen_inherited() const { return m_gen_inherited_code; }@@bool is_gen_fortran() const { return m_gen_fortran_code; }@@bool is_gen_haskell() const { return m_gen_haskell_code; }@@bool is_gen_lua() const { return m_gen_lua_code; }@@bool is_gen_perl() const { return m_gen_perl_code; }@@bool is_gen_python() const { return m_gen_python_code; }@@bool is_gen_ruby() const { return m_gen_ruby_code; }@@bool is_gen_rust() const { return m_gen_rust_code; }@@bool is_gen_xrc() const { return m_gen_xrc_code; }@@@@private:@@wxCheckBox* m_checkBaseCode { nullptr };@@wxCheckBox* m_checkDerived { nullptr };@@wxCheckBox* m_checkFortran { nullptr };@@wxCheckBox* m_checkHaskell { nullptr };@@wxCheckBox* m_checkLua { nullptr };@@wxCheckBox* m_checkPerl { nullptr };@@wxCheckBox* m_checkPython { nullptr };@@wxCheckBox* m_checkRuby { nullptr };@@wxCheckBox* m_checkRust { nullptr };@@wxCheckBox* m_checkXRC { nullptr };@@@@bool m_gen_base_code { false };@@bool m_gen_inherited_code { false };@@bool m_gen_fortran_code { false };@@bool m_gen_haskell_code { false };@@bool m_gen_lua_code { false };@@bool m_gen_perl_code { false };@@bool m_gen_python_code { false };@@bool m_gen_ruby_code { false };@@bool m_gen_rust_code { false };@@bool m_gen_xrc_code { false };"
+        system_hdr_includes="wx/checkbox.h;wx/sizer.h;wx/valgen.h"
         derived_class_name="GenerateDlg"
         derived_file="generatedlg"
         use_derived_class="0"
@@ -2316,40 +3441,9 @@
             class="wxStaticText"
             label="Choose the code you want to generate:" />
           <node
-            class="wxBoxSizer"
-            orientation="wxVERTICAL">
-            <node
-              class="wxCheckBox"
-              label="C++ &amp;Base"
-              var_name="m_checkBaseCode"
-              get_function="is_gen_base"
-              validator_variable="m_gen_base_code" />
-            <node
-              class="wxCheckBox"
-              label="C++ &amp;Derived"
-              var_name="m_checkDerived"
-              get_function="is_gen_inherited"
-              validator_variable="m_gen_inherited_code"
-              tooltip="Generate any derived files that don't currently exist" />
-            <node
-              class="wxCheckBox"
-              label="&amp;Python"
-              var_name="m_checkPython"
-              get_function="is_gen_python"
-              validator_variable="m_gen_python_code" />
-            <node
-              class="wxCheckBox"
-              label="&amp;Ruby"
-              var_name="m_checkRuby"
-              get_function="is_gen_ruby"
-              validator_variable="m_gen_ruby_code" />
-            <node
-              class="wxCheckBox"
-              label="&amp;XRC"
-              var_name="m_checkXRC"
-              get_function="is_gen_xrc"
-              validator_variable="m_gen_xrc_code" />
-          </node>
+            class="wxGridSizer"
+            class_access="protected:"
+            var_name="m_grid_sizer" />
           <node
             class="wxStdDialogButtonSizer"
             flags="wxEXPAND" />
@@ -2437,8 +3531,8 @@
                 focus="1"
                 type="wxLB_MULTIPLE"
                 var_name="m_lb_folders"
-                maximum_size="-1,-1d"
-                minimum_size="-1,80d"
+                maximum_size="-1,-1"
+                minimum_size="-1,200"
                 flags="wxEXPAND"
                 wxEVT_LISTBOX="OnSelectFolders" />
               <node
@@ -2476,7 +3570,7 @@
                 style="wxLB_SORT"
                 type="wxLB_MULTIPLE"
                 var_name="m_lb_forms"
-                minimum_size="-1,80d"
+                minimum_size="-1,200"
                 flags="wxEXPAND"
                 wxEVT_LISTBOX="OnSelectForms" />
               <node
@@ -2542,7 +3636,7 @@
                     class="wxComboBox"
                     style="wxCB_DROPDOWN|wxCB_SORT|wxTE_PROCESS_ENTER"
                     var_name="m_combo_prefixes"
-                    minimum_size="-1,-1d"
+                    minimum_size="-1,-1"
                     flags="wxEXPAND"
                     wxEVT_COMBOBOX_CLOSEUP="OnUpdate"
                     wxEVT_TEXT_ENTER="OnUpdate" />
@@ -2574,7 +3668,7 @@
                     class="wxComboBox"
                     style="wxCB_DROPDOWN|wxCB_SORT|wxTE_PROCESS_ENTER"
                     var_name="m_combo_suffixes"
-                    minimum_size="-1,-1d"
+                    minimum_size="-1,-1"
                     flags="wxEXPAND"
                     wxEVT_COMBOBOX_CLOSEUP="OnUpdate"
                     wxEVT_TEXT_ENTER="OnUpdate" />
@@ -2652,7 +3746,8 @@
         no_closing_brace="1"
         derived_class_name="ArtPropertyDlg"
         private_members="1"
-        use_derived_class="0">
+        use_derived_class="0"
+        wxEVT_INIT_DIALOG="OnInit">
         <node
           class="wxBoxSizer"
           orientation="wxVERTICAL"
@@ -2740,7 +3835,7 @@
                 header="../custom_ctrls/colour_rect_ctrl.h"
                 namespace="wxue_ctrl"
                 var_name="m_colour_rect"
-                maximum_size="32,32d" />
+                maximum_size="64,80" />
               <node
                 class="wxStaticText"
                 label="Sample Text"
@@ -2782,9 +3877,9 @@
             <node
               class="wxColourPickerCtrl"
               style="wxCLRP_USE_TEXTCTRL|wxCLRP_SHOW_LABEL"
-              derived_class="kwColourPickerCtrl"
-              derived_header="../custom_ctrls/kw_color_picker.h"
               disabled="1"
+              subclass="kwColourPickerCtrl"
+              subclass_header="../custom_ctrls/kw_color_picker.h"
               window_style="wxWANTS_CHARS"
               wxEVT_COLOURPICKER_CHANGED="OnColourChanged" />
           </node>
@@ -2870,8 +3965,9 @@
               <node
                 class="BookPage"
                 bitmap="SVG;cpp_logo.svg;[24,24]"
+                class_access="protected:"
                 label="C++"
-                var_name="cpp_page"
+                var_name="m_cpp_bookpage"
                 background_colour="wxSYS_COLOUR_BTNFACE"
                 window_style="wxTAB_TRAVERSAL">
                 <node
@@ -2888,10 +3984,28 @@
                     flags="wxEXPAND"
                     wxEVT_RADIOBUTTON="OnUseCppFunction">
                     <node
-                      class="wxTextCtrl"
-                      var_name="m_cpp_text_function"
-                      flags="wxEXPAND"
-                      wxEVT_TEXT="OnChange" />
+                      class="wxBoxSizer"
+                      var_name="box_sizer7"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_cpp_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn2"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
                   </node>
                   <node
                     class="StaticRadioBtnBoxSizer"
@@ -2936,7 +4050,7 @@
                       wrap_indent_mode="indent"
                       wrap_mode="word"
                       wrap_visual_flag="end"
-                      minimum_size="200,-1d"
+                      minimum_size="400,-1"
                       border_size="10"
                       flags="wxEXPAND"
                       proportion="1" />
@@ -2945,9 +4059,94 @@
               </node>
               <node
                 class="BookPage"
+                bitmap="SVG;perl-logo.svg;[24,24]"
+                class_access="protected:"
+                label="Perl"
+                var_name="m_perl_bookpage"
+                background_colour="wxSYS_COLOUR_BTNFACE"
+                window_style="wxTAB_TRAVERSAL">
+                <node
+                  class="wxBoxSizer"
+                  orientation="wxVERTICAL"
+                  var_name="page_sizer4">
+                  <node
+                    class="StaticRadioBtnBoxSizer"
+                    checked="0"
+                    class_access="protected:"
+                    label="Use function"
+                    radiobtn_var_name="m_perl_radio_use_function"
+                    var_name="m_perl_function_box"
+                    flags="wxEXPAND"
+                    wxEVT_RADIOBUTTON="OnUseRubyFunction">
+                    <node
+                      class="wxBoxSizer"
+                      var_name="box_sizer12"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_perl_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn11"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn12"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
+                    <node
+                      class="StaticRadioBtnBoxSizer"
+                      checked="0"
+                      class_access="protected:"
+                      label="Anonymous function"
+                      radiobtn_var_name="m_perl_radio_use_anon_func"
+                      var_name="m_perl_lambda_box"
+                      flags="wxEXPAND"
+                      proportion="1"
+                      wxEVT_RADIOBUTTON="OnUsePerlLambda">
+                      <node
+                        class="wxBoxSizer"
+                        var_name="box_sizer4" />
+                      <node
+                        class="wxStaticText"
+                        class_access="none"
+                        label="Function:"
+                        var_name="staticText4" />
+                      <node
+                        class="wxStyledTextCtrl"
+                        additional_carets_blink="1"
+                        indentation_guides="forward"
+                        lexer="PERL"
+                        multiple_selection_typing="1"
+                        multiple_selections="1"
+                        paste_multiple="1"
+                        symbol_margin="0"
+                        use_tabs="0"
+                        var_name="m_perl_stc_lambda"
+                        wrap_indent_mode="indent"
+                        wrap_mode="word"
+                        wrap_visual_flag="end"
+                        minimum_size="400,-1"
+                        border_size="10"
+                        flags="wxEXPAND"
+                        proportion="1" />
+                    </node>
+                  </node>
+                </node>
+              </node>
+              <node
+                class="BookPage"
                 bitmap="SVG;python-logo-only.svg;[24,24]"
+                class_access="protected:"
                 label="Python"
-                var_name="python_page"
+                var_name="m_python_bookpage"
                 background_colour="wxSYS_COLOUR_BTNFACE"
                 window_style="wxTAB_TRAVERSAL">
                 <node
@@ -2964,16 +4163,34 @@
                     flags="wxEXPAND"
                     wxEVT_RADIOBUTTON="OnUsePythonFunction">
                     <node
-                      class="wxTextCtrl"
-                      var_name="m_py_text_function"
-                      flags="wxEXPAND"
-                      wxEVT_TEXT="OnChange" />
+                      class="wxBoxSizer"
+                      var_name="box_sizer8"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_py_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn3"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn4"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
                   </node>
                   <node
                     class="StaticRadioBtnBoxSizer"
                     checked="0"
                     class_access="protected:"
-                    label="Use lambda"
+                    label="Lambda"
                     radiobtn_var_name="m_py_radio_use_lambda"
                     var_name="m_py_lambda_box"
                     flags="wxEXPAND"
@@ -2982,7 +4199,7 @@
                     <node
                       class="wxStaticText"
                       class_access="none"
-                      label="Lambda expression (event is the parameter):"
+                      label="Function:"
                       var_name="staticText_2" />
                     <node
                       class="wxTextCtrl"
@@ -2995,8 +4212,9 @@
               <node
                 class="BookPage"
                 bitmap="SVG;ruby_logo.svg;[24,24]"
+                class_access="protected:"
                 label="Ruby"
-                var_name="ruby_page"
+                var_name="m_ruby_bookpage"
                 background_colour="wxSYS_COLOUR_BTNFACE"
                 window_style="wxTAB_TRAVERSAL">
                 <node
@@ -3013,10 +4231,28 @@
                     flags="wxEXPAND"
                     wxEVT_RADIOBUTTON="OnUseRubyFunction">
                     <node
-                      class="wxTextCtrl"
-                      var_name="m_ruby_text_function"
-                      flags="wxEXPAND"
-                      wxEVT_TEXT="OnChange" />
+                      class="wxBoxSizer"
+                      var_name="box_sizer14"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_ruby_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn15"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn16"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
                     <node
                       class="StaticRadioBtnBoxSizer"
                       checked="0"
@@ -3049,7 +4285,343 @@
                         wrap_indent_mode="indent"
                         wrap_mode="word"
                         wrap_visual_flag="end"
-                        minimum_size="200,-1d"
+                        minimum_size="400,-1"
+                        border_size="10"
+                        flags="wxEXPAND"
+                        proportion="1" />
+                    </node>
+                  </node>
+                </node>
+              </node>
+              <node
+                class="BookPage"
+                bitmap="SVG;rust_logo.svg;[24,24]"
+                class_access="protected:"
+                label="Rust"
+                var_name="m_rust_bookpage"
+                background_colour="wxSYS_COLOUR_BTNFACE"
+                window_style="wxTAB_TRAVERSAL">
+                <node
+                  class="wxBoxSizer"
+                  orientation="wxVERTICAL"
+                  var_name="page_sizer5">
+                  <node
+                    class="StaticRadioBtnBoxSizer"
+                    checked="0"
+                    class_access="protected:"
+                    label="Use function"
+                    radiobtn_var_name="m_rust_radio_use_function"
+                    var_name="m_rust_function_box"
+                    flags="wxEXPAND"
+                    wxEVT_RADIOBUTTON="OnUseRustFunction">
+                    <node
+                      class="wxBoxSizer"
+                      var_name="box_sizer13"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_rust_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn13"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn14"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
+                    <node
+                      class="StaticRadioBtnBoxSizer"
+                      checked="0"
+                      class_access="protected:"
+                      label="Anonymous function"
+                      radiobtn_var_name="m_rust_radio_use_anon_func"
+                      var_name="m_rust_lambda_box"
+                      flags="wxEXPAND"
+                      proportion="1"
+                      wxEVT_RADIOBUTTON="OnUseRustLambda">
+                      <node
+                        class="wxBoxSizer"
+                        var_name="box_sizer5" />
+                      <node
+                        class="wxStaticText"
+                        class_access="none"
+                        label="Function:"
+                        var_name="staticText5" />
+                      <node
+                        class="wxStyledTextCtrl"
+                        additional_carets_blink="1"
+                        indentation_guides="forward"
+                        lexer="RUST"
+                        multiple_selection_typing="1"
+                        multiple_selections="1"
+                        paste_multiple="1"
+                        symbol_margin="0"
+                        use_tabs="0"
+                        var_name="m_rust_stc_lambda"
+                        wrap_indent_mode="indent"
+                        wrap_mode="word"
+                        wrap_visual_flag="end"
+                        minimum_size="400,-1"
+                        border_size="10"
+                        flags="wxEXPAND"
+                        proportion="1" />
+                    </node>
+                  </node>
+                </node>
+              </node>
+              <node
+                class="BookPage"
+                bitmap="SVG;fortran_logo.svg;[24,24]"
+                class_access="protected:"
+                label="Fortran"
+                var_name="m_fortran_bookpage"
+                background_colour="wxSYS_COLOUR_BTNFACE"
+                window_style="wxTAB_TRAVERSAL">
+                <node
+                  class="wxBoxSizer"
+                  orientation="wxVERTICAL"
+                  var_name="page_sizer6">
+                  <node
+                    class="StaticRadioBtnBoxSizer"
+                    checked="0"
+                    class_access="protected:"
+                    label="Use function"
+                    radiobtn_var_name="m_fortran_radio_use_function"
+                    var_name="m_fortran_function_box"
+                    flags="wxEXPAND"
+                    wxEVT_RADIOBUTTON="OnUseFortranFunction">
+                    <node
+                      class="wxBoxSizer"
+                      var_name="box_sizer9"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_fortran_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn5"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn6"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
+                    <node
+                      class="StaticRadioBtnBoxSizer"
+                      checked="0"
+                      class_access="protected:"
+                      label="Use lambda"
+                      radiobtn_var_name="m_fortran_radio_use_lambda"
+                      var_name="m_fortran_lambda_box"
+                      flags="wxEXPAND"
+                      proportion="1"
+                      wxEVT_RADIOBUTTON="OnUseFortranLambda">
+                      <node
+                        class="wxBoxSizer"
+                        var_name="box_sizer6" />
+                      <node
+                        class="wxStaticText"
+                        class_access="none"
+                        label="Lambda body:"
+                        var_name="staticText6" />
+                      <node
+                        class="wxStyledTextCtrl"
+                        additional_carets_blink="1"
+                        indentation_guides="forward"
+                        lexer="FORTRAN"
+                        multiple_selection_typing="1"
+                        multiple_selections="1"
+                        paste_multiple="1"
+                        symbol_margin="0"
+                        use_tabs="0"
+                        var_name="m_fortran_stc_lambda"
+                        wrap_indent_mode="indent"
+                        wrap_mode="word"
+                        wrap_visual_flag="end"
+                        minimum_size="400,-1"
+                        border_size="10"
+                        flags="wxEXPAND"
+                        proportion="1" />
+                    </node>
+                  </node>
+                </node>
+              </node>
+              <node
+                class="BookPage"
+                bitmap="SVG;haskell-logo.svg;[24,24]"
+                class_access="protected:"
+                label="Haskell"
+                var_name="m_haskell_bookpage"
+                background_colour="wxSYS_COLOUR_BTNFACE"
+                window_style="wxTAB_TRAVERSAL">
+                <node
+                  class="wxBoxSizer"
+                  orientation="wxVERTICAL"
+                  var_name="page_sizer2">
+                  <node
+                    class="StaticRadioBtnBoxSizer"
+                    checked="0"
+                    class_access="protected:"
+                    label="Use function"
+                    radiobtn_var_name="m_haskell_radio_use_function"
+                    var_name="m_haskell_function_box"
+                    flags="wxEXPAND"
+                    wxEVT_RADIOBUTTON="OnUseHaskellFunction">
+                    <node
+                      class="wxBoxSizer"
+                      var_name="box_sizer10"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_haskell_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn7"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn8"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
+                    <node
+                      class="StaticRadioBtnBoxSizer"
+                      checked="0"
+                      class_access="protected:"
+                      label="Use lambda"
+                      radiobtn_var_name="m_haskell_radio_use_lambda"
+                      var_name="m_ruby_lambda_box2"
+                      flags="wxEXPAND"
+                      proportion="1"
+                      wxEVT_RADIOBUTTON="OnUseRubyLambda">
+                      <node
+                        class="wxBoxSizer"
+                        var_name="box_sizer2" />
+                      <node
+                        class="wxStaticText"
+                        class_access="none"
+                        label="Lambda body:"
+                        var_name="staticText2" />
+                      <node
+                        class="wxStyledTextCtrl"
+                        additional_carets_blink="1"
+                        indentation_guides="forward"
+                        lexer="HASKELL"
+                        multiple_selection_typing="1"
+                        multiple_selections="1"
+                        paste_multiple="1"
+                        symbol_margin="0"
+                        use_tabs="0"
+                        var_name="m_haskell_stc_lambda"
+                        wrap_indent_mode="indent"
+                        wrap_mode="word"
+                        wrap_visual_flag="end"
+                        minimum_size="400,-1"
+                        border_size="10"
+                        flags="wxEXPAND"
+                        proportion="1" />
+                    </node>
+                  </node>
+                </node>
+              </node>
+              <node
+                class="BookPage"
+                bitmap="SVG;lua-logo.svg;[24,24]"
+                class_access="protected:"
+                label="Lua"
+                var_name="m_lua_bookpage"
+                background_colour="wxSYS_COLOUR_BTNFACE"
+                window_style="wxTAB_TRAVERSAL">
+                <node
+                  class="wxBoxSizer"
+                  orientation="wxVERTICAL"
+                  var_name="page_sizer3">
+                  <node
+                    class="StaticRadioBtnBoxSizer"
+                    checked="0"
+                    class_access="protected:"
+                    label="Use function"
+                    radiobtn_var_name="m_lua_radio_use_function"
+                    var_name="m_lua_function_box"
+                    flags="wxEXPAND"
+                    wxEVT_RADIOBUTTON="OnUseRubyFunction">
+                    <node
+                      class="wxBoxSizer"
+                      var_name="box_sizer11"
+                      flags="wxEXPAND">
+                      <node
+                        class="wxTextCtrl"
+                        var_name="m_lua_text_function"
+                        flags="wxEXPAND"
+                        proportion="1"
+                        wxEVT_TEXT="OnChange" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="Default"
+                        var_name="btn9"
+                        wxEVT_BUTTON="OnDefault" />
+                      <node
+                        class="wxButton"
+                        class_access="none"
+                        label="None"
+                        var_name="btn10"
+                        wxEVT_BUTTON="OnNone" />
+                    </node>
+                    <node
+                      class="StaticRadioBtnBoxSizer"
+                      checked="0"
+                      class_access="protected:"
+                      label="Anonymous function"
+                      radiobtn_var_name="m_lua_radio_use_anon_func"
+                      var_name="m_lua_lambda_box"
+                      flags="wxEXPAND"
+                      proportion="1"
+                      wxEVT_RADIOBUTTON="OnUseRubyLambda">
+                      <node
+                        class="wxBoxSizer"
+                        var_name="box_sizer3" />
+                      <node
+                        class="wxStaticText"
+                        class_access="none"
+                        label="Function:"
+                        var_name="staticText3" />
+                      <node
+                        class="wxStyledTextCtrl"
+                        additional_carets_blink="1"
+                        indentation_guides="forward"
+                        lexer="LUA"
+                        multiple_selection_typing="1"
+                        multiple_selections="1"
+                        paste_multiple="1"
+                        symbol_margin="0"
+                        use_tabs="0"
+                        var_name="m_lua_stc_lambda"
+                        wrap_indent_mode="indent"
+                        wrap_mode="word"
+                        wrap_visual_flag="end"
+                        minimum_size="400,-1"
                         border_size="10"
                         flags="wxEXPAND"
                         proportion="1" />
@@ -3074,7 +4646,7 @@
         class_name="EditHtmlDialogBase"
         persist="1"
         style="wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER"
-        size="500,400d"
+        size="1000,1000"
         base_file="edit_html_dialog_base"
         derived_class_name="EditHtmlDialog"
         wxEVT_INIT_DIALOG="OnInit">
@@ -3336,7 +4908,7 @@
                   selection_string="default"
                   style="wxCB_READONLY|wxCB_SORT"
                   var_name="m_comboFacenames"
-                  minimum_size="-1,-1d"
+                  minimum_size="-1,-1"
                   tooltip="Leave Facename set to default to create a font that isn't dependent on a user's installed fonts."
                   flags="wxEXPAND"
                   wxEVT_COMBOBOX="OnFacename" />
@@ -3541,7 +5113,7 @@
                 style="wxCB_READONLY|wxCB_SORT"
                 var_name="m_comboPrefixes"
                 disabled="1"
-                minimum_size="75,-1d"
+                minimum_size="150,-1"
                 tooltip="The prefix list is edited in the Project's id_prefixes property."
                 column="1"
                 proportion="1"
@@ -3562,7 +5134,7 @@
                 style="wxCB_READONLY|wxCB_SORT"
                 var_name="m_comboSuffix"
                 disabled="1"
-                minimum_size="75,-1d"
+                minimum_size="150,-1"
                 tooltip="The suffix list is edited in the Project's id_suffixes property."
                 column="3"
                 proportion="1"
@@ -3694,7 +5266,7 @@
         local_src_includes="node.h;node_prop.h;project_handler.h"
         system_src_includes="wx/filedlg.h;wx/tokenzr.h"
         header_preamble="class NodeProperty;"
-        class_members="&quot;wxString m_value;&quot; &quot;NodeProperty* m_prop { nullptr };&quot; &quot;int m_language = GEN_LANG_CPLUSPLUS;&quot;"
+        class_members="&quot;wxString m_value;&quot; &quot;NodeProperty* m_prop { nullptr };&quot; &quot;GenLang m_language = GEN_LANG_CPLUSPLUS;&quot;"
         class_methods="&quot;void Initialize(NodeProperty* prop);&quot; &quot;const wxString&amp; GetResults() { return m_value; }&quot; &quot;void SetButtonsEnableState(bool set_ok_btn = true);&quot;"
         private_members="1"
         use_derived_class="0"
@@ -3713,7 +5285,7 @@
             <node
               class="wxListBox"
               focus="1"
-              minimum_size="100,80d"
+              minimum_size="200,200"
               wxEVT_LISTBOX="OnItemSelected" />
             <node
               class="wxBoxSizer"
@@ -3769,7 +5341,7 @@
         persist="1"
         style="wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER"
         title="Add System Header(s)"
-        minimum_size="400,-1d"
+        minimum_size="-1,-1"
         base_file="..\customprops\sys_header_dlg.cpp"
         local_src_includes="node.h;node_prop.h;project_handler.h"
         system_src_includes="wx/filedlg.h"
@@ -3797,14 +5369,14 @@
               flags="wxEXPAND">
               <node
                 class="wxBoxSizer"
-                minimum_size="-1,-1d">
+                minimum_size="-1,-1">
                 <node
                   class="wxTextCtrl"
                   style="wxTE_MULTILINE|wxTE_READONLY|wxTE_NO_VSCROLL"
                   value="Start by selecting or adding a root directory. This should either be a directory in your $INCLUDE environment, or one that is passed to the compiler using -I. Header files will then be displayed automatically relative to this directory. Check the ones you want to add."
                   var_name="m_text_ctrl"
                   background_colour="#F0F0F0"
-                  minimum_size="200,-1d"
+                  minimum_size="400,-1"
                   window_style="wxBORDER_NONE"
                   flags="wxEXPAND"
                   proportion="1" />
@@ -3818,7 +5390,8 @@
             <node
               class="wxStaticText"
               label="&amp;Include Directory Root:"
-              var_name="m_static_text" />
+              var_name="m_static_text"
+              minimum_size="600,-1" />
           </node>
           <node
             class="wxBoxSizer"
@@ -3854,7 +5427,7 @@
               type="wxLB_MULTIPLE"
               var_name="m_check_list_files"
               validator_variable="m_file_indexes"
-              minimum_size="-1,90d"
+              minimum_size="-1,225"
               flags="wxEXPAND"
               proportion="1" />
           </node>
@@ -4138,7 +5711,7 @@
                   var_name="app_classname"
                   get_function="get_app_class"
                   validator_variable="m_app_class"
-                  minimum_size="100,-1d"
+                  minimum_size="200,-1"
                   tooltip="Change this to something unique to your project."
                   proportion="1"
                   wxEVT_TEXT="[this](wxCommandEvent&amp;)@@{VerifyClassName();@@}" />
@@ -4239,7 +5812,7 @@
                   var_name="doc_classname"
                   get_function="get_doc_class"
                   validator_variable="m_doc_class"
-                  minimum_size="100,-1d"
+                  minimum_size="200,-1"
                   tooltip="Change this to something unique to your project."
                   proportion="1"
                   wxEVT_TEXT="[this](wxCommandEvent&amp;)@@{VerifyClassName();@@}" />
@@ -5040,7 +6613,8 @@
       class_name="CodePreferenceDlg"
       title="Choose Code Preference"
       base_file="..\ui\code_preference_dlg"
-      use_derived_class="0">
+      use_derived_class="0"
+      wxEVT_INIT_DIALOG="OnInit">
       <node
         class="wxBoxSizer"
         orientation="wxVERTICAL"
@@ -5052,35 +6626,64 @@
           var_name="staticText"
           wrap="350" />
         <node
-          class="wxBoxSizer"
+          class="wxGridSizer"
+          cols="3"
           alignment="wxALIGN_CENTER_HORIZONTAL">
           <node
             class="wxRadioButton"
             checked="1"
-            class_access="none"
             label="&amp;C++"
             style="wxRB_GROUP"
-            var_name="m_radioBtn_2"
+            var_name="m_radioBtn_CPP"
             get_function="is_gen_cpp"
             validator_variable="m_gen_cpp_code" />
           <node
             class="wxRadioButton"
-            class_access="none"
             label="&amp;Python"
-            var_name="m_radioBtn_3"
+            var_name="m_radioBtn_Python"
             get_function="is_gen_python"
             validator_variable="m_gen_python_code" />
           <node
             class="wxRadioButton"
             class_access="none"
             label="&amp;Ruby"
-            var_name="m_radioBtn_4"
+            var_name="m_radioBtn_Ruby"
             get_function="is_gen_ruby"
             validator_variable="m_gen_ruby_code" />
           <node
             class="wxRadioButton"
-            class_access="none"
+            label="&amp;Fortran"
+            var_name="m_radioBtn_Fortran"
+            get_function="is_gen_fortran"
+            validator_variable="m_gen_fortran_code" />
+          <node
+            class="wxRadioButton"
+            label="&amp;Haskell"
+            var_name="m_radioBtn_Haskell"
+            get_function="is_gen_haskell"
+            validator_variable="m_gen_haskell_code" />
+          <node
+            class="wxRadioButton"
+            label="&amp;Lua"
+            var_name="m_radioBtn_Lua"
+            get_function="is_gen_lua"
+            validator_variable="m_gen_lua_code" />
+          <node
+            class="wxRadioButton"
+            label="P&amp;erl"
+            var_name="m_radioBtn_Perl"
+            get_function="is_gen_perl"
+            validator_variable="m_gen_perl_code" />
+          <node
+            class="wxRadioButton"
+            label="R&amp;ust"
+            var_name="m_radioBtn_Rust"
+            get_function="is_gen_rust"
+            validator_variable="m_gen_rust_code" />
+          <node
+            class="wxRadioButton"
             label="&amp;XRC"
+            var_name="m_radioBtn_XRC"
             get_function="is_gen_xrc"
             validator_variable="m_gen_xrc_code" />
         </node>
@@ -5110,7 +6713,7 @@
           class="wxListBox"
           class_access="public:"
           var_name="m_lb_files"
-          minimum_size="150,100d"
+          minimum_size="300,250"
           flags="wxEXPAND"
           proportion="1" />
         <node
@@ -5122,7 +6725,7 @@
           class="wxListBox"
           class_access="public:"
           var_name="m_lb_info"
-          minimum_size="100,40d"
+          minimum_size="200,100"
           flags="wxEXPAND" />
         <node
           class="wxStdDialogButtonSizer"
@@ -5163,7 +6766,7 @@
             message="Combined XRC File"
             style="wxFLP_USE_TEXTCTRL|wxFLP_SAVE"
             wildcard="*.xrc"
-            minimum_size="120,-1d"
+            minimum_size="240,-1"
             flags="wxEXPAND"
             proportion="1"
             wxEVT_FILEPICKER_CHANGED="OnCombinedFilenameChanged" />
@@ -5184,7 +6787,7 @@
             var_name="staticText" />
           <node
             class="wxListBox"
-            minimum_size="-1,50d"
+            minimum_size="-1,125"
             flags="wxEXPAND"
             proportion="1" />
         </node>
@@ -5598,7 +7201,7 @@
             alignment="wxALIGN_CENTER_VERTICAL" />
           <node
             class="wxTextCtrl"
-            hint="type a portion of the name to filter the list"
+            hint="type a name portion to filter list"
             var_name="m_text_name"
             tooltip="Use Up/Down arrows to change list selection"
             proportion="1"
@@ -5609,11 +7212,12 @@
           class="wxBoxSizer"
           var_name="box_sizer_4">
           <node
-            class="wxStaticText"
-            class_access="none"
-            label="Only widgets that can be a child of the currently selected widget are shown. If the list is empty, no children can be added."
-            var_name="staticText_2"
-            wrap="300" />
+            class="wxCheckBox"
+            checked="1"
+            label="&amp;Limit to allowable children"
+            var_name="m_limit_to_children"
+            flags="wxEXPAND"
+            wxEVT_CHECKBOX="OnChangeLimit" />
         </node>
         <node
           class="wxBoxSizer"
@@ -5872,7 +7476,7 @@
           class_access="protected:"
           style="wxLI_VERTICAL"
           var_name="m_static_line"
-          size="-1,100d"
+          size="-1,250"
           column="1"
           proportion="1"
           rowspan="3" />
@@ -5997,6 +7601,7 @@
         class_methods="&quot;~CodeCompare();&quot;"
         derived_class_name="CodeCompare"
         private_members="1"
+        protected_class_methods="&quot;void OnRadioButton(GenLang language);&quot;"
         use_derived_class="0"
         wxEVT_INIT_DIALOG="OnInit">
         <node
@@ -6034,6 +7639,36 @@
                 label="&amp;Ruby"
                 var_name="m_radio_ruby"
                 wxEVT_RADIOBUTTON="OnRuby" />
+              <node
+                class="wxRadioButton"
+                label="&amp;Fortran"
+                var_name="m_radio_fortran"
+                wxEVT_RADIOBUTTON="OnFortran" />
+              <node
+                class="wxRadioButton"
+                label="&amp;Haskell"
+                var_name="m_radio_haskell"
+                wxEVT_RADIOBUTTON="OnHaskell" />
+              <node
+                class="wxRadioButton"
+                label="&amp;Lua"
+                var_name="m_radio_lua"
+                wxEVT_RADIOBUTTON="OnLua" />
+              <node
+                class="wxRadioButton"
+                label="&amp;Perl"
+                var_name="m_radio_perl"
+                wxEVT_RADIOBUTTON="OnPerl" />
+              <node
+                class="wxRadioButton"
+                label="R&amp;ust"
+                var_name="m_radio_rust"
+                wxEVT_RADIOBUTTON="OnRust" />
+              <node
+                class="wxRadioButton"
+                label="&amp;XRC"
+                var_name="m_radio_xrc"
+                wxEVT_RADIOBUTTON="OnXRC" />
             </node>
             <node
               class="spacer"
@@ -6410,11 +8045,10 @@
       <node
         class="wxDialog"
         class_name="XrcPreview"
-        cpp_conditional="defined(INTERNAL_TESTING)"
         persist="1"
         style="wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER"
         title="Test XRC"
-        minimum_size="600,500d"
+        minimum_size="1200,1250"
         base_file="..\internal\xrcpreview"
         derived_class_name="XrcPreview"
         derived_file="xrcpreview"
@@ -6517,7 +8151,7 @@
                 var_name="box_sizer3">
                 <node
                   class="wxSearchCtrl"
-                  minimum_size="100,-1d"
+                  minimum_size="200,-1"
                   borders="wxBOTTOM|wxRIGHT|wxLEFT"
                   wxEVT_SEARCHCTRL_SEARCH_BTN="OnSearch" />
               </node>
@@ -6551,7 +8185,7 @@
         persist="1"
         style="wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER"
         title="Node Search"
-        minimum_size="-1,-1d"
+        minimum_size="-1,-1"
         base_file="..\internal\node_search_dlg"
         local_src_includes="../panels/nav_panel.h;mainframe.h;node.h;project_handler.h;unused_gen_dlg.h"
         header_preamble="class Node;"
@@ -6568,12 +8202,12 @@
           class="wxBoxSizer"
           orientation="wxVERTICAL"
           var_name="dlg_sizer"
-          minimum_size="-1,-1d"
+          minimum_size="-1,-1"
           flags="wxEXPAND">
           <node
             class="wxBoxSizer"
             var_name="box_sizer_3"
-            minimum_size="250,-1d"
+            minimum_size="500,-1"
             flags="wxEXPAND">
             <node
               class="wxRadioButton"
@@ -6630,7 +8264,7 @@
           <node
             class="wxBoxSizer"
             var_name="box_sizer_4"
-            minimum_size="250,-1d"
+            minimum_size="500,-1"
             borders="wxBOTTOM|wxRIGHT|wxLEFT"
             flags="wxEXPAND"
             proportion="1">
@@ -6648,7 +8282,7 @@
                 borders="wxTOP|wxRIGHT|wxLEFT" />
               <node
                 class="wxListBox"
-                minimum_size="120,100d"
+                minimum_size="240,250"
                 flags="wxEXPAND"
                 proportion="1"
                 wxEVT_LISTBOX="OnSelectLocated" />
@@ -6669,7 +8303,7 @@
                 class="wxListBox"
                 style="wxLB_SORT"
                 var_name="m_listbox_forms"
-                minimum_size="-1,100d"
+                minimum_size="-1,250"
                 flags="wxEXPAND"
                 proportion="1" />
             </node>
@@ -6683,7 +8317,6 @@
       <node
         class="wxFrame"
         class_name="MsgFrameBase"
-        cpp_conditional="defined(INTERNAL_TESTING)"
         title="wxUiEditor Messages"
         base_file="..\internal\msgframe_base"
         derived_class_name="MsgFrame"
@@ -6925,7 +8558,7 @@
             wrap="200" />
           <node
             class="wxListBox"
-            minimum_size="120,100d"
+            minimum_size="240,250"
             flags="wxEXPAND" />
           <node
             class="wxButton"
@@ -7027,7 +8660,7 @@
           var_name="dlg_sizer">
           <node
             class="wxListBox"
-            minimum_size="100,70d"
+            minimum_size="200,175"
             flags="wxEXPAND" />
           <node
             class="wxStdDialogButtonSizer"
@@ -7040,13 +8673,15 @@
       class="wxDialog"
       class_name="PreferencesDlg"
       title="Preferences"
+      minimum_size="-1,-1"
       base_file="..\ui\preferences_dlg"
       use_derived_class="0"
       wxEVT_INIT_DIALOG="OnInit">
       <node
         class="wxBoxSizer"
         orientation="wxVERTICAL"
-        var_name="dlg_sizer">
+        var_name="dlg_sizer"
+        minimum_size="750,-1">
         <node
           class="wxNotebook"
           class_access="none"
@@ -7104,6 +8739,7 @@
                     proportion="1" />
                   <node
                     class="wxCheckBox"
+                    checked="1"
                     label="Full project path in title bar"
                     var_name="m_check_fullpath"
                     proportion="1" />
@@ -7125,6 +8761,12 @@
                     label="Default SVG bitmaps"
                     var_name="m_check_svg_bitmaps"
                     tooltip="If checked, new bitmaps will default to SVG files" />
+                  <node
+                    class="wxCheckBox"
+                    checked="1"
+                    label="Generate explanatory comments"
+                    var_name="m_check_prefer_comments"
+                    tooltip="When checked, explanatory comments will sometimes be added to the generated code." />
                 </node>
               </node>
               <node
@@ -7140,6 +8782,7 @@
                 <node
                   class="wxChoice"
                   contents="&quot;16&quot; &quot;18&quot; &quot;20&quot; &quot;22&quot; &quot;24&quot; &quot;26&quot; &quot;28&quot; &quot;30&quot; &quot;32&quot;"
+                  selection_string="18"
                   var_name="m_choice_icon_size" />
               </node>
               <node
@@ -7160,6 +8803,7 @@
           </node>
           <node
             class="BookPage"
+            bitmap="SVG;cpp_logo.svg;[24,24]"
             label="C++"
             var_name="page_cpp"
             window_style="wxTAB_TRAVERSAL">
@@ -7198,10 +8842,11 @@
                   class="wxStaticText"
                   class_access="none"
                   label="wxWidgets version"
-                  var_name="static_text" />
+                  var_name="static_text"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
                 <node
                   class="wxChoice"
-                  contents="&quot;3.1&quot; &quot;3.2&quot; &quot;3.3&quot;"
+                  contents="&quot;3.1.0&quot; &quot;3.2.0&quot; &quot;3.3.0&quot;"
                   selection_string="3.2"
                   var_name="m_choice_cpp_version"
                   tooltip="Code requiring a newer version then this will be placed in a conditional block." />
@@ -7217,7 +8862,7 @@
                   alignment="wxALIGN_CENTER_VERTICAL" />
                 <node
                   class="wxColourPickerCtrl"
-                  colour="#FF00FF"
+                  colour="#C76605"
                   var_name="m_colour_cpp" />
                 <node
                   class="wxStaticText"
@@ -7264,6 +8909,7 @@
           </node>
           <node
             class="BookPage"
+            bitmap="SVG;python-logo-only.svg;[24,24]"
             label="Python"
             var_name="page_python"
             window_style="wxTAB_TRAVERSAL">
@@ -7297,11 +8943,12 @@
                   class="wxStaticText"
                   class_access="none"
                   label="wxPython version"
-                  var_name="static_text3" />
+                  var_name="static_text3"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
                 <node
                   class="wxChoice"
-                  contents="&quot;4.2&quot;"
-                  selection_string="4.2"
+                  contents="&quot;4.2.0&quot;"
+                  selection_string="4.2.0"
                   var_name="m_choice_python_version"
                   tooltip="Code requiring a newer version then this will be placed in a conditional block." />
               </node>
@@ -7363,6 +9010,7 @@
           </node>
           <node
             class="BookPage"
+            bitmap="SVG;ruby_logo.svg;[24,24]"
             label="Ruby"
             var_name="page_ruby"
             window_style="wxTAB_TRAVERSAL">
@@ -7396,11 +9044,12 @@
                   class="wxStaticText"
                   class_access="none"
                   label="wxRuby version"
-                  var_name="static_text2" />
+                  var_name="static_text2"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
                 <node
                   class="wxChoice"
-                  contents="&quot;0.9&quot;"
-                  selection_string="0.9"
+                  contents="&quot;1.0.0&quot; &quot;1.2.0&quot; &quot;1.2.1&quot;"
+                  selection_string="1.2.1"
                   var_name="m_choice_ruby_version"
                   tooltip="Code requiring a newer version then this will be placed in a conditional block." />
               </node>
@@ -7452,6 +9101,371 @@
           </node>
           <node
             class="BookPage"
+            bitmap="SVG;haskell-logo.svg;[24,24]"
+            label="Haskell"
+            var_name="page_haskell"
+            window_style="wxTAB_TRAVERSAL">
+            <node
+              class="wxBoxSizer"
+              orientation="wxVERTICAL"
+              var_name="page_sizer3">
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer9">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Line Length"
+                  var_name="staticText14"
+                  wrap="200"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxTextCtrl"
+                  class_access="none"
+                  value="80"
+                  var_name="text_haskell_line_length"
+                  validator_style="wxFILTER_DIGITS"
+                  validator_variable="m_haskell_line_length"
+                  tooltip="Most generated code will not exceed this length. This will be the initial value when a new project is created." />
+              </node>
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer10">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxHaskell version"
+                  var_name="static_text5"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxChoice"
+                  contents="&quot;1-0-0&quot;"
+                  selection_string="1-0-0"
+                  var_name="m_choice_haskell_version"
+                  tooltip="Code requiring a newer version then this will be placed in a conditional block." />
+              </node>
+              <node
+                class="wxGridSizer"
+                var_name="grid_sizer5">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxWidgets &amp;keyword color:"
+                  var_name="staticText18"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF00FF"
+                  var_name="m_colour_haskell" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Comment color:"
+                  var_name="staticText19"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_haskell_comment" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Number color:"
+                  var_name="staticText20"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF0000"
+                  var_name="m_colour_haskell_number" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;String color:"
+                  var_name="staticText21"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_haskell_string" />
+              </node>
+            </node>
+          </node>
+          <node
+            class="BookPage"
+            bitmap="SVG;lua-logo.svg;[24,24]"
+            label="Lua"
+            var_name="page_lua"
+            window_style="wxTAB_TRAVERSAL">
+            <node
+              class="wxBoxSizer"
+              orientation="wxVERTICAL"
+              var_name="page_sizer4">
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer11">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Line Length"
+                  var_name="staticText22"
+                  wrap="200"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxTextCtrl"
+                  class_access="none"
+                  value="100"
+                  var_name="text_lua_line_length"
+                  validator_style="wxFILTER_DIGITS"
+                  validator_variable="m_lua_line_length"
+                  tooltip="Most generated code will not exceed this length. This will be the initial value when a new project is created." />
+              </node>
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer12">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxLua version"
+                  var_name="static_text6"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxChoice"
+                  contents="&quot;3.0.0&quot; &quot;3.2.0&quot;"
+                  selection_string="3.2.0"
+                  var_name="m_choice_ruby_version3"
+                  tooltip="Code requiring a newer version then this will be placed in a conditional block." />
+              </node>
+              <node
+                class="wxGridSizer"
+                var_name="grid_sizer6">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxWidgets &amp;keyword color:"
+                  var_name="staticText23"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF00FF"
+                  var_name="m_colour_lua" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Comment color:"
+                  var_name="staticText24"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_lua_comment" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Number color:"
+                  var_name="staticText25"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF0000"
+                  var_name="m_colour_lua_number" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;String color:"
+                  var_name="staticText26"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_lua_string" />
+              </node>
+            </node>
+          </node>
+          <node
+            class="BookPage"
+            bitmap="SVG;perl-logo.svg;[24,24]"
+            label="Perl"
+            var_name="page_perl"
+            window_style="wxTAB_TRAVERSAL">
+            <node
+              class="wxBoxSizer"
+              orientation="wxVERTICAL"
+              var_name="page_sizer5">
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer13">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Line Length"
+                  var_name="staticText27"
+                  wrap="200"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxTextCtrl"
+                  class_access="none"
+                  value="80"
+                  var_name="text_perl_line_length"
+                  validator_style="wxFILTER_DIGITS"
+                  validator_variable="m_perl_line_length"
+                  tooltip="Most generated code will not exceed this length. This will be the initial value when a new project is created." />
+              </node>
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer14">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxPerl version"
+                  var_name="static_text7"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxChoice"
+                  contents="&quot;0.91&quot; &quot;3.2.0&quot;"
+                  selection_string="3.2.0"
+                  var_name="m_choice_perl_version"
+                  tooltip="Code requiring a newer version then this will be placed in a conditional block." />
+              </node>
+              <node
+                class="wxGridSizer"
+                var_name="grid_sizer7">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxWidgets &amp;keyword color:"
+                  var_name="staticText28"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF00FF"
+                  var_name="m_colour_perl" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Comment color:"
+                  var_name="staticText29"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_perl_comment" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Number color:"
+                  var_name="staticText30"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF0000"
+                  var_name="m_colour_perl_number" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;String color:"
+                  var_name="staticText31"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_perl_string" />
+              </node>
+            </node>
+          </node>
+          <node
+            class="BookPage"
+            bitmap="SVG;rust_logo.svg;[24,24]"
+            label="Rust"
+            var_name="page_php"
+            window_style="wxTAB_TRAVERSAL">
+            <node
+              class="wxBoxSizer"
+              orientation="wxVERTICAL"
+              var_name="page_sizer6">
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer15">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Line Length"
+                  var_name="staticText32"
+                  wrap="200"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxTextCtrl"
+                  class_access="none"
+                  value="80"
+                  var_name="text_php_line_length"
+                  validator_style="wxFILTER_DIGITS"
+                  validator_variable="m_perl_line_length2"
+                  tooltip="Most generated code will not exceed this length. This will be the initial value when a new project is created." />
+              </node>
+              <node
+                class="wxBoxSizer"
+                var_name="box_sizer16">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxPHP version"
+                  var_name="static_text8"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxChoice"
+                  contents="&quot;3.0.51&quot;"
+                  selection_string="3.0.51"
+                  var_name="m_choice_php_version"
+                  tooltip="Code requiring a newer version then this will be placed in a conditional block." />
+              </node>
+              <node
+                class="wxGridSizer"
+                var_name="grid_sizer8">
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="wxWidgets &amp;keyword color:"
+                  var_name="staticText33"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF00FF"
+                  var_name="m_colour_php" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Comment color:"
+                  var_name="staticText34"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_php_comment" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;Number color:"
+                  var_name="staticText35"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#FF0000"
+                  var_name="m_colour_php_number" />
+                <node
+                  class="wxStaticText"
+                  class_access="none"
+                  label="&amp;String color:"
+                  var_name="staticText36"
+                  alignment="wxALIGN_CENTER_VERTICAL" />
+                <node
+                  class="wxColourPickerCtrl"
+                  colour="#008000"
+                  var_name="m_colour_php_string" />
+              </node>
+            </node>
+          </node>
+          <node
+            class="BookPage"
+            bitmap="SVG;wxlogo.svg;[24,24]"
             label="XRC"
             var_name="page_xrc"
             window_style="wxTAB_TRAVERSAL">

@@ -27,7 +27,7 @@ bool ColourPropBase::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     auto* box_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     m_colour_rect = new wxue_ctrl::ColourRectCtrl(this);
-    m_colour_rect->SetMaxSize(ConvertDialogToPixels(wxSize(32, 32)));
+    m_colour_rect->SetMaxSize(FromDIP(wxSize(64, 80)));
     box_sizer->Add(m_colour_rect, wxSizerFlags().Border(wxALL));
 
     m_static_sample_text = new wxStaticText(this, wxID_ANY, "Sample Text");
@@ -67,7 +67,24 @@ bool ColourPropBase::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers

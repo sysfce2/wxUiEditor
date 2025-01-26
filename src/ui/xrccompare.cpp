@@ -36,7 +36,7 @@ bool XrcCompare::Create(wxWindow* parent, wxWindowID id, const wxString& title,
 
     m_grid_bag_sizer->Add(box_sizer, wxGBPosition(0, 0), wxGBSpan(1, 1), wxTOP|wxRIGHT|wxLEFT, 5);
 
-    m_static_line = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, ConvertDialogToPixels(wxSize(-1, 100)), wxLI_VERTICAL);
+    m_static_line = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, FromDIP(wxSize(-1, 250)), wxLI_VERTICAL);
     m_grid_bag_sizer->Add(m_static_line, wxGBPosition(0, 1), wxGBSpan(3, 1), wxALL, 5);
 
     auto* box_sizer_2 = new wxBoxSizer(wxVERTICAL);
@@ -52,7 +52,24 @@ bool XrcCompare::Create(wxWindow* parent, wxWindowID id, const wxString& title,
 
     m_grid_bag_sizer->Add(box_sizer_2, wxGBPosition(0, 2), wxGBSpan(1, 1), wxTOP|wxRIGHT|wxLEFT, 5);
 
-    SetSizerAndFit(m_grid_bag_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(m_grid_bag_sizer);
+    }
+    else
+    {
+        SetSizer(m_grid_bag_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     return true;

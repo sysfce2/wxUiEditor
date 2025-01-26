@@ -27,20 +27,37 @@ bool GeneratedResultsDlg::Create(wxWindow* parent, wxWindowID id, const wxString
     dlg_sizer->Add(staticText, wxSizerFlags().Border(wxALL));
 
     m_lb_files = new wxListBox(this, wxID_ANY);
-    m_lb_files->SetMinSize(ConvertDialogToPixels(wxSize(150, 100)));
+    m_lb_files->SetMinSize(FromDIP(wxSize(300, 250)));
     dlg_sizer->Add(m_lb_files, wxSizerFlags(1).Expand().Border(wxALL));
 
     auto* staticText_2 = new wxStaticText(this, wxID_ANY, "Additional information:");
     dlg_sizer->Add(staticText_2, wxSizerFlags().Border(wxALL));
 
     m_lb_info = new wxListBox(this, wxID_ANY);
-    m_lb_info->SetMinSize(ConvertDialogToPixels(wxSize(100, 40)));
+    m_lb_info->SetMinSize(FromDIP(wxSize(200, 100)));
     dlg_sizer->Add(m_lb_info, wxSizerFlags().Expand().Border(wxALL));
 
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxNO_DEFAULT);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     wxPersistentRegisterAndRestore(this, "GeneratedResultsDlg");

@@ -17,7 +17,7 @@ using namespace code;
 
 // clang-format off
 
-inline constexpr const auto txt_EndCppBlock =
+inline constexpr const auto end_cpp_block =
 R"===(
 // ************* End of generated code ***********
 // DO NOT EDIT THIS COMMENT BLOCK!
@@ -29,6 +29,15 @@ R"===(
 // ***********************************************
 )===";
 
+inline constexpr const auto end_fortran_block =
+R"===(! ************* End of generated code ***********
+! DO NOT EDIT THIS COMMENT BLOCK!
+!
+! Code below this comment block will be preserved
+! if the code for this class is re-generated.
+! ***********************************************
+)===";
+
 inline constexpr const auto end_python_perl_ruby_block =
 R"===(# ************* End of generated code ***********
 # DO NOT EDIT THIS COMMENT BLOCK!
@@ -38,13 +47,26 @@ R"===(# ************* End of generated code ***********
 # ***********************************************
 )===";
 
+inline constexpr const auto end_lua_haskell_block =
+R"===(-- ************* End of generated code ***********
+-- DO NOT EDIT THIS COMMENT BLOCK!
+--
+-- Code below this comment block will be preserved
+-- if the code for this class is re-generated.
+-- ***********************************************
+)===";
+
+const char* cpp_rust_end_cmt_line = "// ************* End of generated code";
+const char* fortran_end_cmt_line = "! ************* End of generated code";
 const char* python_perl_ruby_end_cmt_line = "# ************* End of generated code";
+const char* lua_haskell_cmt_line = "-- ************* End of generated code";
 
 // clang-format on
 
-int FileCodeWriter::WriteFile(int language, int flags)
+int FileCodeWriter::WriteFile(GenLang language, int flags, Node* node)
 {
     ASSERT_MSG(m_filename.size(), "Filename must be set before calling WriteFile()");
+    m_node = node;
     bool file_exists = m_filename.file_exists();
     if (!file_exists && (flags & flag_test_only))
         return write_needed;
@@ -58,7 +80,7 @@ int FileCodeWriter::WriteFile(int language, int flags)
         if (flags & flag_add_closing_brace)
         {
             tt_string_vector lines;
-            lines.ReadString(txt_EndCppBlock);
+            lines.ReadString(end_cpp_block);
             for (auto& iter: lines)
             {
                 if (iter.is_sameprefix("// clang-format on"))
@@ -78,13 +100,65 @@ int FileCodeWriter::WriteFile(int language, int flags)
         }
         else
         {
-            m_buffer += txt_EndCppBlock;
+            m_buffer += end_cpp_block;
         }
     }
-    else if (language == GEN_LANG_PYTHON || language == GEN_LANG_RUBY)
+    else if (language == GEN_LANG_PERL)
+    {
+        m_buffer += end_python_perl_ruby_block;
+
+        // If the file has never been written before, then add "1;" line that is required to close
+        // the package. This is written outside of the comment block, so presumably any
+        // user edits will be made above this line or they will remove it and replace it with their
+        // own "1;" line.
+        if (!file_exists)
+        {
+            // TODO: [Randalphwa - 01-09-2025] Ideally, this should be followed with a comment
+            // indicating that it is the end of the form's package. However, that requires knowing
+            // the node we are writing.
+            m_buffer += "\n1;";
+            if (m_node)
+            {
+                m_buffer += "  # " + m_node->getNodeName();
+            }
+        }
+    }
+    else if (language == GEN_LANG_PYTHON)
     {
         m_buffer += end_python_perl_ruby_block;
     }
+    else if (language == GEN_LANG_RUBY)
+    {
+        m_buffer += end_python_perl_ruby_block;
+
+        // If the file has never been written before, then add "end" line that is required to close
+        // the class definition. This is written outside of the comment block, so presumably any
+        // user edits will be made above this line or they will remove it and replace it with their
+        // own "end" line.
+        if (!file_exists)
+        {
+            m_buffer += "\nend";
+            if (m_node)
+            {
+                m_buffer += "  # " + m_node->getNodeName();
+            }
+        }
+    }
+    else if (language == GEN_LANG_RUST)
+    {
+        m_buffer += end_cpp_block;
+    }
+
+#if GENERATE_NEW_LANG_CODE
+    else if (language == GEN_LANG_FORTRAN)
+    {
+        m_buffer += end_fortran_block;
+    }
+    else if (language == GEN_LANG_LUA || language == GEN_LANG_HASKELL)
+    {
+        m_buffer += end_lua_haskell_block;
+    }
+#endif  // GENERATE_NEW_LANG_CODE
 
     size_t additional_content = (to_size_t) -1;
     bool old_style_file = false;  // true if this doesn't have a trailing comment block
@@ -116,11 +190,17 @@ int FileCodeWriter::WriteFile(int language, int flags)
         new_file.ReadString(m_buffer);
 
         std::string_view look_for = {};
-        if (language == GEN_LANG_CPLUSPLUS)
-            look_for = "// ************* End of generated code";
-        // Ruby uses the same comment blocks as Python
-        else if (language == GEN_LANG_PYTHON || language == GEN_LANG_RUBY)
+        if (language == GEN_LANG_CPLUSPLUS || language == GEN_LANG_RUST)
+            look_for = cpp_rust_end_cmt_line;
+        else if (language == GEN_LANG_PYTHON || language == GEN_LANG_RUBY || language == GEN_LANG_PERL)
             look_for = python_perl_ruby_end_cmt_line;
+
+#if GENERATE_NEW_LANG_CODE
+        else if (language == GEN_LANG_FORTRAN)
+            look_for = fortran_end_cmt_line;
+        else if (language == GEN_LANG_LUA || language == GEN_LANG_HASKELL)
+            look_for = lua_haskell_cmt_line;
+#endif  // GENERATE_NEW_LANG_CODE
 
         if (org_file.size() > 3 && org_file[1].contains("Code generated by wxUiEditor") &&
             org_file[3].contains("DO NOT EDIT THIS FILE! Your changes will be lost if it is re-generated!"))
@@ -187,7 +267,7 @@ int FileCodeWriter::WriteFile(int language, int flags)
                 tt_string comment_begin;
                 if (language == GEN_LANG_CPLUSPLUS)
                     comment_begin = "\n// ";
-                else if (language == GEN_LANG_PYTHON)
+                else if (language == GEN_LANG_PYTHON || language == GEN_LANG_PERL)
                     comment_begin = "\n# ";
 
                 m_buffer += ((language == GEN_LANG_CPLUSPLUS) ? "\n//" : "\n#");

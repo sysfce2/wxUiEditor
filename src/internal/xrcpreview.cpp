@@ -7,8 +7,6 @@
 
 // clang-format off
 
-#if defined(INTERNAL_TESTING)
-
 #include <wx/artprov.h>
 #include <wx/persist.h>
 #include <wx/persist/toplevel.h>
@@ -86,7 +84,7 @@ bool XrcPreview::Create(wxWindow* parent, wxWindowID id, const wxString& title,
 
     m_searchCtrl = new wxSearchCtrl(this, wxID_ANY, wxEmptyString);
     m_searchCtrl->ShowSearchButton(true);
-    m_searchCtrl->SetMinSize(ConvertDialogToPixels(wxSize(100, -1)));
+    m_searchCtrl->SetMinSize(FromDIP(wxSize(200, -1)));
     box_sizer3->Add(m_searchCtrl, wxSizerFlags().Border(wxLEFT|wxRIGHT|wxBOTTOM, wxSizerFlags::GetDefaultBorder()));
 
     box_sizer2->Add(box_sizer3, wxSizerFlags().Border(wxALL));
@@ -99,8 +97,6 @@ bool XrcPreview::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     {
         m_scintilla->SetLexer(wxSTC_LEX_XML);
         m_scintilla->SetEOLMode(wxSTC_EOL_LF);
-        // Sets text margin scaled appropriately for the current DPI on Windows,
-        // 5 on wxGTK or wxOSX
         m_scintilla->SetMarginLeft(wxSizerFlags::GetDefaultBorder());
         m_scintilla->SetMarginRight(wxSizerFlags::GetDefaultBorder());
         m_scintilla->SetProperty("fold", "1");
@@ -127,9 +123,25 @@ bool XrcPreview::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     auto* stdBtn = CreateStdDialogButtonSizer(wxCLOSE|wxNO_DEFAULT);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizer(dlg_sizer);
-    SetMinSize(ConvertDialogToPixels(wxSize(600, 500)));
-    Fit();
+    SetMinSize(FromDIP(wxSize(1200, 1250)));
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     wxPersistentRegisterAndRestore(this, "XrcPreview");
@@ -147,8 +159,6 @@ bool XrcPreview::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     return true;
 }
 
-#endif  // defined(INTERNAL_TESTING)
-
 // ************* End of generated code ***********
 // DO NOT EDIT THIS COMMENT BLOCK!
 //
@@ -161,53 +171,49 @@ bool XrcPreview::Create(wxWindow* parent, wxWindowID id, const wxString& title,
 /////////////////// Non-generated Copyright/License Info ////////////////////
 // Purpose:   Test XRC
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2022 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2022-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
-#if defined(INTERNAL_TESTING)
-    #if __has_include(<format>)
-        #include <format>
-    #endif
+#if __has_include(<format>)
+    #include <format>
+#endif
 
-    #include <wx/filedlg.h>     // wxFileDialog base header
-    #include <wx/mstream.h>     // Memory stream classes
-    #include <wx/xml/xml.h>     // wxXmlDocument - XML parser & data holder class
-    #include <wx/xrc/xmlres.h>  // XML resources
+#include <wx/filedlg.h>     // wxFileDialog base header
+#include <wx/mstream.h>     // Memory stream classes
+#include <wx/xml/xml.h>     // wxXmlDocument - XML parser & data holder class
+#include <wx/xrc/xmlres.h>  // XML resources
 
 // The following handlers must be explicitly added
 
-    #include <wx/xrc/xh_aui.h>             // XRC resource handler for wxAUI
-    #include <wx/xrc/xh_auitoolb.h>        // XML resource handler for wxAuiToolBar
-    #include <wx/xrc/xh_ribbon.h>          // XML resource handler for wxRibbon related classes
-    #include <wx/xrc/xh_richtext.h>        // XML resource handler for wxRichTextCtrl
-    #include <wx/xrc/xh_styledtextctrl.h>  // XML resource handler for wxStyledTextCtrl
+#include <wx/xrc/xh_aui.h>             // XRC resource handler for wxAUI
+#include <wx/xrc/xh_auitoolb.h>        // XML resource handler for wxAuiToolBar
+#include <wx/xrc/xh_ribbon.h>          // XML resource handler for wxRibbon related classes
+#include <wx/xrc/xh_richtext.h>        // XML resource handler for wxRichTextCtrl
+#include <wx/xrc/xh_styledtextctrl.h>  // XML resource handler for wxStyledTextCtrl
 
-    #include "../import/import_wxsmith.h"  // Import a wxSmith file
-    #include "gen_xrc.h"                   // BaseCodeGenerator -- Generate Src and Hdr files for Base Class
-    #include "mainframe.h"                 // MainFrame -- Main window frame
-    #include "node.h"                      // Node class
-    #include "preferences.h"               // Prefs -- Set/Get wxUiEditor preferences
-    #include "project_handler.h"           // ProjectHandler class
-    #include "undo_cmds.h"                 // InsertNodeAction -- Undoable command classes derived from UndoAction
+#include "../import/import_wxsmith.h"  // Import a wxSmith file
+#include "gen_xrc.h"                   // BaseCodeGenerator -- Generate Src and Hdr files for Base Class
+#include "internal/msg_logging.h"      // MsgLogging -- Message logging class
+#include "mainframe.h"                 // MainFrame -- Main window frame
+#include "node.h"                      // Node class
+#include "preferences.h"               // Prefs -- Set/Get wxUiEditor preferences
+#include "project_handler.h"           // ProjectHandler class
+#include "undo_cmds.h"                 // InsertNodeAction -- Undoable command classes derived from UndoAction
 
-    #include "pugixml.hpp"
+#include "pugixml.hpp"
 
-    #include "xrc_list_dlg.h"
+#include "xrc_list_dlg.h"
 
-    #include "xrc_list_dlg.h"
+#include "xrc_list_dlg.h"
 
 const int node_marker = 1;
-
-    #if defined(_DEBUG)  // Starts debug section.
 
 void MainFrame::OnXrcPreview(wxCommandEvent& /* event */)
 {
     XrcPreview dlg(this);
     dlg.ShowModal();
 }
-
-    #endif
 
 void XrcPreview::OnClear(wxCommandEvent& WXUNUSED(event))
 {
@@ -294,15 +300,15 @@ void XrcPreview::OnPreview(wxCommandEvent& WXUNUSED(event))
     auto xmlDoc = std::make_unique<wxXmlDocument>(wxXmlDocument());
     if (auto result = xmlDoc->Load(stream, wxXMLDOC_NONE, &err_details); !result)
     {
-    #if __has_include(<format>)
+#if __has_include(<format>)
         std::string msg =
             std::format(std::locale(""), "Parsing error: {} at line: {}, column: {}, offset: {:L}\n",
                         err_details.message.ToStdString(), err_details.line, err_details.column, err_details.offset);
-    #else
+#else
         wxString msg;
         msg.Format("Parsing error: %s at line: %d, column: %d, offset: %ld\n", err_details.message, err_details.line,
                    err_details.column, err_details.offset);
-    #endif
+#endif
         wxMessageDialog(wxGetMainFrame()->getWindow(), msg, "Parsing Error", wxOK | wxICON_ERROR).ShowModal();
         return;
     }
@@ -333,6 +339,9 @@ void XrcPreview::OnPreview(wxCommandEvent& WXUNUSED(event))
         return;
     }
 
+    tt_cwd cwd(true);
+    wxSetWorkingDirectory(Project.ArtDirectory().make_wxString());
+
     wxDialog dlg;
     if (xrc_resource->LoadDialog(&dlg, this, dlg_name))
     {
@@ -345,10 +354,10 @@ void XrcPreview::OnPreview(wxCommandEvent& WXUNUSED(event))
     xrc_resource->Unload(res_name);
 }
 
-    #ifndef SCI_SETKEYWORDS
-        #define SCI_SETKEYWORDS 4005
-        #define SCI_GETTEXT_MSG 2182
-    #endif
+#ifndef SCI_SETKEYWORDS
+    #define SCI_SETKEYWORDS 4005
+    #define SCI_GETTEXT_MSG 2182
+#endif
 
 extern const char* g_xrc_keywords;
 
@@ -393,6 +402,9 @@ void XrcPreview::OnInit(wxInitDialogEvent& event)
     m_scintilla->MarkerDefine(node_marker, wxSTC_MARK_BOOKMARK, wxNullColour, *wxGREEN);
 
     event.Skip();
+
+    wxCommandEvent dummy;
+    OnGenerate(dummy);
 }
 
 void XrcPreview::OnImport(wxCommandEvent& WXUNUSED(event))
@@ -517,5 +529,3 @@ void XrcPreview::OnSearch(wxCommandEvent& event)
         m_scintilla->EnsureCaretVisible();
     }
 }
-
-#endif  // defined(INTERNAL_TESTING)

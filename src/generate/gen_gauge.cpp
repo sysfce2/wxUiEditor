@@ -18,8 +18,8 @@
 
 wxObject* GaugeGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxGauge(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_int(prop_range),
-                              DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxGauge(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_int(prop_range), DlgPoint(node, prop_pos),
+                              DlgSize(node, prop_size), GetStyleInt(node));
     widget->SetValue(node->as_int(prop_position));
 
     widget->Bind(wxEVT_LEFT_DOWN, &BaseGenerator::OnLeftClick, this);
@@ -42,7 +42,7 @@ bool GaugeGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id).Comma().as_string(prop_range);
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -55,7 +55,7 @@ bool GaugeGenerator::SettingsCode(Code& code)
 }
 
 bool GaugeGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                 int /* language */)
+                                 GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/gauge.h>", set_src, set_hdr);
     if (node->as_string(prop_validator_variable).size())

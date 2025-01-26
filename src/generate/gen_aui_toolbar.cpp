@@ -19,8 +19,8 @@
 
 wxObject* AuiToolBarFormGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxAuiToolBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                   DlgSize(parent, node, prop_size), GetStyleInt(node) | wxTB_NODIVIDER);
+    auto widget = new wxAuiToolBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                   DlgSize(node, prop_size), GetStyleInt(node) | wxTB_NODIVIDER);
 
     if (node->hasValue(prop_margins))
     {
@@ -159,7 +159,7 @@ bool AuiToolBarFormGenerator::HeaderCode(Code& code)
     if (position == wxDefaultPosition)
         code.Str("wxDefaultPosition");
     else
-        code.Pos(prop_pos, no_dlg_units);
+        code.Pos(prop_pos, no_dpi_scaling);
 
     code.Comma().Str("const wxSize& size = ");
 
@@ -167,7 +167,7 @@ bool AuiToolBarFormGenerator::HeaderCode(Code& code)
     if (size == wxDefaultSize)
         code.Str("wxDefaultSize");
     else
-        code.WxSize(prop_size, no_dlg_units);
+        code.WxSize(prop_size, no_dpi_scaling);
 
     auto& style = node->as_string(prop_style);
     auto& win_style = node->as_string(prop_window_style);
@@ -201,9 +201,9 @@ bool AuiToolBarFormGenerator::HeaderCode(Code& code)
 
 bool AuiToolBarFormGenerator::BaseClassNameCode(Code& code)
 {
-    if (code.hasValue(prop_derived_class))
+    if (code.hasValue(prop_subclass))
     {
-        code.as_string(prop_derived_class);
+        code.as_string(prop_subclass);
     }
     else
     {
@@ -244,7 +244,7 @@ bool AuiToolBarFormGenerator::SettingsCode(Code& code)
 }
 
 bool AuiToolBarFormGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/aui/auibar.h>", set_src, set_hdr);
 
@@ -298,18 +298,25 @@ void AuiToolBarFormGenerator::RequiredHandlers(Node* /* node */, std::set<std::s
     handlers.emplace("wxAuiToolBarXmlHandler");
 }
 
-bool AuiToolBarFormGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool AuiToolBarFormGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/aui'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/aui'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }
 
 //////////////////////////////////////////  AuiToolBarGenerator  //////////////////////////////////////////
 
 wxObject* AuiToolBarGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxAuiToolBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                   DlgSize(parent, node, prop_size), GetStyleInt(node) | wxTB_NODIVIDER);
+    auto widget = new wxAuiToolBar(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                   DlgSize(node, prop_size), GetStyleInt(node) | wxTB_NODIVIDER);
 
     if (node->hasValue(prop_margins))
     {
@@ -399,7 +406,7 @@ bool AuiToolBarGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id);
-    code.PosSizeFlags(false, "wxAUI_TB_DEFAULT_STYLE");
+    code.PosSizeFlags(code::allow_scaling, false, "wxAUI_TB_DEFAULT_STYLE");
 
     return true;
 }
@@ -434,7 +441,7 @@ bool AuiToolBarGenerator::SettingsCode(Code& code)
 }
 
 bool AuiToolBarGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/aui/auibar.h>", set_src, set_hdr);
 
@@ -488,10 +495,17 @@ void AuiToolBarGenerator::RequiredHandlers(Node* /* node */, std::set<std::strin
     handlers.emplace("wxAuiToolBarXmlHandler");
 }
 
-bool AuiToolBarGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool AuiToolBarGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/aui'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/aui'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }
 
 //////////////////////////////////////////  AuiToolGenerator  //////////////////////////////////////////
@@ -530,7 +544,7 @@ int AuiToolGenerator::GenXrcObject(Node* node, pugi::xml_node& object, size_t xr
 }
 
 bool AuiToolGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& /* set_hdr */,
-                                   int /* language */)
+                                   GenLang /* language */)
 {
     if (node->as_string(prop_initial_state) != "wxAUI_BUTTON_STATE_NORMAL")
     {

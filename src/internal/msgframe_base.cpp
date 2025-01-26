@@ -7,8 +7,6 @@
 
 // clang-format off
 
-#if defined(INTERNAL_TESTING)
-
 #include <wx/artprov.h>
 #include <wx/button.h>
 #include <wx/sizer.h>
@@ -24,6 +22,11 @@ bool MsgFrameBase::Create(wxWindow* parent, wxWindowID id, const wxString& title
 
     if (!wxFrame::Create(parent, id, title, pos, size, style, name))
         return false;
+    if (pos != wxDefaultPosition || size != wxDefaultSize)
+    {
+        SetSize(FromDIP(pos).x, FromDIP(pos).y,
+        FromDIP(size).x, FromDIP(size).y, wxSIZE_USE_EXISTING);
+    }
 
     auto* menubar = new wxMenuBar();
 
@@ -84,7 +87,7 @@ bool MsgFrameBase::Create(wxWindow* parent, wxWindowID id, const wxString& title
 
     m_textCtrl = new wxTextCtrl(m_page_log, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
         wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH|wxHSCROLL);
-    m_textCtrl->SetMinSize(wxSize(350, 300));
+    m_textCtrl->SetMinSize(FromDIP(wxSize(350, 300)));
     log_sizer->Add(m_textCtrl, wxSizerFlags(1).Expand().Border(wxALL, 0));
     m_page_log->SetSizerAndFit(log_sizer);
 
@@ -142,8 +145,6 @@ bool MsgFrameBase::Create(wxWindow* parent, wxWindowID id, const wxString& title
         m_scintilla->SetLexer(wxSTC_LEX_XML);
         m_scintilla->SetReadOnly(true);
         m_scintilla->SetEOLMode(wxSTC_EOL_LF);
-        // Sets text margin scaled appropriately for the current DPI on Windows,
-        // 5 on wxGTK or wxOSX
         m_scintilla->SetMarginLeft(wxSizerFlags::GetDefaultBorder());
         m_scintilla->SetMarginRight(wxSizerFlags::GetDefaultBorder());
         m_scintilla->SetProperty("fold", "1");
@@ -184,8 +185,6 @@ bool MsgFrameBase::Create(wxWindow* parent, wxWindowID id, const wxString& title
 
     return true;
 }
-
-#endif  // defined(INTERNAL_TESTING)
 
 // ************* End of generated code ***********
 // DO NOT EDIT THIS COMMENT BLOCK!

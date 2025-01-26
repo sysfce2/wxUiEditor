@@ -57,7 +57,7 @@ bool RibbonPageGenerator::SettingsCode(Code& code)
 }
 
 bool RibbonPageGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/ribbon/page.h>", set_src, set_hdr);
 
@@ -95,7 +95,7 @@ wxObject* RibbonPanelGenerator::CreateMockup(Node* node, wxObject* parent)
 {
     auto widget =
         new wxRibbonPanel((wxRibbonPage*) parent, wxID_ANY, node->as_wxString(prop_label), node->as_wxBitmap(prop_bitmap),
-                          DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+                          DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node));
 
     widget->Bind(wxEVT_LEFT_DOWN, &BaseGenerator::OnLeftClick, this);
 
@@ -118,7 +118,7 @@ bool RibbonPanelGenerator::ConstructionCode(Code& code)
 }
 
 bool RibbonPanelGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                       int /* language */)
+                                       GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/ribbon/panel.h>", set_src, set_hdr);
 

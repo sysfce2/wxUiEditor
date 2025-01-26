@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Enumerations for generators
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2021-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2021-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -224,6 +224,7 @@ std::map<GenEnum::PropName, const char*> GenEnum::map_PropNames = {
     { prop_foreground_colour, "foreground_colour" },
     { prop_generate_cmake, "generate_cmake" },
     { prop_generate_ids, "generate_ids" },
+    { prop_generate_languages, "generate_languages" },
     { prop_generate_translation_unit, "generate_translation_unit" },
     { prop_get_function, "get_function" },
     { prop_grid_line_color, "grid_line_color" },
@@ -337,7 +338,6 @@ std::map<GenEnum::PropName, const char*> GenEnum::map_PropNames = {
     { prop_paste_multiple, "paste_multiple" },
     { prop_persist, "persist" },
     { prop_persist_name, "persist_name" },
-    { prop_php_file, "php_file" },
     { prop_pin_button, "pin_button" },
     { prop_platforms, "platforms" },
     { prop_play, "play" },
@@ -413,6 +413,9 @@ std::map<GenEnum::PropName, const char*> GenEnum::map_PropNames = {
     { prop_stc_wrap_visual_location, "wrap_visual_location" },
     { prop_stock_id, "stock_id" },
     { prop_style, "style" },
+    { prop_subclass, "subclass" },
+    { prop_subclass_header, "subclass_header" },
+    { prop_subclass_params, "subclass_params" },
     { prop_symbol_margin, "symbol_margin" },
     { prop_symbol_mouse_sensitive, "symbol_mouse_sensitive" },
     { prop_sync_hover_colour, "sync_hover_colour" },
@@ -502,6 +505,53 @@ std::map<GenEnum::PropName, const char*> GenEnum::map_PropNames = {
     { prop_ruby_output_folder, "ruby_output_folder" },
     { prop_ruby_project_preamble, "ruby_project_preamble" },
     { prop_wxRuby_version, "wxRuby_version" },
+
+    { prop_folder_fortran_output_folder, "folder_fortran_output_folder" },
+    { prop_fortran_file, "fortran_file" },
+    { prop_fortran_inherit_name, "fortran_inherit_name" },
+    { prop_fortran_insert, "insert_fortran_code" },
+    { prop_fortran_line_length, "fortran_line_length" },
+    { prop_fortran_output_folder, "fortran_output_folder" },
+    { prop_fortran_project_preamble, "fortran_project_preamble" },
+    { prop_wxFortran_version, "wxFortran_version" },
+
+    { prop_folder_haskell_output_folder, "folder_haskell_output_folder" },
+    { prop_haskell_file, "haskell_file" },
+    { prop_haskell_inherit_name, "haskell_inherit_name" },
+    { prop_haskell_insert, "insert_haskell_code" },
+    { prop_haskell_line_length, "haskell_line_length" },
+    { prop_haskell_output_folder, "haskell_output_folder" },
+    { prop_haskell_project_preamble, "haskell_project_preamble" },
+    { prop_wxHaskell_version, "wxHaskell_version" },
+
+    { prop_folder_lua_output_folder, "folder_lua_output_folder" },
+    { prop_lua_file, "lua_file" },
+    { prop_lua_inherit_name, "lua_inherit_name" },
+    { prop_lua_insert, "insert_lua_code" },
+    { prop_lua_line_length, "lua_line_length" },
+    { prop_lua_output_folder, "lua_output_folder" },
+    { prop_lua_project_preamble, "lua_project_preamble" },
+    { prop_wxLua_version, "wxLua_version" },
+
+    { prop_folder_perl_combined_file, "folder_perl_combined_file" },
+    { prop_folder_perl_output_folder, "folder_perl_output_folder" },
+    { prop_perl_file, "perl_file" },
+    { prop_perl_inherit_name, "perl_inherit_name" },
+    { prop_perl_insert, "insert_perl_code" },
+    { prop_perl_line_length, "perl_line_length" },
+    { prop_perl_output_folder, "perl_output_folder" },
+    { prop_perl_project_preamble, "perl_project_preamble" },
+    { prop_wxPerl_version, "wxPerl_version" },
+
+    { prop_folder_rust_output_folder, "folder_rust_output_folder" },
+    { prop_rust_file, "rust_file" },
+    { prop_rust_inherit_name, "rust_inherit_name" },
+    { prop_rust_insert, "insert_rust_code" },
+    { prop_rust_line_length, "rust_line_length" },
+    { prop_rust_output_folder, "rust_output_folder" },
+    { prop_rust_project_preamble, "rust_project_preamble" },
+    { prop_wxRust_version, "wxRust_version" },
+
 };
 std::map<std::string_view, GenEnum::PropName, std::less<>> GenEnum::rmap_PropNames;
 
@@ -539,6 +589,8 @@ std::map<GenType, std::string_view> GenEnum::map_GenTypes = {
     { type_notebook, "notebook" },
     { type_oldbookpage, "oldbookpage" },
     { type_page, "page" },
+    { type_panel, "panel" },
+    { type_panel_form, "panel_form" },
     { type_popup_menu, "popup_menu" },
     { type_project, "project" },
     { type_propgrid, "propgrid" },
@@ -611,6 +663,7 @@ std::map<GenEnum::GenName, const char*> GenEnum::map_GenNames = {
     { gen_flexgridsizerbase, "flexgridsizerbase" },
     { gen_folder_Code, "Folder C++ Overrides" },
     { gen_folder_XRC, "Folder XRC Overrides" },
+    { gen_folder_wxPerl, "Folder wxPerl Overrides" },
     { gen_folder_wxPython, "Folder wxPython Overrides" },
     { gen_folder_wxRuby, "Folder wxRuby Overrides" },
     { gen_sizer_child, "sizer_child" },
@@ -623,15 +676,25 @@ std::map<GenEnum::GenName, const char*> GenEnum::map_GenNames = {
     // Language categories
 
     { gen_Code, "C++" },
-    { gen_XRC, "XRC" },
     { gen_wxPython, "wxPython" },
     { gen_wxRuby, "wxRuby" },
+    { gen_XRC, "XRC" },
+    { gen_wxFortran, "wxFortran" },
+    { gen_wxHaskell, "wxHaskell" },
+    { gen_wxLua, "wxLua" },
+    { gen_wxPerl, "wxPerl" },
+    { gen_wxRust, "wxRust" },
 
     { gen_LanguageSettings, "Language Settings" },
 
     { gen_CPlusSettings, "C++ Settings" },
     { gen_DerivedCPlusSettings, "C++ Derived Class Settings" },
     { gen_CPlusHeaderSettings, "C++ Header Settings" },
+    { gen_FortranSettings, "wxFortran Settings" },
+    { gen_HaskellSettings, "wxHaskell Settings" },
+    { gen_LuaSettings, "wxLua Settings" },
+    { gen_PerlSettings, "wxPerl Settings" },
+    { gen_RustSettings, "wxRust Settings" },
     { gen_PythonSettings, "wxPython Settings" },
     { gen_RubySettings, "wxRuby Settings" },
 
@@ -750,6 +813,7 @@ std::map<GenEnum::GenName, const char*> GenEnum::map_GenNames = {
     { gen_wxNotebook, "wxNotebook" },
     { gen_wxPanel, "wxPanel" },
     { gen_wxPopupTransientWindow, "wxPopupTransientWindow" },
+    { gen_wxPopupWindow, "wxPopupWindow" },
     { gen_wxPropertyGrid, "wxPropertyGrid" },
     { gen_wxPropertyGridManager, "wxPropertyGridManager" },
     { gen_wxPropertySheetDialog, "wxPropertySheetDialog" },

@@ -38,8 +38,109 @@
 #include "menuspin.h"
 #include "menustaticsizer.h"
 
-// The base class specifies a larger size for the panel to make it easier to work with in the Mockup window. We switch that
-// to a default size here.
+bool CreateViaNewDlg(size_t id)
+{
+    switch (id)
+    {
+        case CreateNewDialog:
+            {
+                NewDialog dlg(wxGetFrame().getWindow());
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    dlg.createNode();
+                }
+                return true;
+            }
+            break;
+
+        case CreateNewFrame:
+            {
+                NewFrame dlg(wxGetFrame().getWindow());
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    dlg.createNode();
+                }
+                return true;
+            }
+            break;
+
+        case CreateMdiFrame:
+            {
+                NewMdiForm dlg(wxGetFrame().getWindow());
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    dlg.createNode();
+                }
+                return true;
+            }
+            break;
+
+        case CreateNewPanel:
+            {
+                NewPanel dlg(wxGetFrame().getWindow());
+                dlg.WantFormVersion();
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    dlg.createNode();
+                }
+                return true;
+            }
+            break;
+
+        case CreateNewPropertySheet:
+            {
+                NewPropSheet dlg(wxGetFrame().getWindow());
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    dlg.createNode();
+                }
+                return true;
+            }
+            break;
+
+        case CreateNewRibbon:
+            {
+                NewRibbon dlg(wxGetFrame().getWindow());
+                if (dlg.IsCreatable())
+                {
+                    if (dlg.ShowModal() == wxID_OK)
+                    {
+                        dlg.createNode();
+                    }
+                }
+                return true;
+            }
+            break;
+
+        case CreateNewFormRibbon:
+            {
+                NewRibbon dlg(wxGetFrame().getWindow());
+                dlg.WantFormVersion();
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    dlg.createNode();
+                }
+                return true;
+            }
+            break;
+
+        case CreateNewWizard:
+            {
+                NewWizard dlg(wxGetFrame().getWindow());
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    dlg.createNode();
+                }
+                return true;
+            }
+            break;
+    }
+
+    return false;
+}
+
+// The base class specifies a larger size for the panel to make it easier to work with in the Mockup window. We switch
+// that to a default size here.
 RibbonPanel::RibbonPanel(wxWindow* parent) : RibbonPanelBase(parent) {}
 
 void RibbonPanel::OnToolClick(wxRibbonToolBarEvent& event)
@@ -54,113 +155,21 @@ void RibbonPanel::OnToolClick(wxRibbonToolBarEvent& event)
     if (id < gen_name_array_size)
     {
         wxGetFrame().createToolNode(static_cast<GenName>(event.GetId()));
+        return;
     }
     else
     {
-        switch (id)
-        {
-            case CreateNewDialog:
-                {
-                    NewDialog dlg(wxGetFrame().getWindow());
-                    if (dlg.ShowModal() == wxID_OK)
-                    {
-                        dlg.createNode();
-                    }
-                    return;
-                }
-                break;
+        if (CreateViaNewDlg(id))
+            return;
+    }
 
-            case CreateNewFrame:
-                {
-                    NewFrame dlg(wxGetFrame().getWindow());
-                    if (dlg.ShowModal() == wxID_OK)
-                    {
-                        dlg.createNode();
-                    }
-                    return;
-                }
-                break;
+    FAIL_MSG("This will only happen if the tool is a) not a dropdown, or b) doesn't have a valid id.");
 
-            case CreateMdiFrame:
-                {
-                    NewMdiForm dlg(wxGetFrame().getWindow());
-                    if (dlg.ShowModal() == wxID_OK)
-                    {
-                        dlg.createNode();
-                    }
-                    return;
-                }
-                break;
-
-            case CreateNewPanel:
-                {
-                    NewPanel dlg(wxGetFrame().getWindow());
-                    dlg.WantFormVersion();
-                    if (dlg.ShowModal() == wxID_OK)
-                    {
-                        dlg.createNode();
-                    }
-                    return;
-                }
-                break;
-
-            case CreateNewPropertySheet:
-                {
-                    NewPropSheet dlg(wxGetFrame().getWindow());
-                    if (dlg.ShowModal() == wxID_OK)
-                    {
-                        dlg.createNode();
-                    }
-                    return;
-                }
-                break;
-
-            case CreateNewRibbon:
-                {
-                    NewRibbon dlg(wxGetFrame().getWindow());
-                    if (dlg.IsCreatable())
-                    {
-                        if (dlg.ShowModal() == wxID_OK)
-                        {
-                            dlg.createNode();
-                        }
-                    }
-                    return;
-                }
-                break;
-
-            case CreateNewFormRibbon:
-                {
-                    NewRibbon dlg(wxGetFrame().getWindow());
-                    dlg.WantFormVersion();
-                    if (dlg.ShowModal() == wxID_OK)
-                    {
-                        dlg.createNode();
-                    }
-                    return;
-                }
-                break;
-
-            case CreateNewWizard:
-                {
-                    NewWizard dlg(wxGetFrame().getWindow());
-                    if (dlg.ShowModal() == wxID_OK)
-                    {
-                        dlg.createNode();
-                    }
-                    return;
-                }
-                break;
-        }
-
-        FAIL_MSG("This will only happen if the tool is a) not a dropdown, or b) doesn't have a valid id.");
-
-        // For release build, we'll at least attempt to create it in case the help string specifies a widget.
-        auto name = event.GetBar()->GetToolHelpString(event.GetId());
-        if (auto result = rmap_GenNames.find(name.utf8_string()); result != rmap_GenNames.end())
-        {
-            wxGetFrame().createToolNode(result->second);
-        }
+    // For release build, we'll at least attempt to create it in case the help string specifies a widget.
+    auto name = event.GetBar()->GetToolHelpString(event.GetId());
+    if (auto result = rmap_GenNames.find(name.utf8_string()); result != rmap_GenNames.end())
+    {
+        wxGetFrame().createToolNode(result->second);
     }
 }
 
@@ -276,8 +285,8 @@ void RibbonPanel::OnDropDown(wxRibbonToolBarEvent& event)
         case NewScrolled:
             {
                 wxMenu menu;
-                menu.Append(gen_wxScrolledWindow, "Insert wxScrolled<wxPanel> (wxScrolledWindow)");
-                menu.Append(gen_wxScrolledCanvas, "Insert wxScrolled<wxWindow> (wxScrolledCanvas)");
+                menu.Append(gen_wxScrolledWindow, "Insert wxScrolledWindow");
+                menu.Append(gen_wxScrolledCanvas, "Insert wxScrolledCanvas");
 
                 menu.Bind(wxEVT_MENU, &RibbonPanel::OnMenuEvent, this, wxID_ANY);
                 event.PopupMenu(&menu);

@@ -18,8 +18,8 @@ public:
     bool SettingsCode(Code&) override;
 
     bool GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                     int /* language */) override;
-    bool GetRubyImports(Node*, std::set<std::string>& /* set_imports */) override;
+                     GenLang /* language */) override;
+    bool GetImports(Node*, std::set<std::string>& /* set_imports */, GenLang language) override;
 
     int GenXrcObject(Node*, pugi::xml_node& /* object */, size_t /* xrc_flags */) override;
     void RequiredHandlers(Node*, std::set<std::string>& /* handlers */) override;

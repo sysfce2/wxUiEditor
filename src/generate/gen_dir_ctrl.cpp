@@ -20,7 +20,7 @@
 wxObject* GenericDirCtrlGenerator::CreateMockup(Node* node, wxObject* parent)
 {
     auto widget = new wxGenericDirCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_defaultfolder),
-                                       DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node),
+                                       DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node),
                                        node->as_wxString(prop_filter), node->as_int(prop_defaultfilter));
 
     widget->ShowHidden(node->as_bool(prop_show_hidden));
@@ -40,7 +40,7 @@ bool GenericDirCtrlGenerator::ConstructionCode(Code& code)
 
     if (!code.hasValue(prop_filter) && code.IntValue(prop_defaultfilter) == 0 && !code.hasValue(prop_window_name))
     {
-        code.PosSizeFlags(false, "wxDIRCTRL_DEFAULT_STYLE");
+        code.PosSizeFlags(code::allow_scaling, false, "wxDIRCTRL_DEFAULT_STYLE");
     }
     else
     {
@@ -77,7 +77,7 @@ bool GenericDirCtrlGenerator::SettingsCode(Code& code)
 }
 
 bool GenericDirCtrlGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                          int /* language */)
+                                          GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/dirctrl.h>", set_src, set_hdr);
     return true;

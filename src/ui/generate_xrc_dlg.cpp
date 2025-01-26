@@ -30,7 +30,7 @@ bool GenerateXrcDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
 
     m_filePicker = new wxFilePickerCtrl(m_combined_box->GetStaticBox(), wxID_ANY, wxEmptyString, "Combined XRC File", "*.xrc",
         wxDefaultPosition, wxDefaultSize, wxFLP_USE_TEXTCTRL|wxFLP_SAVE);
-    m_filePicker->SetMinSize(ConvertDialogToPixels(wxSize(120, -1)));
+    m_filePicker->SetMinSize(FromDIP(wxSize(240, -1)));
     m_combined_box->Add(m_filePicker, wxSizerFlags(1).Expand().Border(wxALL));
 
     dlg_sizer->Add(m_combined_box, wxSizerFlags().Expand().Border(wxALL));
@@ -43,7 +43,7 @@ bool GenerateXrcDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     m_separate_box->Add(staticText, wxSizerFlags().Border(wxALL));
 
     m_listbox = new wxListBox(m_separate_box->GetStaticBox(), wxID_ANY);
-    m_listbox->SetMinSize(ConvertDialogToPixels(wxSize(-1, 50)));
+    m_listbox->SetMinSize(FromDIP(wxSize(-1, 125)));
     m_separate_box->Add(m_listbox, wxSizerFlags(1).Expand().Border(wxALL));
 
     dlg_sizer->Add(m_separate_box, wxSizerFlags().Expand().Border(wxALL));
@@ -54,7 +54,24 @@ bool GenerateXrcDlg::Create(wxWindow* parent, wxWindowID id, const wxString& tit
     stdBtn->Realize();
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     wxPersistentRegisterAndRestore(this, "GenerateXrcDlg");

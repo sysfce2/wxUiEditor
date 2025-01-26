@@ -1,21 +1,36 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## [unreleased (1.2.2)]
+## [unreleased (1.3.0)]
 
 ### Added
 
+- New Add menu provides an alternative to the main toolbar for adding widgets to your project.
+- By default, all Position and Size properties are scaled when your generated code is run under Windows with a high DPI setting.
+- You can now change the initial size of Art images instead of using their default size.
 - File menu now has a Reload Project command to reload the current project file from disk.
+- Dialogs now support the variant property
+- Added support for wxPopupWindow as a form
 
 ### Changed
 
+- All coordinates using dialog units will automatically be converted to physical pixels. For C++ using wxWidgets 3.2 or higher along with wxPython and wxRuby, FromDIP() will be called to scale the UI as needed on high DPI displays.
+- In most cases, you no longer need to select a sizer or container before adding a widget. wxUiEditor will now attempt to find an appropriate parent for what you want to add starting from your current selection.
 - Generic option removed for wxAnimationCtrl. The generic version is automatically generated when a ANI animation file is specified. This will correctly display the file on wxGTK when generating C++ and wxPthon code. wxRuby3 does not support Wx::GenericAnimationCtrl in version 1.0, so only the regular version is generated.
+- derived_class property in the wxWindows category has been changed to subclass to better reflect that the generated class derives from your specified class. The derived_class_name in the various language categories remain unchanged to indicate you derive your class from the generated class.
+- wxRuby3 generated code now supports persistence property (`Wx.persistent_register_and_restore`)
 
 ### Fixed
 - Fixed generation of event handlers in C++ derived classes.
 - Fixed inability to hand-edit the location of a generated file
 - Add missing events to wxPropertyGrid and wxPropertyGridManager
 - wxPython now correctly loads embedded animation files for wx.adv.AnimationCtrl
+- XRC generation now includes variant property settings for forms
+- wxPython now places wxTreeListCtrl in the dataview library
+- Fixed code generation for Python and Ruby wxStdDialogButtonSizer events
+- Ruby code generation no longer writes the class `end` line before the final generated comment block
+- You can add a menubar or toolbar to a wxFrame that was created without them
+- Fixed inconsistent generation of wxScrolledWindow versus wxScrolled<wxPanel> -- wxScrolledWindow is now always used.
 
 ## [Released (1.2.1)]
 
@@ -107,6 +122,7 @@ Starting with version 1.2.1, wxUiEditor uses LunaSVG instead of NanoSVG to displ
 - The C++ Settings in forms now have properties for local and system header files to include in either the generated source or header files.
 - wxMenu and wxMenu items now have a stock_id property allowing you to choose from wxWidgets stock items.
 - Added support for wxAUI_BUTTON_STATE flags when creating a wxAuiToolBar tool.
+- **wxPopupTransientWindow** now supports variant, minimum, maximum, and size properties
 
 ### Changed
 
@@ -115,6 +131,8 @@ Starting with version 1.2.1, wxUiEditor uses LunaSVG instead of NanoSVG to displ
 - Embedded image filenames can now contain characters that are invalid as part of a variable name.
 - Allow custom ids to have an assignment to a value as part of the id. In C++, the id will then be generated as a `static const int` instead of an enumerated value. In Python, this will be added verbatim after any auto-generated ids.
 - If you previously used either base_hdr_includes or base_src_includes properties, then when the project is loaded they will be automatically converted to header_preamble and source_preamble properties to better reflect what it's for, and to avoid confusion with the new local and system includes properties.
+- Removed position, size, and foreground_colour properties from **wxPropertySheetDialog** since the dialog doesn't support them.
+- Removed size properties from wxWizard since they cannot be used
 
 ### Fixed
 
@@ -126,6 +144,10 @@ Starting with version 1.2.1, wxUiEditor uses LunaSVG instead of NanoSVG to displ
 - Code is now generated for a sub-menu that has a bitmap property set
 - Code generation for event handler of a wxStdDialogButtonSizer Close button corrected
 - Header file code generation could create uninitialized wxStdDialogButtonSizer buttons under special circumstances -- this has been fixed.
+- Fixed code generation for variant, font, and background color in **wxPropertySheetDialog**
+- Add `no` as a Center option to prevent any wxWizard centering so that it will honor the `pos` property.
+- Fixed `variant` property code generation in wxWizard.
+- Changing a sizer or widget type no longer changes validator names
 
 ## [Released (1.1.0)]
 

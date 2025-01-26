@@ -18,8 +18,8 @@
 
 wxObject* ToggleButtonGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxToggleButton(wxStaticCast(parent, wxWindow), wxID_ANY, wxEmptyString,
-                                     DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxToggleButton(wxStaticCast(parent, wxWindow), wxID_ANY, wxEmptyString, DlgPoint(node, prop_pos),
+                                     DlgSize(node, prop_size), GetStyleInt(node));
 
     if (node->as_bool(prop_markup))
         widget->SetLabelMarkup(node->as_wxString(prop_label));
@@ -105,7 +105,7 @@ bool ToggleButtonGenerator::ConstructionCode(Code& code)
         code.Add("wxEmptyString");
     }
 
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -146,7 +146,7 @@ bool ToggleButtonGenerator::SettingsCode(Code& code)
 }
 
 bool ToggleButtonGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                        int /* language */)
+                                        GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/tglbtn.h>", set_src, set_hdr);
     if (node->as_string(prop_validator_variable).size())
@@ -185,9 +185,8 @@ void ToggleButtonGenerator::RequiredHandlers(Node* /* node */, std::set<std::str
 
 wxObject* BitmapToggleButtonGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget =
-        new wxBitmapToggleButton(wxStaticCast(parent, wxWindow), wxID_ANY, wxNullBitmap, DlgPoint(parent, node, prop_pos),
-                                 DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxBitmapToggleButton(wxStaticCast(parent, wxWindow), wxID_ANY, wxNullBitmap, DlgPoint(node, prop_pos),
+                                           DlgSize(node, prop_size), GetStyleInt(node));
 
     widget->SetValue((node->as_bool(prop_pressed)));
 
@@ -235,7 +234,7 @@ bool BitmapToggleButtonGenerator::ConstructionCode(Code& code)
 
     code.Add("wxNullBitmap");
 
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -271,7 +270,7 @@ bool BitmapToggleButtonGenerator::SettingsCode(Code& code)
 }
 
 bool BitmapToggleButtonGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                              int /* language */)
+                                              GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/tglbtn.h>", set_src, set_hdr);
     if (node->as_string(prop_validator_variable).size())

@@ -27,7 +27,7 @@ bool EditStringDialogBase::Create(wxWindow* parent, wxWindowID id, const wxStrin
 
     m_textCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString);
     m_textCtrl->SetValidator(wxTextValidator(wxFILTER_NONE, &m_value));
-    m_textCtrl->SetMinSize(wxSize(500, -1));
+    m_textCtrl->SetMinSize(FromDIP(wxSize(500, -1)));
     parent_sizer->Add(m_textCtrl, wxSizerFlags().Expand().TripleBorder(wxALL));
 
     parent_sizer->AddStretchSpacer(1);
@@ -35,7 +35,24 @@ bool EditStringDialogBase::Create(wxWindow* parent, wxWindowID id, const wxStrin
     auto* stdBtn_2 = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     parent_sizer->Add(CreateSeparatedSizer(stdBtn_2), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(parent_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(parent_sizer);
+    }
+    else
+    {
+        SetSizer(parent_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     m_textCtrl->SetFocus();
 
     Centre(wxBOTH);

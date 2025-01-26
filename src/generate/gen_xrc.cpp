@@ -51,9 +51,26 @@ int GenXrcObject(Node* node, pugi::xml_node& object, size_t xrc_flags)
 {
     auto generator = node->getNodeDeclaration()->getGenerator();
     auto result = generator->GenXrcObject(node, object, xrc_flags);
-    if (result == BaseGenerator::xrc_not_supported && node->isGen(gen_Project))
+    if (result == BaseGenerator::xrc_not_supported)
     {
-        result = BaseGenerator::xrc_updated;
+        if (node->isGen(gen_Project))
+        {
+            result = BaseGenerator::xrc_updated;
+        }
+        else
+        {
+            auto item = InitializeXrcObject(node, object);
+            auto comment = generator->GetWarning(node, GEN_LANG_XRC);
+            if (comment)
+            {
+                // We need a dummy item to hold the comment but which will not show up in the UI
+                GenXrcObjectAttributes(node, item, "wxBoxSizer");
+
+                object.append_child(pugi::node_comment).set_value(comment->c_str());
+            }
+
+            return BaseGenerator::xrc_form_not_supported;
+        }
     }
 
     if (result == BaseGenerator::xrc_sizer_item_created)
@@ -168,13 +185,11 @@ std::string GenerateXrcStr(Node* node_start, size_t xrc_flags)
     root.append_attribute("xmlns") = "http://www.wxwidgets.org/wxxrc";
     root.append_attribute("version") = "2.5.3.0";
 
-    NodeSharedPtr temp_form = nullptr;
     if (node_start->isGen(gen_MenuBar) || node_start->isGen(gen_RibbonBar) || node_start->isGen(gen_ToolBar))
     {
-        temp_form = NodeCreation.createNode(gen_PanelForm, nullptr);
-        if (temp_form)
+        if (auto temp_form = NodeCreation.createNode(gen_PanelForm, nullptr).first; temp_form)
         {
-            auto sizer = NodeCreation.createNode(gen_VerticalBoxSizer, temp_form.get());
+            auto sizer = NodeCreation.createNode(gen_VerticalBoxSizer, temp_form.get()).first;
             temp_form->adoptChild(sizer);
             auto node_copy = NodeCreation.makeCopy(node_start, sizer.get());
             sizer->adoptChild(node_copy);
@@ -327,11 +342,20 @@ static bool GenerateXrcForm(Node* form, GenResults& results, std::vector<tt_stri
             }
             else
             {
-                if (file_original.Write(new_str.c_str(), new_str.length()) != new_str.length())
+                file_original.Close();
+                if (!file_original.Create(path.make_wxString(), true))
                 {
-                    results.msgs.emplace_back() << "Cannot create or write to the file " << path << '\n';
+                    results.msgs.emplace_back() << "Cannot create the file " << path << '\n';
                     return false;
                 }
+
+                if (file_original.Write(new_str.c_str(), new_str.length()) != new_str.length())
+                {
+                    results.msgs.emplace_back() << "Cannot write to the file " << path << '\n';
+                    return false;
+                }
+
+                results.updated_files.emplace_back(path);
                 return true;
             }
         }
@@ -391,31 +415,28 @@ bool GenerateXrcFiles(GenResults& results, tt_string out_file, std::vector<tt_st
         }
         return true;
     }
+
+    bool generate_result = false;
     std::vector<Node*> forms;
     Project.CollectForms(forms);
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    results.EndClock();
-#endif
+    if (wxGetApp().isTestingMenuEnabled())
+        results.EndClock();
 
     for (auto& form: forms)
     {
         GenerateXrcForm(form, results, pClassList);
+        if (results.updated_files.size())
+        {
+            generate_result = true;
+        }
     }
 
-    if (results.msgs.size())
-    {
-        results.msgs.emplace_back() << '\n';
-    }
+    if (wxGetApp().isTestingMenuEnabled())
+        results.EndClock();
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    results.EndClock();
-#endif
-
-    return true;
+    return generate_result;
 }
-
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
 
 void MainFrame::OnGenSingleXRC(wxCommandEvent& WXUNUSED(event))
 {
@@ -458,5 +479,3 @@ void MainFrame::OnGenSingleXRC(wxCommandEvent& WXUNUSED(event))
 
     wxMessageBox(msg, "XRC Code Generation", wxOK | wxICON_INFORMATION);
 }
-
-#endif

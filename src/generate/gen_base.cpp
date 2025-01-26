@@ -31,7 +31,7 @@ std::map<wxBitmapType, std::string> g_map_types;
 
 #define ADD_TYPE(name) g_map_types[name] = #name;
 
-BaseCodeGenerator::BaseCodeGenerator(int language, Node* form_node)
+BaseCodeGenerator::BaseCodeGenerator(GenLang language, Node* form_node)
 {
     m_language = language;
     m_form_node = form_node;
@@ -227,16 +227,23 @@ void BaseCodeGenerator::GatherGeneratorIncludes(Node* node, std::set<std::string
 
     generator->GetIncludes(node, set_src, set_hdr, m_language);
 
-    if (node->hasValue(prop_derived_header))
+    if (node->hasValue(prop_subclass_header))
     {
         tt_string header("#include \"");
-        header << node->as_string(prop_derived_header) << '"';
-        set_src.insert(header);
+        header << node->as_string(prop_subclass_header) << '"';
+        if (node->isForm())
+        {
+            set_hdr.insert(header);
+        }
+        else
+        {
+            set_src.insert(header);
+        }
     }
 
-    if (node->hasValue(prop_derived_class) && !node->isPropValue(prop_class_access, "none"))
+    if (!node->isForm() && node->hasValue(prop_subclass) && !node->isPropValue(prop_class_access, "none"))
     {
-        set_hdr.insert(tt_string() << "class " << node->as_string(prop_derived_class) << ';');
+        set_hdr.insert(tt_string() << "class " << node->as_string(prop_subclass) << ';');
     }
 
     // A lot of widgets have wxWindow and/or wxAnyButton as derived classes, and those classes contain properties for
@@ -323,9 +330,9 @@ tt_string BaseCodeGenerator::GetDeclaration(Node* node)
 
     if (class_name.starts_with("wx"))
     {
-        if (node->hasValue(prop_derived_class))
+        if (node->hasValue(prop_subclass))
         {
-            code << node->as_string(prop_derived_class) << "* " << node->getNodeName() << ';';
+            code << node->as_string(prop_subclass) << "* " << node->getNodeName() << ';';
         }
         else
         {
@@ -367,6 +374,10 @@ tt_string BaseCodeGenerator::GetDeclaration(Node* node)
             if (node->as_string(prop_scale_mode) != "None")
                 code.Replace("wxStaticBitmap", "wxGenericStaticBitmap");
         }
+    }
+    else if (node->hasValue(prop_subclass))
+    {
+        code << node->as_string(prop_subclass) << "* " << node->getNodeName() << ';';
     }
     else if (class_name == "CloseButton")
     {
@@ -449,6 +460,7 @@ tt_string BaseCodeGenerator::GetDeclaration(Node* node)
         }
         code << node->as_string(prop_class_name) << "* " << node->getNodeName() << ';';
     }
+
     else if (class_name.is_sameas("dataViewColumn") || class_name.is_sameas("dataViewListColumn"))
     {
         code << "wxDataViewColumn* " << node->getNodeName() << ';';
@@ -618,7 +630,7 @@ void BaseCodeGenerator::CollectImageHeaders(Node* node, std::set<std::string>& e
                             output_dir.append_filename(path);
                             if (!output_dir.file_exists())
                             {
-                                art_dir.append_filename(path);
+                                art_dir.append_filename(path.filename());
                                 if (art_dir.file_exists())
                                 {
                                     path = art_dir;

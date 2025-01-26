@@ -13,9 +13,11 @@
 #include <wx/gdicmn.h>   // Common GDI classes, types and declarations
 #include <wx/mstream.h>  // Memory stream classes
 
-#include "node.h"          // Node class
-#include "node_creator.h"  // NodeCreator class
-#include "utils.h"         // Utility functions that work with properties
+#include "mainframe.h"        // MainFrame -- Main window frame
+#include "node.h"             // Node class
+#include "node_creator.h"     // NodeCreator class
+#include "project_handler.h"  // ProjectHandler class
+#include "utils.h"            // Utility functions that work with properties
 
 tt_string DoubleToStr(double val)
 {
@@ -250,34 +252,24 @@ tt_string ConvertEscapeSlashes(tt_string_view str)
     return result;
 }
 
-wxPoint DlgPoint(wxObject* parent, Node* node, GenEnum::PropName prop)
+wxPoint DlgPoint(Node* node, GenEnum::PropName prop)
 {
-    if (node->as_string(prop).contains("d", tt::CASE::either))
-    {
-        return wxStaticCast(parent, wxWindow)->ConvertDialogToPixels(node->as_wxPoint(prop));
-    }
-    else
-    {
+    if (!isScalingEnabled(node, prop))
         return node->as_wxPoint(prop);
-    }
+    return wxGetMainFrame()->getWindow()->FromDIP(node->as_wxPoint(prop));
 }
 
-wxSize DlgSize(wxObject* parent, Node* node, GenEnum::PropName prop)
+wxSize DlgSize(Node* node, GenEnum::PropName prop)
 {
-    if (node->as_string(prop).contains("d", tt::CASE::either))
-    {
-        return wxStaticCast(parent, wxWindow)->ConvertDialogToPixels(node->as_wxSize(prop));
-    }
-    else
-    {
+    if (!isScalingEnabled(node, prop))
         return node->as_wxSize(prop);
-    }
+    return wxGetMainFrame()->getWindow()->FromDIP(node->as_wxSize(prop));
 }
 
-int DlgPoint(wxObject* parent, int width)
+int DlgPoint(int width)
 {
     wxPoint pt = { width, -1 };
-    wxStaticCast(parent, wxWindow)->ConvertDialogToPixels(pt);
+    wxGetMainFrame()->getWindow()->FromDIP(pt);
     return pt.x;
 }
 
@@ -339,12 +331,20 @@ bool isConvertibleMime(const tt_string& suffix)
 extern const char* g_u8_cpp_keywords;  // defined in ../panels/base_panel.cpp
 extern const char* g_python_keywords;
 extern const char* g_ruby_keywords;
+extern const char* g_haskell_keywords;
+extern const char* g_lua_keywords;
+extern const char* g_perl_keywords;
+extern const char* g_rust_keywords;
 
 std::set<std::string> g_set_cpp_keywords;
 std::set<std::string> g_set_python_keywords;
 std::set<std::string> g_set_ruby_keywords;
+std::set<std::string> g_set_haskell_keywords;
+std::set<std::string> g_set_lua_keywords;
+std::set<std::string> g_set_perl_keywords;
+std::set<std::string> g_set_rust_keywords;
 
-bool isValidVarName(const std::string& str, int language)
+bool isValidVarName(const std::string& str, GenLang language)
 {
     // variable names must start with an alphabetic character or underscore character
     if (!((str[0] >= 'a' && str[0] <= 'z') || (str[0] >= 'A' && str[0] <= 'Z') || str[0] == '_'))
@@ -387,6 +387,22 @@ bool isValidVarName(const std::string& str, int language)
     else if (language == GEN_LANG_RUBY)
     {
         return lambda(g_set_ruby_keywords, g_ruby_keywords);
+    }
+    else if (language == GEN_LANG_HASKELL)
+    {
+        return lambda(g_set_haskell_keywords, g_haskell_keywords);
+    }
+    else if (language == GEN_LANG_LUA)
+    {
+        return lambda(g_set_lua_keywords, g_lua_keywords);
+    }
+    else if (language == GEN_LANG_PERL)
+    {
+        return lambda(g_set_perl_keywords, g_perl_keywords);
+    }
+    else if (language == GEN_LANG_RUST)
+    {
+        return lambda(g_set_rust_keywords, g_rust_keywords);
     }
 
     return true;
@@ -446,6 +462,13 @@ tt_string ConvertToSnakeCase(tt_string_view str)
     tt_string result(str);
     for (size_t pos = 0, original_pos = 0; pos < result.size(); ++pos, ++original_pos)
     {
+        if (str[original_pos] == '(')
+        {
+            // Assume that '(' means a function name is being passed, so stop when we reach the
+            // first '('.
+            break;
+        }
+
         if (result[pos] >= 'A' && result[pos] <= 'Z')
         {
             result[pos] = result[pos] - 'A' + 'a';
@@ -541,4 +564,125 @@ std::optional<tt_string> FileNameToVarName(tt_string_view filename, size_t max_l
     }
 
     return var_name;
+}
+
+bool isScalingEnabled(Node* node, GenEnum::PropName prop_name, GenLang m_language)
+{
+    if (tt::contains(node->as_string(prop_name), 'n', tt::CASE::either) == true)
+        return false;
+    else if (m_language == GEN_LANG_CPLUSPLUS && Project.is_wxWidgets31())
+        return false;
+    else if (m_language == GEN_LANG_LUA)
+        return false;
+    else
+        return true;
+}
+
+std::string_view ConvertFromGenLang(GenLang language)
+{
+    switch (language)
+    {
+        case GEN_LANG_CPLUSPLUS:
+            return "C++";
+            break;
+        case GEN_LANG_PERL:
+            return "Perl";
+            break;
+        case GEN_LANG_PYTHON:
+            return "Python";
+            break;
+        case GEN_LANG_RUBY:
+            return "Ruby";
+            break;
+        case GEN_LANG_RUST:
+            return "Rust";
+            break;
+        case GEN_LANG_XRC:
+            return "XRC";
+            break;
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            return "Fortran";
+            break;
+        case GEN_LANG_HASKELL:
+            return "Haskell";
+            break;
+        case GEN_LANG_LUA:
+            return "Lua";
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+        default:
+            return "an unknown language";
+            break;
+    }
+}
+
+GenLang ConvertToGenLang(tt_string_view language)
+{
+    if (language.starts_with("C++") || language.starts_with("Folder C++"))
+        return GEN_LANG_CPLUSPLUS;
+    else if (language == "Perl" || language.starts_with("wxPerl") || language.starts_with("Folder wxPerl"))
+        return GEN_LANG_PERL;
+    else if (language == "Python" || language.starts_with("wxPython") || language.starts_with("Folder wxPython"))
+        return GEN_LANG_PYTHON;
+    else if (language == "Ruby" || language.starts_with("wxRuby") || language.starts_with("Folder wxRuby"))
+        return GEN_LANG_RUBY;
+    else if (language == "Rust" || language.starts_with("wxRust") || language.starts_with("Folder wxRust"))
+        return GEN_LANG_RUST;
+    else if (language.starts_with("XRC") || language.starts_with("Folder XRC"))
+        return GEN_LANG_XRC;
+
+#if GENERATE_NEW_LANG_CODE
+    else if (language == "Fortran" || language.starts_with("wxFortran") || language.starts_with("Folder wxFortran"))
+        return GEN_LANG_FORTRAN;
+    else if (language == "Haskell" || language.starts_with("wxHaskell") || language.starts_with("Folder wxHaskell"))
+        return GEN_LANG_HASKELL;
+    else if (language == "Lua" || language.starts_with("wxLua") || language.starts_with("Folder wxLua"))
+        return GEN_LANG_LUA;
+#endif  // GENERATE_NEW_LANG_CODE
+
+    // If this wasn't an actual language setting, then return all languages
+    else
+    {
+#if GENERATE_NEW_LANG_CODE
+        return static_cast<GenLang>(GEN_LANG_CPLUSPLUS | GEN_LANG_PYTHON | GEN_LANG_RUBY | GEN_LANG_FORTRAN |
+                                    GEN_LANG_HASKELL | GEN_LANG_LUA | GEN_LANG_PERL | GEN_LANG_RUST | GEN_LANG_XRC);
+#else
+        return static_cast<GenLang>(GEN_LANG_CPLUSPLUS | GEN_LANG_PYTHON | GEN_LANG_RUBY | GEN_LANG_PERL | GEN_LANG_RUST |
+                                    GEN_LANG_XRC);
+#endif  // GENERATE_NEW_LANG_CODE
+    }
+}
+
+std::string GetLanguageExtension(GenLang language)
+{
+    switch (language)
+    {
+        case GEN_LANG_CPLUSPLUS:
+            return ".cpp";
+        case GEN_LANG_PERL:
+            return ".pl";
+        case GEN_LANG_PYTHON:
+            return ".py";
+        case GEN_LANG_RUBY:
+            return ".rb";
+        case GEN_LANG_RUST:
+            return ".rs";
+        case GEN_LANG_XRC:
+            return ".xrc";
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            return ".f90";
+        case GEN_LANG_HASKELL:
+            return ".hs";
+        case GEN_LANG_LUA:
+            return ".lua";
+#endif  // GENERATE_NEW_LANG_CODE
+
+        default:
+            return ".cpp";
+    }
 }

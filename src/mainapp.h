@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Main application class
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -38,17 +38,11 @@ public:
 
     bool isPjtMemberPrefix() const;
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-
     void ShowMsgWindow();
     bool AutoMsgWindow() const;
 
+#if defined(_DEBUG) || defined(INTERNAL_TESTING)
     void DbgCurrentTest(wxCommandEvent& event);
-#endif
-
-#if defined(_DEBUG)
-    void DbgPythonTest(wxCommandEvent& event);
-    void DbgRubyTest(wxCommandEvent& event);
 #endif
 
     void setMainFrameClosing() { m_isMainFrameClosing = true; }
@@ -62,7 +56,12 @@ public:
     bool isDarkMode() const noexcept { return m_isDarkMode; }
     bool isDarkHighContrast() const noexcept { return m_isDarkHighContrast; }
 
+    // Determines whether the testing menu is enabled
     bool isTestingMenuEnabled() const noexcept { return m_TestingMenuEnabled; }
+
+    // Determines whether the testing switch is enabled
+    bool isTestingSwitch() const noexcept { return m_is_testing_switch; }
+    void setTestingSwitch(bool value) noexcept { m_is_testing_switch = value; }
 
     bool isGenerating() const noexcept { return m_is_generating; }
 
@@ -90,6 +89,7 @@ private:
     bool m_isMainFrameClosing { false };
     // bool m_isProject_updated { false };
     bool m_TestingMenuEnabled { false };
+    bool m_is_testing_switch { false };
     bool m_is_generating { false };  // true if generating code from the command line
 
 #if (DARK_MODE)
@@ -106,3 +106,14 @@ private:
 };
 
 DECLARE_APP(App)
+
+// Do *NOT* use this before wxGetApp() has been initialized.
+// This test is available in release builds with the testing menu enabled.
+#define TEST_CONDITION(cond, msg)                                              \
+    if (wxGetApp().isTestingMenuEnabled())                                     \
+    {                                                                          \
+        if (!(cond) && AssertionDlg(__FILE__, __func__, __LINE__, #cond, msg)) \
+        {                                                                      \
+            wxTrap();                                                          \
+        }                                                                      \
+    }

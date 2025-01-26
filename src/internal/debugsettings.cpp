@@ -74,7 +74,24 @@ bool DebugSettings::Create(wxWindow* parent, wxWindowID id, const wxString& titl
     std_button_sizer = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     parent_sizer->Add(std_button_sizer, wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(parent_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(parent_sizer);
+    }
+    else
+    {
+        SetSizer(parent_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     wxPersistentRegisterAndRestore(this, "DebugSettings");
@@ -111,7 +128,8 @@ bool DebugSettings::Create(wxWindow* parent, wxWindowID id, const wxString& titl
 
     #include "mainapp.h"  // App -- App class
 
-    #include "preferences.h"  // Preferences -- Preferences class
+    #include "internal/msg_logging.h"  // MsgLogging -- Message logging class
+    #include "preferences.h"           // Preferences -- Preferences class
 
 void DebugSettings::OnInit(wxInitDialogEvent& event)
 {

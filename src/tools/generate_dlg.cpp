@@ -8,8 +8,6 @@
 // clang-format off
 
 #include <wx/button.h>
-#include <wx/sizer.h>
-#include <wx/valgen.h>
 
 #include "generate_dlg.h"
 
@@ -24,35 +22,31 @@ bool GenerateDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title,
     m_staticText = new wxStaticText(this, wxID_ANY, "Choose the code you want to generate:");
     dlg_sizer->Add(m_staticText, wxSizerFlags().Border(wxALL));
 
-    auto* box_sizer = new wxBoxSizer(wxVERTICAL);
+    m_grid_sizer = new wxGridSizer(2, 0, 0);
 
-    m_checkBaseCode = new wxCheckBox(this, wxID_ANY, "C++ &Base");
-    m_checkBaseCode->SetValidator(wxGenericValidator(&m_gen_base_code));
-    box_sizer->Add(m_checkBaseCode, wxSizerFlags().Border(wxALL));
-
-    m_checkDerived = new wxCheckBox(this, wxID_ANY, "C++ &Derived");
-    m_checkDerived->SetValidator(wxGenericValidator(&m_gen_inherited_code));
-    m_checkDerived->SetToolTip("Generate any derived files that don\'t currently exist");
-    box_sizer->Add(m_checkDerived, wxSizerFlags().Border(wxALL));
-
-    m_checkPython = new wxCheckBox(this, wxID_ANY, "&Python");
-    m_checkPython->SetValidator(wxGenericValidator(&m_gen_python_code));
-    box_sizer->Add(m_checkPython, wxSizerFlags().Border(wxALL));
-
-    m_checkRuby = new wxCheckBox(this, wxID_ANY, "&Ruby");
-    m_checkRuby->SetValidator(wxGenericValidator(&m_gen_ruby_code));
-    box_sizer->Add(m_checkRuby, wxSizerFlags().Border(wxALL));
-
-    m_checkXRC = new wxCheckBox(this, wxID_ANY, "&XRC");
-    m_checkXRC->SetValidator(wxGenericValidator(&m_gen_xrc_code));
-    box_sizer->Add(m_checkXRC, wxSizerFlags().Border(wxALL));
-
-    dlg_sizer->Add(box_sizer, wxSizerFlags().Border(wxALL));
+    dlg_sizer->Add(m_grid_sizer, wxSizerFlags().Border(wxALL));
 
     auto* stdBtn = CreateStdDialogButtonSizer(wxOK|wxCANCEL);
     dlg_sizer->Add(CreateSeparatedSizer(stdBtn), wxSizerFlags().Expand().Border(wxALL));
 
-    SetSizerAndFit(dlg_sizer);
+    if (pos != wxDefaultPosition)
+    {
+        SetPosition(FromDIP(pos));
+    }
+    if (size == wxDefaultSize)
+    {
+        SetSizerAndFit(dlg_sizer);
+    }
+    else
+    {
+        SetSizer(dlg_sizer);
+        if (size.x == wxDefaultCoord || size.y == wxDefaultCoord)
+        {
+            Fit();
+        }
+        SetSize(FromDIP(size));
+        Layout();
+    }
     Centre(wxBOTH);
 
     // Event handlers
@@ -73,13 +67,14 @@ bool GenerateDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title,
 /////////////////// Non-generated Copyright/License Info ////////////////////
 // Purpose:   Dialog for choosing and generating specific language file(s)
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2021-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2021-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
 #include <wx/config.h>  // wxConfig base header
 
 #include "gen_base.h"         // BaseCodeGenerator -- Generate Src and Hdr files for Base Class
+#include "gen_common.h"       // Common component functions
 #include "gen_results.h"      // Code generation file writing functions
 #include "image_handler.h"    // ImageHandler class
 #include "mainapp.h"          // App -- Main application class
@@ -89,10 +84,15 @@ bool GenerateDlg::Create(wxWindow* parent, wxWindowID id, const wxString& title,
 
 #include "../wxui/dlg_gen_results.h"
 
-static bool gen_base_code = true;
+static bool gen_base_code = false;
 static bool gen_derived_code = false;
+static bool gen_fortran_code = false;
+static bool gen_haskell_code = false;
+static bool gen_lua_code = false;
+static bool gen_perl_code = false;
 static bool gen_python_code = false;
 static bool gen_ruby_code = false;
+static bool gen_rust_code = false;
 static bool gen_xrc_code = false;
 
 // This generates the base class files. For the derived class files, see OnGenInhertedClass()
@@ -102,12 +102,16 @@ void MainFrame::OnGenerateCode(wxCommandEvent&)
     ProjectImages.UpdateEmbedNodes();
     bool code_generated = false;
     GenResults results;
+
+    // This looks for
     auto output_type = Project.getOutputType();
 
-    // First check to see if there is only one code output type. If so, then we can skip the
-    // dialog.
-
-    if (output_type == OUTPUT_CPLUS)
+    if (output_type == OUTPUT_XRC)
+    {
+        GenerateXrcFiles(results);
+        code_generated = true;
+    }
+    else if (output_type == OUTPUT_CPLUS)
     {
         GenerateCppFiles(results);
         code_generated = true;
@@ -119,17 +123,12 @@ void MainFrame::OnGenerateCode(wxCommandEvent&)
     }
     else if (output_type == OUTPUT_PYTHON)
     {
-        GeneratePythonFiles(results);
+        GenerateLanguageFiles(results, nullptr, GEN_LANG_PYTHON);
         code_generated = true;
     }
     else if (output_type == OUTPUT_RUBY)
     {
-        GenerateRubyFiles(results);
-        code_generated = true;
-    }
-    else if (output_type == OUTPUT_XRC)
-    {
-        GenerateXrcFiles(results);
+        GenerateLanguageFiles(results, nullptr, GEN_LANG_RUBY);
         code_generated = true;
     }
 
@@ -138,6 +137,15 @@ void MainFrame::OnGenerateCode(wxCommandEvent&)
         GenerateDlg dlg(this);
         if (dlg.ShowModal() == wxID_OK)
         {
+            // Always generate XRC files first in case the XRC files need to be added to a gen_Data
+            // section of the other languages.
+            gen_xrc_code = dlg.is_gen_xrc();
+            if (gen_xrc_code)
+            {
+                GenerateXrcFiles(results);
+                code_generated = true;
+            }
+
             gen_base_code = dlg.is_gen_base();
             if (gen_base_code)
             {
@@ -152,35 +160,75 @@ void MainFrame::OnGenerateCode(wxCommandEvent&)
                 code_generated = true;
             }
 
+            gen_perl_code = dlg.is_gen_perl();
+            if (gen_perl_code)
+            {
+                GenerateLanguageFiles(results, nullptr, GEN_LANG_PERL);
+                code_generated = true;
+            }
+
             gen_python_code = dlg.is_gen_python();
             if (gen_python_code)
             {
-                GeneratePythonFiles(results);
+                GenerateLanguageFiles(results, nullptr, GEN_LANG_PYTHON);
                 code_generated = true;
             }
 
             gen_ruby_code = dlg.is_gen_ruby();
             if (gen_ruby_code)
             {
-                GenerateRubyFiles(results);
+                GenerateLanguageFiles(results, nullptr, GEN_LANG_RUBY);
                 code_generated = true;
             }
 
-            gen_xrc_code = dlg.is_gen_xrc();
-            if (gen_xrc_code)
+            gen_rust_code = dlg.is_gen_rust();
+            if (gen_rust_code)
             {
-                GenerateXrcFiles(results);
+                GenerateLanguageFiles(results, nullptr, GEN_LANG_RUST);
                 code_generated = true;
             }
+
+#if GENERATE_NEW_LANG_CODE
+            gen_fortran_code = dlg.is_gen_fortran();
+            if (gen_fortran_code)
+            {
+                GenerateLanguageFiles(results, nullptr, GEN_LANG_FORTRAN);
+                code_generated = true;
+            }
+
+            gen_haskell_code = dlg.is_gen_haskell();
+            if (gen_haskell_code)
+            {
+                GenerateLanguageFiles(results, nullptr, GEN_LANG_HASKELL);
+                code_generated = true;
+            }
+
+            gen_lua_code = dlg.is_gen_lua();
+            if (gen_lua_code)
+            {
+                GenerateLanguageFiles(results, nullptr, GEN_LANG_LUA);
+                code_generated = true;
+            }
+#endif  // GENERATE_NEW_LANG_CODE
 
             if (wxGetApp().isTestingMenuEnabled())
             {
                 auto* config = wxConfig::Get();
                 config->SetPath("/preferences");
+                config->Write("gen_xrc_code", gen_xrc_code);
                 config->Write("gen_base_code", gen_base_code);
+                config->Write("gen_derived_code", gen_derived_code);
+                config->Write("gen_perl_code", gen_perl_code);
                 config->Write("gen_python_code", gen_python_code);
                 config->Write("gen_ruby_code", gen_ruby_code);
-                config->Write("gen_xrc_code", gen_xrc_code);
+                config->Write("gen_rust_code", gen_rust_code);
+
+#if GENERATE_NEW_LANG_CODE
+                config->Write("gen_fortran_code", gen_fortran_code);
+                config->Write("gen_haskell_code", gen_haskell_code);
+                config->Write("gen_lua_code", gen_lua_code);
+#endif  // GENERATE_NEW_LANG_CODE
+
                 config->SetPath("/");
             }
         }
@@ -223,130 +271,127 @@ void MainFrame::OnGenerateCode(wxCommandEvent&)
 
 void GenerateDlg::OnInit(wxInitDialogEvent& event)
 {
-    if (wxGetApp().isTestingMenuEnabled())
+    auto languages = Project.getGenerateLanguages();
+
+    switch (Project.getCodePreference())
     {
-        auto* config = wxConfig::Get();
-        config->SetPath("/preferences");
-        gen_base_code = config->ReadBool("gen_base_code", true);
-        gen_python_code = config->ReadBool("gen_python_code", false);
-        gen_ruby_code = config->ReadBool("gen_ruby_code", false);
-        gen_xrc_code = config->ReadBool("gen_xrc_code", false);
-        config->SetPath("/");
+        case GEN_LANG_CPLUSPLUS:
+            gen_base_code = true;
+            break;
+        case GEN_LANG_PERL:
+            gen_perl_code = true;
+            break;
+        case GEN_LANG_PYTHON:
+            gen_python_code = true;
+            break;
+        case GEN_LANG_RUBY:
+            gen_ruby_code = true;
+            break;
+        case GEN_LANG_RUST:
+            gen_rust_code = true;
+            break;
+        case GEN_LANG_XRC:
+            gen_xrc_code = true;
+            break;
+
+        case GEN_LANG_FORTRAN:
+            gen_fortran_code = false;
+            break;
+        case GEN_LANG_HASKELL:
+            gen_haskell_code = false;
+            break;
+        case GEN_LANG_LUA:
+            gen_lua_code = false;
+            break;
+        default:
+            break;
     }
 
-    auto output_type = Project.getOutputType();
-
-    auto language = Project.getCodePreference(wxGetFrame().getSelectedNode());
-
-    if (language == GEN_LANG_CPLUSPLUS)
+    if (languages & GEN_LANG_CPLUSPLUS || gen_base_code || gen_derived_code)
     {
-        m_gen_python_code = false;
-        m_gen_ruby_code = false;
-        m_gen_base_code = true;
-        m_gen_xrc_code = false;
+        m_gen_base_code = gen_base_code;
+        m_checkBaseCode = new wxCheckBox(this, wxID_ANY, "C++ &Base");
+        m_checkBaseCode->SetValidator(wxGenericValidator(&m_gen_base_code));
+        m_grid_sizer->Add(m_checkBaseCode, wxSizerFlags().Border(wxALL));
 
-        if (not(output_type & OUTPUT_XRC))
-        {
-            m_checkXRC->Hide();
-        }
-        if (not(output_type & OUTPUT_PYTHON))
-        {
-            m_checkPython->Hide();
-        }
-        if (not(output_type & OUTPUT_RUBY))
-        {
-            m_checkRuby->Hide();
-        }
+        m_gen_inherited_code = gen_derived_code;
+        m_checkDerived = new wxCheckBox(this, wxID_ANY, "C++ &Derived");
+        m_checkDerived->SetValidator(wxGenericValidator(&m_gen_inherited_code));
+        m_checkDerived->SetToolTip("Generate any derived files that don\'t currently exist");
+        m_grid_sizer->Add(m_checkDerived, wxSizerFlags().Border(wxALL));
     }
-    else if (language == GEN_LANG_PYTHON)
+    if (languages & GEN_LANG_PERL && gen_perl_code)
     {
-        m_gen_python_code = true;
-        m_gen_ruby_code = false;
-        m_gen_base_code = false;
-        m_gen_xrc_code = false;
-
-        if (not(output_type & OUTPUT_XRC))
-        {
-            m_checkXRC->Hide();
-        }
-        if (not(output_type & OUTPUT_CPLUS))
-        {
-            m_checkBaseCode->Hide();
-        }
-        if (not(output_type & OUTPUT_DERIVED))
-        {
-            m_checkDerived->Hide();
-        }
-        if (not(output_type & OUTPUT_RUBY))
-        {
-            m_checkRuby->Hide();
-        }
+        m_gen_perl_code = gen_perl_code;
+        m_checkPerl = new wxCheckBox(this, wxID_ANY, "Perl");
+        m_checkPerl->SetValidator(wxGenericValidator(&m_gen_perl_code));
+        m_grid_sizer->Add(m_checkPerl, wxSizerFlags().Border(wxALL));
+        if (gen_perl_code)
+            m_checkPerl->SetValue(true);
     }
-    else if (language == GEN_LANG_RUBY)
+    if (languages & GEN_LANG_PYTHON || gen_python_code)
     {
-        m_gen_python_code = false;
-        m_gen_ruby_code = true;
-        m_gen_base_code = false;
-        m_gen_xrc_code = false;
-
-        if (not(output_type & OUTPUT_XRC))
-        {
-            m_checkXRC->Hide();
-        }
-        if (not(output_type & OUTPUT_CPLUS))
-        {
-            m_checkBaseCode->Hide();
-        }
-        if (not(output_type & OUTPUT_DERIVED))
-        {
-            m_checkDerived->Hide();
-        }
-        if (not(output_type & OUTPUT_PYTHON))
-        {
-            m_checkPython->Hide();
-        }
+        m_gen_python_code = gen_python_code;
+        m_checkPython = new wxCheckBox(this, wxID_ANY, "Python");
+        m_checkPython->SetValidator(wxGenericValidator(&m_gen_python_code));
+        m_grid_sizer->Add(m_checkPython, wxSizerFlags().Border(wxALL));
+        if (gen_python_code)
+            m_checkPython->SetValue(true);
     }
-    else if (language == GEN_LANG_XRC)
+    if (languages & GEN_LANG_RUBY || gen_ruby_code)
     {
-        m_gen_python_code = false;
-        m_gen_ruby_code = false;
-        m_gen_base_code = false;
-        m_gen_xrc_code = true;
-
-        // For XRC preferred files, we still display all the other languages in case the user
-        // is combining XRC with one of those languages.
+        m_gen_ruby_code = gen_ruby_code;
+        m_checkRuby = new wxCheckBox(this, wxID_ANY, "Ruby");
+        m_checkRuby->SetValidator(wxGenericValidator(&m_gen_ruby_code));
+        m_grid_sizer->Add(m_checkRuby, wxSizerFlags().Border(wxALL));
+        if (gen_ruby_code)
+            m_checkRuby->SetValue(true);
     }
-    else
+    if (languages & GEN_LANG_RUST || gen_rust_code)
     {
-        m_gen_python_code = false;
-        m_gen_ruby_code = false;
-        m_gen_base_code = false;
-        m_gen_xrc_code = false;
-
-        // We get here if a new language preference has been added but we haven't updated this
-        // dialog to support it yet.
+        m_gen_rust_code = gen_rust_code;
+        m_checkRust = new wxCheckBox(this, wxID_ANY, "RUST");
+        m_checkRust->SetValidator(wxGenericValidator(&m_gen_rust_code));
+        m_grid_sizer->Add(m_checkRust, wxSizerFlags().Border(wxALL));
+        if (gen_rust_code)
+            m_checkRust->SetValue(true);
     }
-    if (wxGetApp().isTestingMenuEnabled())
+    if (languages & GEN_LANG_XRC || gen_xrc_code)
     {
-        if (output_type & OUTPUT_PYTHON)
-        {
-            m_gen_python_code = gen_python_code;
-        }
-        if (output_type & OUTPUT_RUBY)
-        {
-            m_gen_ruby_code = gen_ruby_code;
-        }
-        if (output_type & OUTPUT_CPLUS)
-        {
-            m_gen_base_code = gen_base_code;
-        }
-        if (output_type & OUTPUT_XRC)
-        {
-            m_gen_xrc_code = gen_xrc_code;
-        }
+        m_gen_xrc_code = gen_xrc_code;
+        m_checkXRC = new wxCheckBox(this, wxID_ANY, "XRC");
+        m_checkXRC->SetValidator(wxGenericValidator(&m_gen_xrc_code));
+        m_grid_sizer->Add(m_checkXRC, wxSizerFlags().Border(wxALL));
+        if (gen_xrc_code)
+            m_checkXRC->SetValue(true);
     }
 
-    // Some checkboxes may be hidden at this point, so we need to resize the dialog to fit.
+#if GENERATE_NEW_LANG_CODE
+    if (languages & GEN_LANG_FORTRAN || gen_fortran_code)
+    {
+        m_gen_fortran_code = gen_fortran_code;
+        m_checkFortran = new wxCheckBox(this, wxID_ANY, "Fortran");
+        m_checkFortran->SetValidator(wxGenericValidator(&m_gen_fortran_code));
+        m_grid_sizer->Add(m_checkFortran, wxSizerFlags().Border(wxALL));
+        if (gen_fortran_code)
+            m_checkFortran->SetValue(true);
+    }
+    if (languages & GEN_LANG_HASKELL || gen_haskell_code)
+    {
+        m_checkHaskell = new wxCheckBox(this, wxID_ANY, "Haskell");
+        m_checkHaskell->SetValidator(wxGenericValidator(&m_gen_haskell_code));
+        m_grid_sizer->Add(m_checkHaskell, wxSizerFlags().Border(wxALL));
+        if (gen_haskell_code)
+            m_checkHaskell->SetValue(true);
+    }
+    if (languages & GEN_LANG_LUA || gen_lua_code)
+    {
+        m_gen_lua_code = gen_lua_code;
+        m_checkLua = new wxCheckBox(this, wxID_ANY, "Lua");
+        m_checkLua->SetValidator(wxGenericValidator(&m_gen_lua_code));
+        m_grid_sizer->Add(m_checkLua, wxSizerFlags().Border(wxALL));
+    }
+#endif  // GENERATE_NEW_LANG_CODE
 
     // You have to reset minimum size to allow the window to shrink
     SetMinSize(wxSize(-1, -1));

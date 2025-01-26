@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Helper class for generating code
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2022-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2022-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -29,6 +29,14 @@ namespace code
         window_name_needed = 1 << 3
     };
 
+    enum ScalingType
+    {
+        no_scaling = 0,
+        allow_scaling = 1,
+        conditional_scaling,
+        force_scaling
+    };
+
     enum
     {
         // Will add eol if empty.
@@ -39,8 +47,8 @@ namespace code
         eol_always
     };
 
-    constexpr const bool no_dlg_units = false;
-    constexpr const bool allow_dlg_units = true;
+    constexpr const bool no_dpi_scaling = false;
+    constexpr const bool allow_dpi_scaling = true;
 
 };  // namespace code
 
@@ -50,14 +58,18 @@ using namespace code;
 extern const view_map g_map_python_prefix;
 extern const view_map g_map_ruby_prefix;
 
+// Returns true if value exists in one of the use Wx qw(...) declarations.
+// If true, then the constant is available without modification.
+bool HasPerlMapConstant(std::string_view value);
+
 class Code : public tt_string
 {
 public:
     Node* m_node;
-    int m_language;
+    GenLang m_language;
 
-    Code(Node* node, int language = GEN_LANG_CPLUSPLUS);
-    void Init(Node* node, int language = GEN_LANG_CPLUSPLUS);
+    Code(Node* node, GenLang language = GEN_LANG_CPLUSPLUS);
+    void Init(Node* node, GenLang language = GEN_LANG_CPLUSPLUS);
 
     tt_string& GetCode() { return *this; }
     tt_string_view GetView() const { return *this; }
@@ -77,8 +89,14 @@ public:
     }
 
     bool is_cpp() const { return m_language == GEN_LANG_CPLUSPLUS; }
+    bool is_perl() const { return m_language == GEN_LANG_PERL; }
     bool is_python() const { return m_language == GEN_LANG_PYTHON; }
     bool is_ruby() const { return m_language == GEN_LANG_RUBY; }
+    bool is_rust() const { return m_language == GEN_LANG_RUST; }
+
+    bool is_fortran() const { return m_language == GEN_LANG_FORTRAN; }
+    bool is_haskell() const { return m_language == GEN_LANG_HASKELL; }
+    bool is_lua() const { return m_language == GEN_LANG_LUA; }
 
     bool is_local_var() const;
 
@@ -86,7 +104,7 @@ public:
     int IntValue(GenEnum::PropName prop_name) const;
 
     Node* node() const { return m_node; }
-    int get_language() const { return m_language; }
+    GenLang get_language() const { return m_language; }
 
     bool hasValue(GenEnum::PropName prop_name) const;
 
@@ -185,10 +203,21 @@ public:
     // If needed, the line will be broken *before* the string is added.
     Code& Add(tt_string_view text);
 
+    // Same as Add() except that Perl won't use a Wx:: prefix, instead it assumes the
+    // constant was defined in the "use Wx qw(...);" statement.
+    Code& AddConstant(tt_string_view text);
+
     Code& Add(const Code& text) { return Add(text.GetView()); }
 
     // Equivalent to calling as_string(prop_name). Correctly modifies the string for Python.
     Code& Add(GenEnum::PropName prop_name) { return as_string(prop_name); }
+
+    Code& AddIfLang(GenLang lang, tt_string_view text)
+    {
+        if (m_language == lang)
+            Add(text);
+        return *this;
+    }
 
     Code& AddIfCpp(tt_string_view text)
     {
@@ -219,14 +248,20 @@ public:
     // Equibalent to Add(node->as_constant(prop_name, "...")
     Code& AddConstant(GenEnum::PropName prop_name, tt_string_view short_name);
 
-    // Adds "true" for all languages except Python, which adds "True"
-    Code& True() { return Str(is_python() ? "True" : "true"); }
+    // If UserPrefs.is_AddComments() is true, then add the comment on it's own line.
+    // Set force to true to always add the comment.
+    // The comment will be prefixed with "// " for C++ and "# " for Python and Ruby.
+    // The comment will be followed by a newline.
+    Code& AddComment(std::string_view comment, bool force = false);
+
+    // Adds "True" for Python, "1" for Perl, and "true" for all other languages
+    Code& True();
 
     // Calls AddTrue() or AddFalse() depending on the boolean value of the property
     Code& TrueFalseIf(GenEnum::PropName prop_name);
 
-    // Adds "false" for all languages except Python, which adds "False"
-    Code& False() { return Str(is_python() ? "False" : "false"); }
+    // Adds "False" for Python, "0" for Perl, and "false" for all other languages
+    Code& False();
 
     // Use Str() instead of Add() if you are *absolutely* certain you will never need
     // wxPython or wxRuby (or any other language) processing.
@@ -363,9 +398,6 @@ public:
     // Empty strings generate wxEmptyString for C++, '' for Ruby and "" for other languages.
     Code& QuotedString(tt_string_view text);
 
-    // Will either generate wxSize(...) or ConvertDialogToPixels(wxSize(...))
-    Code& WxSize(GenEnum::PropName prop_name = GenEnum::PropName::prop_size, bool enable_dlg_units = allow_dlg_units);
-
     // If scale_border_size is true, will add the language-specific code for
     // "FromDIP(wxSize(prop_border_size,-1)).x". Otherwise, it will just add
     // prop_border_size
@@ -377,17 +409,21 @@ public:
         return *this;
     }
 
-    // Will prefix text with "// " for C++ or "# " for Python
-    Code& AddComment(tt_string_view text);
+    // Will either generate wxSize(...) or FromDIP(wxSize(...))
+    Code& WxSize(GenEnum::PropName prop_name = GenEnum::PropName::prop_size, int enable_dpi_scaling = conditional_scaling);
 
-    // Will either generate wxPoint(...) or ConvertDialogToPixels(wxPoint(...))
-    Code& Pos(GenEnum::PropName prop_name = GenEnum::PropName::prop_pos, bool enable_dlg_units = allow_dlg_units);
+    // Will either generate wxSize(...) or FromDIP(wxSize(...))
+    Code& WxSize(wxSize size, int enable_dpi_scaling = conditional_scaling);
+
+    // Will either generate wxPoint(...) or FromDIP(wxPoint(...))
+    Code& Pos(GenEnum::PropName prop_name = GenEnum::PropName::prop_pos, int enable_dpi_scaling = conditional_scaling);
 
     // Check for pos, size, style, window_style, and window name, and generate code if needed
     // starting with a comma, e.g. -- ", wxPoint(x, y), wxSize(x, y), styles, name);"
     //
     // If the only style specified is def_style, then it will not be added.
-    Code& PosSizeFlags(bool uses_def_validator = false, tt_string_view def_style = tt_empty_cstr);
+    Code& PosSizeFlags(ScalingType enable_dpi_scaling = conditional_scaling, bool uses_def_validator = false,
+                       tt_string_view def_style = tt_empty_cstr);
 
     // Call this when you need to force a specific style such as "wxCHK_3STATE"
     Code& PosSizeForceStyle(tt_string_view force_style, bool uses_def_validator = true);
@@ -415,7 +451,6 @@ public:
     Code& ColourCode(GenEnum::PropName prop_name);
 
     Code& GenSizerFlags();
-
     void Indent(int amount = 1) { m_indent += amount; }
     void Unindent(int amount = 1)
     {
@@ -427,17 +462,39 @@ public:
     }
     void ResetIndent() { m_indent = 0; }
 
-    // In C++, this adds "{\n" and indents all lines until CloseBrace() is called.
-    //
-    // Ignored by Python and Ruby.
-    Code& OpenBrace();
+    // Call Indent() and Eol(eol_if_needed).
+    // In C++, Perl, and Rust "{" will be added before calling Indent().
+    Code& OpenBrace(bool all_languages = false);
 
     // In C++, this adds "\\n}" and removes indentation set by OpenBrace().
-    Code& CloseBrace();
+    //
+    // if (all_languages == true) other languages add '\n\ and call Unindent()
+    // Set close_ruby to false if there will be an else statement next.
+    Code& CloseBrace(bool all_languages = false, bool close_ruby = true);
 
     void ResetBraces() { m_within_braces = false; }
 
-    bool is_WithinBraces() const { return m_within_braces; }
+    // In C++ adds "if (".
+    // In Python and Ruby, adds "if ".
+    Code& BeginConditional();
+
+    // For C++ and Ruby, adds " && ".
+    // For Python, adds " and ".
+    Code& AddConditionalAnd();
+
+    // For C++ and Ruby, adds " || ".
+    // For Python, adds " or ".
+    Code& AddConditionalOr();
+
+    // In C++ conditional statements are terminated with ')'.
+    // In Python conditional statements are terminated with ':'
+    // Ruby doesn't need anything to end a conditional statement.
+    Code& EndConditional();
+
+    // Returns false if enable_dpi_scaling is set to no_dpi_scaling, or property contains a
+    // 'n', or language is C++ and wxWidgets 3.1 is being used, or enable_dpi_scaling is set
+    // to conditional_scaling and the node is a form.
+    bool is_ScalingEnabled(GenEnum::PropName prop_name, int enable_dpi_scaling = code::allow_scaling) const;
 
 protected:
     void InsertLineBreak(size_t cur_pos);
@@ -448,9 +505,8 @@ protected:
     void CloseFontBrace();
 
 private:
-    // wx for C++, wx. for Python, Wx:: for Ruby
+    // This is changed on a per-language basis in Code::Init()
     tt_string m_language_wxPrefix { "wx" };
-    tt_string m_lang_assignment { " = " };  // " = " default, " := " for Go
 
     size_t m_break_length { 80 };
     size_t m_break_at { 80 };       // this should be the same as m_break_length

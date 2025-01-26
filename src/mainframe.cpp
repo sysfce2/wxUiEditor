@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Main window frame
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2020-2024 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2020-2025 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -33,6 +33,7 @@
 #include "clipboard.h"        // wxUiEditorData -- Handles reading and writing OS clipboard data
 #include "cstm_event.h"       // CustomEvent -- Custom Event class
 #include "gen_base.h"         // Generate Base class
+#include "gen_common.h"       // Common component functions
 #include "gen_enums.h"        // Enumerations for generators
 #include "node.h"             // Node class
 #include "node_creator.h"     // NodeCreator class
@@ -56,16 +57,15 @@
 #include "wxui/ui_images.h"  // This is generated from the Images List
 
 #include "internal/code_compare.h"  // CodeCompare
+#include "internal/msg_logging.h"   // MsgLogging -- Message logging class
 #include "internal/node_info.h"     // NodeInfo
 #include "internal/undo_info.h"     // UndoInfo
 
-#if defined(INTERNAL_TESTING)
-    #include "internal/import_panel.h"  // ImportPanel -- Panel to display original imported file
-#endif
+#include "internal/import_panel.h"  // ImportPanel -- Panel to display original imported file
+#include "internal/xrcpreview.h"    // XrcPreview
 
 #if defined(_DEBUG) || defined(INTERNAL_TESTING)
     #include "internal/debugsettings.h"  // DebugSettings -- Settings while running the Debug version of wxUiEditor
-    #include "internal/xrcpreview.h"     // XrcPreview
 #endif
 
 #include "mockup/mockup_parent.h"  // MockupParent -- Top-level MockUp Parent window
@@ -82,6 +82,7 @@ enum
 {
     IDM_IMPORT_WINRES = wxID_HIGHEST + 500,
 
+    id_TestSwitch,
     id_CodeDiffDlg,
     id_ConvertImage,
     id_DebugCurrentTest,
@@ -92,9 +93,19 @@ enum
     id_GenerateCpp,
     id_GeneratePython,
     id_GenerateRuby,
+    id_GenerateFortran,
+    id_GenerateHaskell,
+    id_GenerateLua,
+    id_GeneratePerl,
+    id_GenerateRust,
     id_GenSingleCpp,
     id_GenSinglePython,
     id_GenSingleRuby,
+    id_GenSingleFortran,
+    id_GenSingleHaskell,
+    id_GenSingleLua,
+    id_GenSinglePerl,
+    id_GenSingleRust,
     id_NodeMemory,
     id_ShowLogger,
     id_XrcPreviewDlg,
@@ -106,12 +117,7 @@ enum
 
 const char* txtEmptyProject = "Empty Project";
 
-MainFrame::MainFrame() :
-    MainFrameBase(nullptr), m_findData(wxFR_DOWN)
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    ,
-    m_ImportHistory(9, wxID_FILE1 + 1000)
-#endif  // _DEBUG
+MainFrame::MainFrame() : MainFrameBase(nullptr), m_findData(wxFR_DOWN), m_ImportHistory(9, wxID_FILE1 + 1000)
 {
     m_dpi_menu_size = FromDIP(wxSize(16, 16));
     m_dpi_toolbar_size = FromDIP(wxSize(16, 16));
@@ -189,104 +195,101 @@ MainFrame::MainFrame() :
     if (wxGetApp().isTestingMenuEnabled())
     {
         auto menuTesting = new wxMenu;
+
         menuTesting->Append(id_CodeDiffDlg, "Compare Code &Generation...",
                             "Dialog showing what class have changed, and optional viewing in WinMerge");
         menuTesting->Append(id_FindWidget, "&Find Widget...", "Search for a widget starting with the current selected node");
         menuTesting->Append(id_NodeMemory, "Node &Information...", "Show node memory usage");
         menuTesting->Append(id_UndoInfo, "Undo &Stack Information...", "Show undo/redo stack memory usage");
+        menuTesting->AppendSeparator();
+        menuTesting->Append(id_GeneratePython, "&Generate Python", "Generate all python files from current project.");
+        menuTesting->Append(id_GenerateRuby, "&Generate Ruby", "Generate all ruby files from current project.");
+
+        auto* submenu_xrc = new wxMenu();
+        wxMenuItem* item;
+        item = submenu_xrc->Append(id_XrcPreviewDlg, "&XRC Tests...", "Dialog with multiple XRC tests");
+        item->SetBitmap(bundle_xrc_tests_svg(16, 16));
+        item =
+            submenu_xrc->Append(id_DebugXrcImport, "&Test XRC import", "Export the current form, then verify importing it");
+        item->SetBitmap(bundle_import_svg(16, 16));
+        submenu_xrc->Append(id_DebugXrcDuplicate, "&Test XRC duplication",
+                            "Duplicate the current form via Export and Import XRC");
+        menuTesting->AppendSubMenu(submenu_xrc, "&XRC");
+
+        menuTesting->AppendSeparator();
+        menuTesting->Append(id_ShowLogger, "Show &Log Window", "Show window containing debug messages");
+        auto menuItem = menuTesting->Append(id_TestSwitch, "Testing Switch", "Toggle test switch", wxITEM_CHECK);
+        menuItem->Check(wxGetApp().isTestingSwitch());
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent& event)
+            {
+                if (wxGetApp().isTestingSwitch())
+                {
+                    wxGetApp().setTestingSwitch(false);
+                    wxStaticCast(event.GetEventObject(), wxMenu)->FindItem(id_TestSwitch)->Check(false);
+                }
+                else
+                {
+                    wxGetApp().setTestingSwitch(true);
+                    wxStaticCast(event.GetEventObject(), wxMenu)->FindItem(id_TestSwitch)->Check(true);
+                }
+            },
+            id_TestSwitch);
+
         m_menubar->Append(menuTesting, "Testing");
+
+        m_submenu_import_recent = new wxMenu();
+        m_menuFile->AppendSeparator();
+        m_menuFile->AppendSubMenu(m_submenu_import_recent, "Import &Recent");
+
+        config = wxConfig::Get();
+        config->SetPath("/debug_history");
+        m_ImportHistory.Load(*config);
+        m_ImportHistory.UseMenu(m_submenu_import_recent);
+        m_ImportHistory.AddFilesToMenu();
+        config->SetPath("/");
+
+        Bind(wxEVT_MENU, &MainFrame::OnImportRecent, this, wxID_FILE1 + 1000, wxID_FILE9 + 1000);
     }
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
+#if defined(_DEBUG)
     auto menuInternal = new wxMenu;
 
     // We want these available in internal Release builds
 
     menuInternal->AppendSeparator();
-    menuInternal->Append(id_ShowLogger, "Show &Log Window", "Show window containing debug messages");
     menuInternal->Append(id_DebugPreferences, "Test &Settings...", "Settings to use in testing builds");
-    menuInternal->AppendSeparator();
-    menuInternal->Append(id_GenSingleCpp, "&Generate Single C++", "Generate C++ src/hdr files for seletected form.");
-    menuInternal->Append(id_GenSinglePython, "&Generate Single Python", "Generate Python file for seletected form.");
-    menuInternal->Append(id_GenSingleRuby, "&Generate Single Ruby", "Generate Ruby file for seletected form.");
-
-    // menuInternal->Append(id_GeneratePython, "&Generate Python", "Generate all python files from current project.");
-    // menuInternal->Append(id_GenerateRuby, "&Generate Ruby", "Generate all ruby files from current project.");
     menuInternal->Append(id_DebugCurrentTest, "&Current Test", "Current debugging test");
 
-    ////////////////////// Debug-only menu items //////////////////////
-    #if defined(_DEBUG)
-
     menuInternal->AppendSeparator();
-
-    auto* submenu_xrc = new wxMenu();
-    wxMenuItem* item;
-    item = submenu_xrc->Append(id_DebugXrcImport, "&Test XRC import", "Export the current form, then verify importing it");
-    item->SetBitmap(bundle_import_svg(16, 16));
-    submenu_xrc->Append(id_DebugXrcDuplicate, "&Test XRC duplication",
-                        "Duplicate the current form via Export and Import XRC");
-    item = submenu_xrc->Append(id_XrcPreviewDlg, "&XRC Tests...", "Dialog with multiple XRC tests");
-    item->SetBitmap(bundle_xrc_tests_svg(16, 16));
-    menuInternal->AppendSubMenu(submenu_xrc, "&XRC");
-
-    if (tt::file_exists("python\\py_main.py"))
-    {
-        menuInternal->Append(id_DebugPythonTest, "&Python Test", "Python debugging test");
-        Bind(wxEVT_MENU, &App::DbgPythonTest, &wxGetApp(), id_DebugPythonTest);
-    }
-
-    if (tt::file_exists("ruby\\rb_main.rb"))
-    {
-        menuInternal->Append(id_DebugRubyTest, "&Ruby Test", "Ruby debugging test");
-        Bind(wxEVT_MENU, &App::DbgRubyTest, &wxGetApp(), id_DebugRubyTest);
-    }
-
-    #endif
-    ////////////////////// End Debug-only menu items //////////////////////
-
     menuInternal->Append(id_ConvertImage, "&Convert Image...", "Image conversion testing...");
-
-    m_submenu_import_recent = new wxMenu();
-    m_menuFile->AppendSeparator();
-    m_menuFile->AppendSubMenu(m_submenu_import_recent, "Import &Recent");
-
-    config = wxConfig::Get();
-    config->SetPath("/debug_history");
-    m_ImportHistory.Load(*config);
-    m_ImportHistory.UseMenu(m_submenu_import_recent);
-    m_ImportHistory.AddFilesToMenu();
-    config->SetPath("/");
-
-    Bind(wxEVT_MENU, &MainFrame::OnImportRecent, this, wxID_FILE1 + 1000, wxID_FILE9 + 1000);
 
     m_menubar->Append(menuInternal, "&Internal");
 
-    #if defined(_DEBUG)
-    m_toolbar->AddTool(id_XrcPreviewDlg, "XRC Tests", bundle_xrc_tests_svg(24, 24), "Dialog with multiple XRC tests");
-    #endif
-
-    m_toolbar->Realize();
-
-#else
-    // For version 1.1.0.0, preview isn't reliable enough to be included in the release version
-    m_menuTools->Delete(m_mi_preview);
-    m_toolbar->DeleteTool(id_PreviewForm);
 #endif  // defined(_DEBUG) || defined(INTERNAL_TESTING)
+
+    if (wxGetApp().isTestingMenuEnabled())
+    {
+        m_toolbar->AddTool(id_XrcPreviewDlg, "XRC Tests", bundle_xrc_tests_svg(24, 24), "Dialog with multiple XRC tests");
+    }
+
+    // For version 1.1.0.0, preview isn't reliable enough to be included in the release version
+    else
+    {
+        m_menuTools->Delete(m_mi_preview);
+        m_toolbar->DeleteTool(id_PreviewForm);
+    }
+    m_toolbar->Realize();
 
     CreateStatusBar(StatusPanels);
     SetStatusBarPane(1);  // specifies where menu and toolbar help content is displayed
-#if defined(NEW_LAYOUT)
+
     // auto* box_sizer = new wxBoxSizer(wxVERTICAL);
     m_ribbon_panel = new RibbonPanel(this);
     m_mainframe_sizer->Insert(0, m_ribbon_panel, wxSizerFlags(0).Expand());
 
     CreateSplitters();
-
-    // box_sizer->Add(m_MainSplitter, wxSizerFlags(1).Expand());
-    // SetSizer(box_sizer);
-#else
-    CreateSplitters();
-#endif
 
     m_nav_panel->SetMainFrame(this);
 
@@ -351,6 +354,24 @@ MainFrame::MainFrame() :
              UpdateFrame();
          });
 
+    // Create bindings for the range of IDs in the Add menu
+
+    Bind(
+        wxEVT_MENU,
+        [](wxCommandEvent& event)
+        {
+            CreateViaNewDlg(static_cast<GenName>(event.GetId()));
+        },
+        CreateNewDialog, MdiMenuBar - 1);
+
+    Bind(
+        wxEVT_MENU,
+        [this](wxCommandEvent& event)
+        {
+            createToolNode(static_cast<GenName>(event.GetId()));
+        },
+        gen_wxMdiWindow, gen_name_array_size - 1);
+
     Bind(
         wxEVT_MENU,
         [this](wxCommandEvent&)
@@ -405,16 +426,134 @@ MainFrame::MainFrame() :
             id_UndoInfo);
         Bind(wxEVT_MENU, &MainFrame::OnFindWidget, this, id_FindWidget);
     }
+    if (wxGetApp().isTestingMenuEnabled())
+    {
+        Bind(wxEVT_MENU, &MainFrame::OnGenSingleCpp, this, id_GenSingleCpp);
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateSingleLanguage(GEN_LANG_PYTHON);
+            },
+            id_GenSinglePython);
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateSingleLanguage(GEN_LANG_RUBY);
+            },
+            id_GenSingleRuby);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateSingleLanguage(GEN_LANG_FORTRAN);
+            },
+            id_GenSingleFortran);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateSingleLanguage(GEN_LANG_HASKELL);
+            },
+            id_GenSingleHaskell);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateSingleLanguage(GEN_LANG_LUA);
+            },
+            id_GenSingleLua);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateSingleLanguage(GEN_LANG_PERL);
+            },
+            id_GenSinglePerl);
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateSingleLanguage(GEN_LANG_RUST);
+            },
+            id_GenSingleRust);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateLanguage(GEN_LANG_XRC);
+            },
+            id_GeneratePython);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateLanguage(GEN_LANG_RUBY);
+            },
+            id_GenerateRuby);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateLanguage(GEN_LANG_FORTRAN);
+            },
+            id_GenerateFortran);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateLanguage(GEN_LANG_HASKELL);
+            },
+            id_GenerateHaskell);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateLanguage(GEN_LANG_LUA);
+            },
+            id_GenerateLua);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateLanguage(GEN_LANG_PERL);
+            },
+            id_GeneratePerl);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                OnGenerateLanguage(GEN_LANG_RUST);
+            },
+            id_GenerateRust);
+
+        Bind(
+            wxEVT_MENU,
+            [](wxCommandEvent&)
+            {
+                g_pMsgLogging->ShowLogger();
+            },
+            id_ShowLogger);
+        Bind(wxEVT_MENU, &MainFrame::OnXrcPreview, this, id_XrcPreviewDlg);
+        Bind(wxEVT_MENU, &MainFrame::OnTestXrcImport, this, id_DebugXrcImport);
+        Bind(wxEVT_MENU, &MainFrame::OnTestXrcDuplicate, this, id_DebugXrcDuplicate);
+    }
+
+#if defined(_DEBUG)
     Bind(wxEVT_MENU, &MainFrame::OnConvertImageDlg, this, id_ConvertImage);
-    Bind(
-        wxEVT_MENU,
-        [](wxCommandEvent&)
-        {
-            g_pMsgLogging->ShowLogger();
-        },
-        id_ShowLogger);
     Bind(
         wxEVT_MENU,
         [this](wxCommandEvent&)
@@ -424,19 +563,7 @@ MainFrame::MainFrame() :
         },
         id_DebugPreferences);
 
-    Bind(wxEVT_MENU, &MainFrame::OnGenSingleCpp, this, id_GenSingleCpp);
-    Bind(wxEVT_MENU, &MainFrame::OnGenSinglePython, this, id_GenSinglePython);
-    Bind(wxEVT_MENU, &MainFrame::OnGenSingleRuby, this, id_GenSingleRuby);
-
-    // Bind(wxEVT_MENU, &MainFrame::OnGeneratePython, this, id_GeneratePython);
-    // Bind(wxEVT_MENU, &MainFrame::OnGenerateRuby, this, id_GenerateRuby);
     Bind(wxEVT_MENU, &App::DbgCurrentTest, &wxGetApp(), id_DebugCurrentTest);
-#endif
-
-#if defined(_DEBUG)
-    Bind(wxEVT_MENU, &MainFrame::OnTestXrcImport, this, id_DebugXrcImport);
-    Bind(wxEVT_MENU, &MainFrame::OnTestXrcDuplicate, this, id_DebugXrcDuplicate);
-    Bind(wxEVT_MENU, &MainFrame::OnXrcPreview, this, id_XrcPreviewDlg);
 #endif
 
     AddCustomEventHandler(GetEventHandler());
@@ -455,6 +582,17 @@ void MainFrame::OnSaveProject(wxCommandEvent& event)
         OnSaveAsProject(event);
     else
     {
+        if (Project.getOriginalProjectVersion() != Project.getProjectVersion())
+        {
+            if (wxMessageBox("A project saved with this version of wxUiEditor is not compatible with older versions of "
+                             "wxUiEditor.\n"
+                             "Continue with save?",
+                             "Save Project", wxYES_NO) == wxNO)
+            {
+                return;
+            }
+            Project.UpdateOriginalProjectVersion();  // Don't ask again
+        }
         pugi::xml_document doc;
         Project.getProjectNode()->createDoc(doc);
         if (doc.save_file(Project.getProjectFile(), "  ", pugi::format_indent_attributes))
@@ -471,54 +609,55 @@ void MainFrame::OnSaveProject(wxCommandEvent& event)
 
 void MainFrame::OnSaveAsProject(wxCommandEvent&)
 {
-    tt_string filename = Project.getProjectFile().filename();
-    if (filename.is_sameas(txtEmptyProject))
+    wxFileName filename(*Project.get_wxFileName());
+    if (!filename.IsOk())
     {
-        filename = "MyProject";
+        filename.Assign("MyProject");
     }
-    tt_string path = Project.getProjectPath();
+
     // The ".wxue" extension is only used for testing -- all normal projects should have a .wxui extension
-    wxFileDialog dialog(this, "Save Project As", path.make_wxString(), filename.make_wxString(),
+    wxFileDialog dialog(this, "Save Project As", wxFileName::GetCwd(), filename.GetFullName(),
                         "wxUiEditor Project File (*.wxui)|*.wxui;*.wxue", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
     if (dialog.ShowModal() == wxID_OK)
     {
-        filename = dialog.GetPath().utf8_string();
-        if (filename.extension().empty())
+        filename = dialog.GetPath();
+        // Note that under Windows, any extension the user added will be followed with a .wxui extension
+        auto ext = filename.GetExt();
+        if (ext.empty())
         {
-            filename.replace_extension(".wxui");
+            filename.SetExt("wxui");
         }
 
-        // Don't allow the user to walk over existing project file types that are probably associated with another designer
-        // tool
+        // Don't allow the user to walk over existing project file types that are probably associated with another
+        // designer tool
 
-        else if (filename.extension().is_sameas(".fbp", tt::CASE::either))
+        else if (ext.CmpNoCase("fbp") == 0)
         {
             wxMessageBox("You cannot save the project as a wxFormBuilder project file", "Save Project As");
             return;
         }
-        else if (filename.extension().is_sameas(".fjd", tt::CASE::either))
+        else if (ext.CmpNoCase("fjd") == 0)
         {
             wxMessageBox("You cannot save the project as a DialogBlocks project file", "Save Project As");
             return;
         }
-        else if (filename.extension().is_sameas(".wxg", tt::CASE::either))
+        else if (ext.CmpNoCase("wxg") == 0)
         {
             wxMessageBox("You cannot save the project as a wxGlade file", "Save Project As");
             return;
         }
-        else if (filename.extension().is_sameas(".wxs", tt::CASE::either))
+        else if (ext.CmpNoCase("wxs") == 0)
         {
             wxMessageBox("You cannot save the project as a wxSmith file", "Save Project As");
             return;
         }
-        else if (filename.extension().is_sameas(".xrc", tt::CASE::either))
+        else if (ext.CmpNoCase("xrc") == 0)
         {
             wxMessageBox("You cannot save the project as a XRC file", "Save Project As");
             return;
         }
-        else if (filename.extension().is_sameas(".rc", tt::CASE::either) ||
-                 filename.extension().is_sameas(".dlg", tt::CASE::either))
+        else if (ext.CmpNoCase("rc") == 0 || ext.CmpNoCase("dlg") == 0)
         {
             wxMessageBox("You cannot save the project as a Windows Resource file", "Save Project As");
             return;
@@ -526,18 +665,18 @@ void MainFrame::OnSaveAsProject(wxCommandEvent&)
 
         pugi::xml_document doc;
         Project.getProjectNode()->createDoc(doc);
-        if (doc.save_file(filename, "  ", pugi::format_indent_attributes))
+        if (doc.save_file(filename.GetFullPath().utf8_string(), "  ", pugi::format_indent_attributes))
         {
             m_isProject_modified = false;
             m_isImported = false;
-            m_FileHistory.AddFileToHistory(filename);
-            Project.setProjectFile(filename);
+            m_FileHistory.AddFileToHistory(filename.GetFullPath());
+            Project.setProjectPath(&filename);
             ProjectSaved();
             FireProjectLoadedEvent();
         }
         else
         {
-            wxMessageBox(wxString("Unable to save the project: ") << filename, "Save Project As");
+            wxMessageBox(wxString("Unable to save the project: ") << filename.GetFullPath(), "Save Project As");
         }
     };
 }
@@ -673,30 +812,9 @@ void MainFrame::OnOpenRecentProject(wxCommandEvent& event)
     }
 }
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
 void MainFrame::OnImportRecent(wxCommandEvent& event)
 {
     tt_string file = m_ImportHistory.GetHistoryFile(event.GetId() - (wxID_FILE1 + 1000)).utf8_string();
-
-    #if 0
-
-    auto extension = file.extension();
-    wxArrayString files;
-    files.Add(file.make_wxString());
-    if (extension == ".wxcp")
-        Project.appendCrafter(files);
-    else if (extension == ".fbp")
-        Project.appendFormBuilder(files);
-    else if (extension == ".wxg")
-        Project.appendGlade(files);
-    else if (extension == ".wxs")
-        Project.appendSmith(files);
-    else if (extension == ".xrc")
-        Project.appendXRC(files);
-    else if (extension == ".pjd")
-        Project.appendDialogBlocks(files);
-
-    #else  // not 0
 
     if (!SaveWarning())
         return;
@@ -714,10 +832,7 @@ void MainFrame::OnImportRecent(wxCommandEvent& event)
     {
         m_ImportHistory.RemoveFileFromHistory(event.GetId() - wxID_FILE1);
     }
-
-    #endif  // 0
 }
-#endif  // defined(_DEBUG) || defined(INTERNAL_TESTING)
 
 void MainFrame::OnNewProject(wxCommandEvent&)
 {
@@ -733,9 +848,8 @@ void MainFrame::OnImportProject(wxCommandEvent&)
     if (!SaveWarning())
         return;
 
-#if (defined(_DEBUG) || defined(INTERNAL_TESTING))
-    g_pMsgLogging->Clear();
-#endif  // _DEBUG
+    if (g_pMsgLogging)
+        g_pMsgLogging->Clear();
 
     Project.NewProject();
 }
@@ -819,14 +933,15 @@ void MainFrame::OnClose(wxCloseEvent& event)
     if (m_has_clipboard_data)
         wxTheClipboard->Flush();
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    config->SetPath("/debug_history");
-    m_ImportHistory.Save(*config);
-    config->SetPath("/");
+    if (wxGetApp().isTestingMenuEnabled())
+    {
+        config->SetPath("/debug_history");
+        m_ImportHistory.Save(*config);
+        config->SetPath("/");
 
-    g_pMsgLogging->CloseLogger();
-#endif
-
+        if (g_pMsgLogging)
+            g_pMsgLogging->CloseLogger();
+    }
     event.Skip();
 }
 
@@ -861,8 +976,14 @@ void MainFrame::ProjectLoaded()
     {
         Project.set_value(prop_wxWidgets_version, UserPrefs.get_CppWidgetsVersion());
     }
+    else if (Project.as_string(prop_wxWidgets_version) == "3.2")
+    {
+        Project.set_value(prop_wxWidgets_version, "3.2.0");
+    }
 
     m_selected_node = Project.getProjectNode()->getSharedPtr();
+
+    UpdateLanguagePanels();
 }
 
 void MainFrame::ProjectSaved()
@@ -873,8 +994,8 @@ void MainFrame::ProjectSaved()
 
 void MainFrame::OnNodeSelected(CustomEvent& event)
 {
-    // This event is normally only fired if the current selection has changed. We dismiss any previous infobar message, and
-    // check to see if the current selection has any kind of issue that we should warn the user about.
+    // This event is normally only fired if the current selection has changed. We dismiss any previous infobar message,
+    // and check to see if the current selection has any kind of issue that we should warn the user about.
     m_info_bar->Dismiss();
 
     auto evt_flags = event.getNode();
@@ -895,10 +1016,11 @@ void MainFrame::OnNodeSelected(CustomEvent& event)
         }
     }
 
-#if defined(_DEBUG) || defined(INTERNAL_TESTING)
-    g_pMsgLogging->OnNodeSelected();
-    m_imnportPanel->OnNodeSelected(evt_flags);
-#endif
+    if (wxGetApp().isTestingMenuEnabled())
+    {
+        g_pMsgLogging->OnNodeSelected();
+        m_imnportPanel->OnNodeSelected(evt_flags);
+    }
 
     UpdateFrame();
 }
@@ -1015,15 +1137,15 @@ void MainFrame::UpdateFrame()
 
     bool isMockup = (m_notebook->GetPageText(m_notebook->GetSelection()) == "Mock Up");
     m_menuEdit->Enable(wxID_FIND, !isMockup);
-#if defined(_DEBUG)
-    m_menuEdit->Enable(id_insert_widget, true);
-#else
-    m_menuEdit->Enable(id_insert_widget, m_selected_node && !m_selected_node->isFormParent());
-#endif  // _DEBUG
 
     UpdateMoveMenu();
     UpdateLayoutTools();
     UpdateWakaTime();
+}
+
+void MainFrame::OnProjectLoaded()
+{
+    UpdateFrame();
 }
 
 void MainFrame::OnCopy(wxCommandEvent&)
@@ -1274,10 +1396,18 @@ bool MainFrame::SaveWarning()
 
     if (m_isProject_modified)
     {
-        result = ::wxMessageBox("Current project file has been modified...\n"
-                                "Do you want to save the changes?",
-                                "Save project", wxYES | wxNO | wxCANCEL, this);
-
+        // Testing often requires importing multiple projects to verify they work, so there is no
+        // reason to save them.
+        if (wxGetApp().isTestingMenuEnabled() && m_isImported)
+        {
+            result = wxNO;
+        }
+        else
+        {
+            result = ::wxMessageBox("Current project file has been modified...\n"
+                                    "Do you want to save the changes?",
+                                    "Save project", wxYES | wxNO | wxCANCEL, this);
+        }
         if (result == wxYES)
         {
             wxCommandEvent dummy;
@@ -1303,17 +1433,10 @@ void MainFrame::OnAuiNotebookPageChanged(wxAuiNotebookEvent&)
             m_docviewPanel->ActivatePage();
         }
 #endif
-#if defined(INTERNAL_TESTING)
         else if (page != m_imnportPanel)
         {
             static_cast<BasePanel*>(page)->GenerateBaseClass();
         }
-#else
-        else
-        {
-            static_cast<BasePanel*>(page)->GenerateBaseClass();
-        }
-#endif
     }
 }
 
@@ -1323,12 +1446,9 @@ void MainFrame::OnFindDialog(wxCommandEvent&)
     {
         if (auto page = m_notebook->GetCurrentPage(); page)
         {
-#if defined(INTERNAL_TESTING)
-            if (page == m_imnportPanel)
+            if (wxGetApp().isTestingMenuEnabled() && page == m_imnportPanel)
                 m_findData.SetFindString(m_imnportPanel->GetTextCtrl()->GetSelectedText());
-            else
-#endif
-                if (page != m_mockupPanel && page != m_docviewPanel)
+            else if (page != m_mockupPanel && page != m_docviewPanel)
             {
                 m_findData.SetFindString(static_cast<BasePanel*>(page)->GetSelectedText());
             }
@@ -1363,28 +1483,20 @@ wxWindow* MainFrame::CreateNoteBook(wxWindow* parent)
     m_mockupPanel = new MockupParent(m_notebook, this);
     m_notebook->AddPage(m_mockupPanel, "Mock Up", false, wxWithImages::NO_IMAGE);
 
-    m_cppPanel = new BasePanel(m_notebook, this, GEN_LANG_CPLUSPLUS);
-    m_notebook->AddPage(m_cppPanel, "C++", false, wxWithImages::NO_IMAGE);
-
-    // Placing the Python panel first as it's the most commonly used language after C++
-    m_pythonPanel = new BasePanel(m_notebook, this, GEN_LANG_PYTHON);
-    m_notebook->AddPage(m_pythonPanel, "Python", false, wxWithImages::NO_IMAGE);
-
-    m_rubyPanel = new BasePanel(m_notebook, this, GEN_LANG_RUBY);
-    m_notebook->AddPage(m_rubyPanel, "Ruby", false, wxWithImages::NO_IMAGE);
-
     m_xrcPanel = new BasePanel(m_notebook, this, GEN_LANG_XRC);
     m_notebook->AddPage(m_xrcPanel, "XRC", false, wxWithImages::NO_IMAGE);
-
-#if defined(INTERNAL_TESTING)
-    m_imnportPanel = new ImportPanel(m_notebook);
-    m_notebook->AddPage(m_imnportPanel, "Import", false, wxWithImages::NO_IMAGE);
-#endif
 
 #if wxUSE_WEBVIEW
     m_docviewPanel = new DocViewPanel(m_notebook, this);
     m_notebook->AddPage(m_docviewPanel, "Docs", false, wxWithImages::NO_IMAGE);
 #endif
+
+    if (wxGetApp().isTestingMenuEnabled())
+    {
+        // Shows original import file if project is imported, otherwise it shows the project file
+        m_imnportPanel = new ImportPanel(m_notebook);
+        m_notebook->AddPage(m_imnportPanel, "Import", false, wxWithImages::NO_IMAGE);
+    }
 
     return m_notebook;
 }
@@ -1407,13 +1519,11 @@ void MainFrame::CreateSplitters()
     // m_right_panel_sizer->Add(main_toolbar, wxSizerFlags(0).Expand());
 #endif
 
-    m_SecondarySplitter = new wxSplitterWindow(m_panel_right, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE);
-    m_right_panel_sizer->Add(m_SecondarySplitter, wxSizerFlags(1).Expand());
-
     m_info_bar = new wxInfoBar(m_panel_right);
     m_right_panel_sizer->Add(m_info_bar, wxSizerFlags().Expand());
 
-    // m_panel_right->SetSizer(parent_sizer);
+    m_SecondarySplitter = new wxSplitterWindow(m_panel_right, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE);
+    m_right_panel_sizer->Add(m_SecondarySplitter, wxSizerFlags(1).Expand());
 
     m_property_panel = new PropGridPanel(m_SecondarySplitter, this);
     auto notebook = CreateNoteBook(m_SecondarySplitter);
@@ -1929,131 +2039,135 @@ bool MainFrame::MoveNode(Node* node, MoveDirection where, bool check_only)
     }
 
     if (parent->isGen(gen_wxGridBagSizer))
+    {
         return GridBag::MoveNode(node, where, check_only);
-
-    if (where == MoveDirection::Left)
-    {
-        if (node->isGen(gen_folder) || node->isGen(gen_data_folder))
-            return false;
-        else if (node->isGen(gen_sub_folder) && parent->isGen(gen_folder))
-            return false;  // You can't have Project as the parent of a sub_folder
-
-        if (parent->isGen(gen_folder) || parent->isGen(gen_sub_folder))
-        {
-            if (!check_only)
-            {
-                wxWindowUpdateLocker freeze(this);
-                PushUndoAction(std::make_shared<ChangeParentAction>(node, parent->getParent()));
-            }
-            return true;
-        }
-
-        auto grandparent = parent->getParent();
-        while (grandparent && !grandparent->isSizer())
-        {
-            grandparent = grandparent->getParent();
-        }
-
-        if (check_only)
-            return (grandparent ? true : false);
-
-        if (grandparent)
-        {
-            wxWindowUpdateLocker freeze(this);
-            PushUndoAction(std::make_shared<ChangeParentAction>(node, grandparent));
-            return true;
-        }
-        wxMessageBox("There is no sizer to the left of this item that it can be moved into.", "Move item");
     }
-    else if (where == MoveDirection::Right)
+
+    switch (where)
     {
-        if (node->isGen(gen_folder) || node->isGen(gen_data_folder))
-            return false;
+        case MoveDirection::Left:
+            if (node->isGen(gen_folder) || node->isGen(gen_data_folder))
+                return false;
+            else if (node->isGen(gen_sub_folder) && parent->isGen(gen_folder))
+                return false;  // You can't have Project as the parent of a sub_folder
 
-        auto pos = parent->getChildPosition(node) - 1;
-        if (pos < parent->getChildCount())
-        {
-            if (node->isForm() && pos >= 0)
+            if (parent->isGen(gen_folder) || parent->isGen(gen_sub_folder))
             {
-                auto* new_parent = parent->getChild(pos);
-                if (new_parent->isForm())
+                if (!check_only)
                 {
-                    if (!check_only)
-                        wxMessageBox("You cannot move a form to the right of another form.", "Move item");
-                    return false;
+                    wxWindowUpdateLocker freeze(this);
+                    auto grandparent = parent->getParent();
+                    int pos = (to_int) grandparent->getChildPosition(parent) + 1;
+                    PushUndoAction(std::make_shared<ChangeParentAction>(node, parent->getParent(), pos));
                 }
-                else if (new_parent->isGen(gen_folder) || new_parent->isGen(gen_sub_folder))
-                {
-                    if (!check_only)
-                    {
-                        wxWindowUpdateLocker freeze(this);
-                        PushUndoAction(std::make_shared<ChangeParentAction>(node, new_parent));
-                    }
-                    return true;
-                }
-            }
-            else if (node->isGen(gen_sub_folder) && pos >= 0)
-            {
-                auto* new_parent = parent->getChild(pos);
-                while (new_parent->isForm())
-                {
-                    if (pos == 0)
-                    {
-                        if (!check_only)
-                            wxMessageBox("You cannot move a folder to the right of a form.", "Move item");
-                        return false;
-                    }
-                }
-                if (new_parent->isGen(gen_folder) || new_parent->isGen(gen_sub_folder))
-                {
-                    if (!check_only)
-                    {
-                        wxWindowUpdateLocker freeze(this);
-                        PushUndoAction(std::make_shared<ChangeParentAction>(node, new_parent));
-                    }
-                    return true;
-                }
-            }
-            parent = FindChildSizerItem(parent->getChild(pos), true);
-
-            if (check_only)
-                return (parent ? true : false);
-
-            if (parent)
-            {
-                wxWindowUpdateLocker freeze(this);
-                PushUndoAction(std::make_shared<ChangeParentAction>(node, parent));
                 return true;
             }
-        }
-        if (!check_only)
-            wxMessageBox("There is nothing above this item that it can be moved into.", "Move item");
-    }
-    else if (where == MoveDirection::Up)
-    {
-        auto pos = parent->getChildPosition(node);
-        if (check_only)
-            return (pos > 0);
-        if (pos > 0)
-        {
-            wxWindowUpdateLocker freeze(this);
-            PushUndoAction(std::make_shared<ChangePositionAction>(node, pos - 1));
-            return true;
-        }
-        wxMessageBox("This component cannot be moved up any further.", "Move item");
-    }
-    else if (where == MoveDirection::Down)
-    {
-        auto pos = parent->getChildPosition(node) + 1;
-        if (check_only)
-            return (pos < parent->getChildCount());
-        if (pos < parent->getChildCount())
-        {
-            wxWindowUpdateLocker freeze(this);
-            PushUndoAction(std::make_shared<ChangePositionAction>(node, pos));
-            return true;
-        }
-        wxMessageBox(tt_string() << node->declName() << " cannot be moved down any lower.", "Move item");
+
+            if (auto grandparent = parent->getParent(); grandparent)
+            {
+                if (auto valid_parent = NodeCreation.isValidCreateParent(node->getGenName(), grandparent); valid_parent)
+                {
+                    if (!check_only)
+                    {
+                        wxWindowUpdateLocker freeze(this);
+                        int pos = -1;
+                        if (grandparent == valid_parent)
+                            pos = (to_int) grandparent->getChildPosition(parent) + 1;
+                        PushUndoAction(std::make_shared<ChangeParentAction>(node, grandparent, pos));
+                    }
+                    return true;
+                }
+            }
+            return false;
+
+        case MoveDirection::Right:
+            if (node->isGen(gen_folder) || node->isGen(gen_sub_folder) || node->isGen(gen_data_folder) ||
+                node->isGen(gen_Images) || node->isGen(gen_Data))
+            {
+                return false;
+            }
+
+            if (auto pos = parent->getChildPosition(node) - 1; pos < parent->getChildCount())
+            {
+                if (node->isForm() && pos >= 0)
+                {
+                    auto* new_parent = parent->getChild(pos);
+                    if (new_parent->isForm())
+                    {
+                        ASSERT_MSG(check_only, tt_string()
+                                                   << "MoveDirection::Right called even though check would have failed.");
+                        return false;
+                    }
+                    else if (new_parent->isGen(gen_folder) || new_parent->isGen(gen_sub_folder))
+                    {
+                        if (!check_only)
+                        {
+                            wxWindowUpdateLocker freeze(this);
+                            PushUndoAction(std::make_shared<ChangeParentAction>(node, new_parent));
+                        }
+                        return true;
+                    }
+                }
+                else if (node->isGen(gen_sub_folder) && pos >= 0)
+                {
+                    auto* new_parent = parent->getChild(pos);
+                    while (new_parent->isForm())
+                    {
+                        if (pos == 0)
+                        {
+                            ASSERT_MSG(check_only,
+                                       tt_string() << "MoveDirection::Right called even though check would have failed.");
+                            return false;
+                        }
+                    }
+                    if (new_parent->isGen(gen_folder) || new_parent->isGen(gen_sub_folder))
+                    {
+                        if (!check_only)
+                        {
+                            wxWindowUpdateLocker freeze(this);
+                            PushUndoAction(std::make_shared<ChangeParentAction>(node, new_parent));
+                        }
+                        return true;
+                    }
+                }
+
+                auto possible_parent = parent->getChild(pos);
+                if (auto valid_parent = NodeCreation.isValidCreateParent(node->getGenName(), possible_parent, false);
+                    valid_parent)
+                {
+                    if (!check_only)
+                    {
+                        wxWindowUpdateLocker freeze(this);
+                        PushUndoAction(std::make_shared<ChangeParentAction>(node, valid_parent));
+                    }
+                    return true;
+                }
+            }
+            return false;
+
+        case MoveDirection::Up:
+            if (auto pos = parent->getChildPosition(node); pos > 0)
+            {
+                if (!check_only)
+                {
+                    wxWindowUpdateLocker freeze(this);
+                    PushUndoAction(std::make_shared<ChangePositionAction>(node, pos - 1));
+                }
+                return true;
+            }
+            return false;
+
+        case MoveDirection::Down:
+            if (auto pos = parent->getChildPosition(node) + 1; pos < parent->getChildCount())
+            {
+                if (!check_only)
+                {
+                    wxWindowUpdateLocker freeze(this);
+                    PushUndoAction(std::make_shared<ChangePositionAction>(node, pos));
+                }
+                return true;
+            }
+            return false;
     }
 
     return false;
@@ -2090,26 +2204,6 @@ void MainFrame::ChangeEventHandler(NodeEvent* event, const tt_string& value)
         PushUndoAction(std::make_shared<ModifyEventAction>(event, value));
         UpdateWakaTime();
     }
-}
-
-Node* MainFrame::FindChildSizerItem(Node* node, bool include_splitter)
-{
-    if (include_splitter && node->isGen(gen_wxSplitterWindow) && node->getChildCount() < 2)
-        return node;
-    else if (node->getNodeDeclaration()->isSubclassOf(gen_sizer_dimension))
-        return node;
-    else
-    {
-        for (const auto& child: node->getChildNodePtrs())
-        {
-            if (auto result = FindChildSizerItem(child, include_splitter); result)
-            {
-                return result;
-            }
-        }
-    }
-
-    return nullptr;
 }
 
 void MainFrame::UpdateWakaTime(bool FileSavedEvent)
@@ -2223,5 +2317,302 @@ void MainFrame::OnReloadProject(wxCommandEvent& WXUNUSED(event))
                      "Reload Project", wxICON_WARNING | wxYES_NO) == wxYES)
     {
         Project.LoadProject(Project.getProjectFile());
+    }
+}
+
+void MainFrame::ShowInfoBarMsg(const tt_string& msg, int icon)
+{
+    m_info_bar->ShowMessage(msg, icon);
+    m_info_bar_dismissed = false;
+}
+
+void MainFrame::DismissInfoBar()
+{
+    if (!m_info_bar_dismissed)
+    {
+        m_info_bar->Dismiss();
+        m_info_bar_dismissed = true;
+    }
+}
+
+void MainFrame::UpdateLanguagePanels()
+{
+    wxWindowUpdateLocker freeze(this);
+
+    // Temporarily remove XRC and DocView panels which are at the end. This allows us to simply add
+    // Language panels in order, then restore the XRC and DocView panels after all language panels
+    // have been added.
+
+    if (m_imnportPanel)
+    {
+        m_notebook->RemovePage(m_notebook->GetPageIndex(m_imnportPanel));
+    }
+
+    m_notebook->RemovePage(m_notebook->GetPageIndex(m_xrcPanel));
+    if (m_docviewPanel)
+        m_notebook->RemovePage(m_notebook->GetPageIndex(m_docviewPanel));
+
+    auto languages = Project.getGenerateLanguages();
+    if (languages & GEN_LANG_CPLUSPLUS && !m_cppPanel)
+    {
+        m_cppPanel = new BasePanel(m_notebook, this, GEN_LANG_CPLUSPLUS);
+        if (Project.getCodePreference() == GEN_LANG_CPLUSPLUS)
+        {
+            m_notebook->InsertPage(1, m_cppPanel, "C++", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_cppPanel, "C++", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_CPLUSPLUS) && m_cppPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_cppPanel));
+        m_cppPanel = nullptr;
+    }
+
+    if (languages & GEN_LANG_PERL && !m_perlPanel)
+    {
+        m_perlPanel = new BasePanel(m_notebook, this, GEN_LANG_PERL);
+        if (Project.getCodePreference() == GEN_LANG_PERL)
+        {
+            m_notebook->InsertPage(1, m_perlPanel, "Perl", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_perlPanel, "Perl", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_PERL) && m_perlPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_perlPanel));
+        m_perlPanel = nullptr;
+    }
+
+    if (languages & GEN_LANG_PYTHON && !m_pythonPanel)
+    {
+        m_pythonPanel = new BasePanel(m_notebook, this, GEN_LANG_PYTHON);
+        if (Project.getCodePreference() == GEN_LANG_PYTHON)
+        {
+            m_notebook->InsertPage(1, m_pythonPanel, "Python", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_pythonPanel, "Python", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_PYTHON) && m_pythonPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_pythonPanel));
+        m_pythonPanel = nullptr;
+    }
+
+    if (languages & GEN_LANG_RUBY && !m_rubyPanel)
+    {
+        m_rubyPanel = new BasePanel(m_notebook, this, GEN_LANG_RUBY);
+        if (Project.getCodePreference() == GEN_LANG_RUBY)
+        {
+            m_notebook->InsertPage(1, m_rubyPanel, "Ruby", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_rubyPanel, "Ruby", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_RUBY) && m_rubyPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_rubyPanel));
+        m_rubyPanel = nullptr;
+    }
+
+    if (languages & GEN_LANG_RUST && !m_rustPanel)
+    {
+        m_rustPanel = new BasePanel(m_notebook, this, GEN_LANG_RUST);
+        if (Project.getCodePreference() == GEN_LANG_RUST)
+        {
+            m_notebook->InsertPage(1, m_rustPanel, "Rust", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_rustPanel, "Rust", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_RUST) && m_rustPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_rustPanel));
+        m_rustPanel = nullptr;
+    }
+
+#if GENERATE_NEW_LANG_CODE
+    if (languages & GEN_LANG_FORTRAN && !m_fortranPanel)
+    {
+        m_fortranPanel = new BasePanel(m_notebook, this, GEN_LANG_FORTRAN);
+        if (Project.getCodePreference() == GEN_LANG_FORTRAN)
+        {
+            m_notebook->InsertPage(1, m_fortranPanel, "Fortran", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_fortranPanel, "Fortran", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_FORTRAN) && m_fortranPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_fortranPanel));
+        m_fortranPanel = nullptr;
+    }
+
+    if (languages & GEN_LANG_HASKELL && !m_haskellPanel)
+    {
+        m_haskellPanel = new BasePanel(m_notebook, this, GEN_LANG_HASKELL);
+        if (Project.getCodePreference() == GEN_LANG_HASKELL)
+        {
+            m_notebook->InsertPage(1, m_haskellPanel, "Haskell", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_haskellPanel, "Haskell", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_HASKELL) && m_haskellPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_haskellPanel));
+        m_haskellPanel = nullptr;
+    }
+
+    if (languages & GEN_LANG_LUA && !m_luaPanel)
+    {
+        m_luaPanel = new BasePanel(m_notebook, this, GEN_LANG_LUA);
+        if (Project.getCodePreference() == GEN_LANG_LUA)
+        {
+            m_notebook->InsertPage(1, m_luaPanel, "Lua", false, wxWithImages::NO_IMAGE);
+        }
+        else
+        {
+            m_notebook->AddPage(m_luaPanel, "Lua", false, wxWithImages::NO_IMAGE);
+        }
+    }
+    else if (!(languages & GEN_LANG_LUA) && m_luaPanel)
+    {
+        m_notebook->DeletePage(m_notebook->GetPageIndex(m_luaPanel));
+        m_luaPanel = nullptr;
+    }
+#endif  // GENERATE_NEW_LANG_CODE
+
+    int position;
+    switch (Project.getCodePreference())
+    {
+        case GEN_LANG_CPLUSPLUS:
+            ASSERT(m_cppPanel);
+            position = m_notebook->GetPageIndex(m_cppPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_cppPanel, "C++", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+
+        case GEN_LANG_PERL:
+            ASSERT(m_perlPanel);
+            position = m_notebook->GetPageIndex(m_perlPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_perlPanel, "Perl", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+
+        case GEN_LANG_PYTHON:
+            ASSERT(m_pythonPanel);
+            position = m_notebook->GetPageIndex(m_pythonPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_pythonPanel, "Python", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+
+        case GEN_LANG_RUBY:
+            ASSERT(m_rubyPanel);
+            position = m_notebook->GetPageIndex(m_rubyPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_rubyPanel, "Ruby", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+
+        case GEN_LANG_RUST:
+            ASSERT(m_rustPanel);
+            position = m_notebook->GetPageIndex(m_rustPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_rustPanel, "Rust", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+
+#if GENERATE_NEW_LANG_CODE
+        case GEN_LANG_FORTRAN:
+            ASSERT(m_fortranPanel);
+            position = m_notebook->GetPageIndex(m_fortranPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_fortranPanel, "Fortran", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+
+        case GEN_LANG_HASKELL:
+            ASSERT(m_haskellPanel);
+            position = m_notebook->GetPageIndex(m_haskellPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_haskellPanel, "Haskell", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+
+        case GEN_LANG_LUA:
+            ASSERT(m_luaPanel);
+            position = m_notebook->GetPageIndex(m_luaPanel);
+            if (position != 1)
+            {
+                m_notebook->RemovePage(position);
+                m_notebook->InsertPage(1, m_luaPanel, "Lua", false, wxWithImages::NO_IMAGE);
+            }
+            break;
+#endif  // GENERATE_NEW_LANG_CODE
+
+        default:
+            break;
+    }
+
+    // Now add back the XRC and DocView panels at the end.
+    if (m_imnportPanel)
+    {
+        m_notebook->AddPage(m_imnportPanel, "Import", false, wxWithImages::NO_IMAGE);
+    }
+
+    m_notebook->AddPage(m_xrcPanel, "XRC", false, wxWithImages::NO_IMAGE);
+    if (m_docviewPanel)
+        m_notebook->AddPage(m_docviewPanel, "Docs", false, wxWithImages::NO_IMAGE);
+}
+
+BasePanel* MainFrame::GetFirstCodePanel()
+{
+    auto page = m_notebook->GetPage(1);
+    return static_cast<BasePanel*>(page);
+}
+
+void MainFrame::RemoveCustomEventHandler(wxEvtHandler* handler)
+{
+    for (auto iter = m_custom_event_handlers.begin(); iter != m_custom_event_handlers.end(); ++iter)
+    {
+        if (*iter == handler)
+        {
+            m_custom_event_handlers.erase(iter);
+            return;
+        }
     }
 }

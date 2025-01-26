@@ -168,9 +168,8 @@ inline wxImage wxueImage(const unsigned char* long_parameter_name,size_t another
 
 wxObject* StyledTextGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto scintilla =
-        new wxStyledTextCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                             DlgSize(parent, node, prop_size), GetStyleInt(node), node->as_wxString(prop_var_name));
+    auto scintilla = new wxStyledTextCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                          DlgSize(node, prop_size), GetStyleInt(node), node->as_wxString(prop_var_name));
 
     // By default, scintilla sets this margin width to 16. We want to shut off all margins unless the user specifically
     // requests one.
@@ -436,7 +435,7 @@ wxObject* StyledTextGenerator::CreateMockup(Node* node, wxObject* parent)
     {
         scintilla->StyleSetForeground(wxSTC_C_COMMENTLINE, wxColour(0, 128, 0));
     }
-    else if (node->as_string(prop_stc_lexer) == "PHP")
+    else if (node->as_string(prop_stc_lexer) == "Rust")
     {
         scintilla->StyleSetForeground(wxSTC_HPHP_COMMENT, wxColour(0, 128, 0));
     }
@@ -607,8 +606,8 @@ bool StyledTextGenerator::SettingsCode(Code& code)
     {
         if (code.isPropValue(prop_stc_left_margin_width, 5))
         {
-            code.Eol(eol_if_needed).AddComment("Sets text margin scaled appropriately for the current DPI on Windows,");
-            code.Eol().AddComment("5 on wxGTK or wxOSX");
+            code.AddComment("Sets text margin scaled appropriately for the current DPI on Windows,");
+            code.AddComment("5 on wxGTK or wxOSX");
             code.Eol()
                 .NodeName()
                 .Function("SetMarginLeft(")
@@ -630,9 +629,8 @@ bool StyledTextGenerator::SettingsCode(Code& code)
     {
         if (!code.isPropValue(prop_stc_left_margin_width, 5) && code.isPropValue(prop_stc_right_margin_width, 5))
         {
-            code.Eol(eol_if_needed);
             code.AddComment("Sets text margin scaled appropriately for the current DPI on Windows");
-            code.Eol().AddComment("5 on wxGTK or wxOSX");
+            code.AddComment("5 on wxGTK or wxOSX");
         }
         code.Eol(eol_if_needed).NodeName().Function("SetMarginRight(");
         if (code.isPropValue(prop_stc_right_margin_width, 5))
@@ -771,8 +769,8 @@ bool StyledTextGenerator::SettingsCode(Code& code)
         else  // circle tree or box tree
         {
             code.OpenBrace();
-            code.Eol().AddComment("The outline colour of the circle and box tree symbols is reversed by default.");
-            code.Eol().AddComment("The code below ensures that the symbol is visible.");
+            code.AddComment("The outline colour of the circle and box tree symbols is reversed by default.");
+            code.AddComment("The code below ensures that the symbol is visible.");
             code.Eol().Str(code.is_cpp() ? "auto clr_foreground" : "_clr_foreground_") += " = ";
             code.NodeName().Function("StyleGetForeground(").Add("wxSTC_STYLE_DEFAULT").EndFunction();
             code.Eol().Str(code.is_cpp() ? "clr_background" : "_clr_background_");
@@ -944,7 +942,7 @@ bool StyledTextGenerator::SettingsCode(Code& code)
 }
 
 bool StyledTextGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/stc/stc.h>", set_src, set_hdr);
     return true;
@@ -1149,8 +1147,15 @@ void StyledTextGenerator::RequiredHandlers(Node* /* node */, std::set<std::strin
     handlers.emplace("wxStyledTextCtrlXmlHandler");
 }
 
-bool StyledTextGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool StyledTextGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/stc'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/stc'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }

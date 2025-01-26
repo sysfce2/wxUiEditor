@@ -20,8 +20,8 @@
 
 wxObject* AuiNotebookGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxAuiNotebook(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                    DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxAuiNotebook(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                    DlgSize(node, prop_size), GetStyleInt(node));
     if (node->as_string(prop_art_provider).is_sameas("wxAuiGenericTabArt"))
         widget->SetArtProvider(new wxAuiGenericTabArt());
     else if (node->as_string(prop_art_provider).is_sameas("wxAuiSimpleTabArt"))
@@ -89,7 +89,7 @@ void AuiNotebookGenerator::OnPageChanged(wxNotebookEvent& event)
 bool AuiNotebookGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass();
-    code.ValidParentName().Comma().as_string(prop_id).PosSizeFlags(false);
+    code.ValidParentName().Comma().as_string(prop_id).PosSizeFlags();
     BookCtorAddImagelist(code);
 
     if (code.IsEqualTo(prop_art_provider, "wxAuiGenericTabArt"))
@@ -163,7 +163,7 @@ bool AuiNotebookGenerator::AfterChildrenCode(Code& code)
 }
 
 bool AuiNotebookGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                       int /* language */)
+                                       GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/aui/auibook.h>", set_src, set_hdr);
     if (node->hasValue(prop_persist_name))
@@ -204,8 +204,15 @@ void AuiNotebookGenerator::RequiredHandlers(Node* /* node */, std::set<std::stri
     handlers.emplace("wxAuiXmlHandler");
 }
 
-bool AuiNotebookGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool AuiNotebookGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/aui'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/aui'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }

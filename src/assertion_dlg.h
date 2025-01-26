@@ -1,89 +1,46 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Assertion Dialog
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2022-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2022-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License ( see ../LICENSE )
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once  // NOLINT(#pragma once in main file)
 
-// [Randalphwa - 11-20-2023]
-
-// Until the github runner for Ubuntu build can use Ubuntu 22.04 and GCC 11.4 or later, this
-// code isn't going to work on that runner.
-
-// While it is considered more "modern" there's nothing in the current code base for wxUiEditor
-// that would benefit from using std::source_location.
-
-#if 0
-
-    #include <source_location>
-
-// #if defined(__cpp_consteval)
-
-// This should *ONLY* be called in the GUI thread!
-//
-// This function is available in Release builds
-bool AssertionDlg(const std::source_location& location, const char* cond, std::string_view msg);
-
-    #if defined(NDEBUG) && !defined(INTERNAL_TESTING)
-        #define ASSERT(cond)
-        #define ASSERT_MSG(cond, msg)
-        #define FAIL_MSG(msg)
-    #else  // not defined(NDEBUG) && !defined(INTERNAL_TESTING)
-        #define ASSERT(cond)                                                  \
-            if (!(cond))                                                      \
-            {                                                                 \
-                if (AssertionDlg(std::source_location::current(), #cond, "")) \
-                {                                                             \
-                    wxTrap();                                                 \
-                }                                                             \
-            }
-
-        #define ASSERT_MSG(cond, msg)                                            \
-            if (!(cond))                                                         \
-            {                                                                    \
-                if (AssertionDlg(std::source_location::current(), #cond, (msg))) \
-                {                                                                \
-                    wxTrap();                                                    \
-                }                                                                \
-            }
-
-        #define FAIL_MSG(msg)                                                       \
-            {                                                                       \
-                if (AssertionDlg(std::source_location::current(), "failed", (msg))) \
-                {                                                                   \
-                    wxTrap();                                                       \
-                }                                                                   \
-            }
-    #endif  // defined(NDEBUG) && !defined(INTERNAL_TESTING)
-
-#else
+// Note that while it is considered more "modern" there's nothing in the current code base for
+// wxUiEditor that would benefit from using std::source_location.
 
 bool AssertionDlg(const char* filename, const char* function, int line, const char* cond, const std::string& msg);
 
-    #if defined(NDEBUG) && !defined(INTERNAL_TESTING)
-        #define ASSERT(cond)
-        #define ASSERT_MSG(cond, msg)
-        #define FAIL_MSG(msg)
-    #else  // not defined(NDEBUG) && !defined(INTERNAL_TESTING)
-        #define ASSERT(cond)                                                      \
-            if (!(cond) && AssertionDlg(__FILE__, __func__, __LINE__, #cond, "")) \
-            {                                                                     \
-                wxTrap();                                                         \
-            }
+// The advantage of using ASSERT over wxASSERT is that ASSERT allows the macro to execute wxTrap in
+// the caller's code, so that you don't have to step out of the assertion function to get back to
+// the code that threw the assert.
 
-        #define ASSERT_MSG(cond, msg)                                                \
-            if (!(cond) && AssertionDlg(__FILE__, __func__, __LINE__, #cond, (msg))) \
-            {                                                                        \
-                wxTrap();                                                            \
-            }
+// Also note that wxASSERT will still be compiled in release builds unless setup.h specifically
+// disables it. By default, wxASSERT is enabled in release builds for wxWidgets, which would mean it
+// would compile in wxUiEditor code as well. Using ASSERT means it is only compiled into Release
+// builds if INTERNAL_TESTING is set.
 
-        #define FAIL_MSG(msg)                                              \
-            if (AssertionDlg(__FILE__, __func__, __LINE__, "failed", msg)) \
-            {                                                              \
-                wxTrap();                                                  \
-            }
-    #endif  // defined(NDEBUG) && !defined(INTERNAL_TESTING)
+#if defined(NDEBUG) && !defined(INTERNAL_TESTING)
+    #define ASSERT(cond)
+    #define ASSERT_MSG(cond, msg)
+    #define FAIL_MSG(msg)
+#else  // not defined(NDEBUG) && !defined(INTERNAL_TESTING)
+    #define ASSERT(cond)                                                      \
+        if (!(cond) && AssertionDlg(__FILE__, __func__, __LINE__, #cond, "")) \
+        {                                                                     \
+            wxTrap();                                                         \
+        }
 
-#endif
+    #define ASSERT_MSG(cond, msg)                                                \
+        if (!(cond) && AssertionDlg(__FILE__, __func__, __LINE__, #cond, (msg))) \
+        {                                                                        \
+            wxTrap();                                                            \
+        }
+
+    #define FAIL_MSG(msg)                                              \
+        if (AssertionDlg(__FILE__, __func__, __LINE__, "failed", msg)) \
+        {                                                              \
+            wxTrap();                                                  \
+        }
+#endif  // defined(NDEBUG) && !defined(INTERNAL_TESTING)

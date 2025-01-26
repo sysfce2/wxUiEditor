@@ -21,14 +21,14 @@ wxObject* HyperlinkGenerator::CreateMockup(Node* node, wxObject* parent)
     if (node->as_bool(prop_underlined))
     {
         widget = new wxHyperlinkCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
-                                     node->as_wxString(prop_url), DlgPoint(parent, node, prop_pos),
-                                     DlgSize(parent, node, prop_size), GetStyleInt(node));
+                                     node->as_wxString(prop_url), DlgPoint(node, prop_pos), DlgSize(node, prop_size),
+                                     GetStyleInt(node));
     }
     else
     {
         widget = new wxGenericHyperlinkCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_label),
-                                            node->as_wxString(prop_url), DlgPoint(parent, node, prop_pos),
-                                            DlgSize(parent, node, prop_size), GetStyleInt(node));
+                                            node->as_wxString(prop_url), DlgPoint(node, prop_pos), DlgSize(node, prop_size),
+                                            GetStyleInt(node));
 
         if (!node->hasValue(prop_font))
         {
@@ -67,7 +67,7 @@ bool HyperlinkGenerator::ConstructionCode(Code& code)
 
     code.ValidParentName().Comma().as_string(prop_id).Comma().QuotedString(prop_label);
     code.Comma().QuotedString(prop_url);
-    code.PosSizeFlags(false, "wxHL_DEFAULT_STYLE");
+    code.PosSizeFlags(code::allow_scaling, false, "wxHL_DEFAULT_STYLE");
 
     return true;
 }
@@ -187,7 +187,7 @@ bool HyperlinkGenerator::IsGeneric(Node* node)
 }
 
 bool HyperlinkGenerator::GetIncludes(Node* node, std::set<std::string>& /* set_src */, std::set<std::string>& set_hdr,
-                                     int /* language */)
+                                     GenLang /* language */)
 {
     // Unfortunately wx/generic/hyperlink.h doesn't include the required wx/hyperlink.h file.
     // That means the order of inclusion is critical, hence the hack below to change the

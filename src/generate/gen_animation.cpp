@@ -26,8 +26,7 @@ wxObject* AnimationGenerator::CreateMockup(Node* node, wxObject* parent)
     if (tt::contains(node->as_string(prop_animation), ".ani", tt::CASE::either))
     {
         auto widget = new wxGenericAnimationCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, wxNullAnimation,
-                                                 DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size),
-                                                 GetStyleInt(node));
+                                                 DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node));
         auto animation = widget->CreateAnimation();
         if (auto prop = node->getPropPtr(prop_animation); prop)
             prop->as_animation(&animation);
@@ -42,9 +41,8 @@ wxObject* AnimationGenerator::CreateMockup(Node* node, wxObject* parent)
     }
     else
     {
-        auto widget =
-            new wxAnimationCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, wxNullAnimation, DlgPoint(parent, node, prop_pos),
-                                DlgSize(parent, node, prop_size), GetStyleInt(node));
+        auto widget = new wxAnimationCtrl(wxStaticCast(parent, wxWindow), wxID_ANY, wxNullAnimation,
+                                          DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node));
         auto animation = widget->CreateAnimation();
         if (auto prop = node->getPropPtr(prop_animation); prop)
             prop->as_animation(&animation);
@@ -82,7 +80,7 @@ bool AnimationGenerator::ConstructionCode(Code& code)
             {
                 code.Str("Wx::Animation.new");
             }
-            code.PosSizeFlags(false);
+            code.PosSizeFlags();
         }
     }
     else
@@ -91,7 +89,7 @@ bool AnimationGenerator::ConstructionCode(Code& code)
         code.AddAuto().NodeName().CreateClass(code.node()->hasValue(prop_animation) &&
                                               code.node()->as_string(prop_animation).contains(".ani", tt::CASE::either));
         code.ValidParentName().Comma().as_string(prop_id).Comma().Add("wxNullAnimation").CheckLineLength();
-        code.PosSizeFlags(false);
+        code.PosSizeFlags();
     }
 
     if (code.hasValue(prop_inactive_bitmap))
@@ -253,7 +251,7 @@ void AnimationGenerator::RequiredHandlers(Node* node, std::set<std::string>& han
 }
 
 bool AnimationGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                     int /* language */)
+                                     GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/animate.h>", set_src, set_hdr);
     if (node->hasValue(prop_animation) && !node->as_string(prop_animation).contains(".gif", tt::CASE::either))

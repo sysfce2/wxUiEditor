@@ -29,7 +29,6 @@ public:
     {
         Create(parent, id, title, pos, size, style, name);
     }
-
     bool Create(wxWindow *parent, wxWindowID id = wxID_ANY, const wxString& title = "Art Provider Image",
         const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
         long style = wxDEFAULT_DIALOG_STYLE, const wxString &name = wxDialogNameStr);
@@ -39,6 +38,7 @@ protected:
     // Event handlers
 
     void OnChooseClient(wxCommandEvent& event);
+    void OnInit(wxInitDialogEvent& event);
     void OnSelectItem(wxListEvent& event);
 
 private:
@@ -56,8 +56,7 @@ private:
 // Code below this comment block will be preserved
 // if the code for this class is re-generated.
 //
-    // clang-format on
-    // ***********************************************
+// ***********************************************
 
 public:
     ArtBrowserDialog(wxWindow* parent, const ImageProperties& img_props);
@@ -69,5 +68,6 @@ protected:
 
 private:
     wxString m_client;
+    tt_string m_org_id;
     const char* m_id;
 };

@@ -62,7 +62,7 @@ bool FormBuilder::Import(const tt_string& filename, bool write_doc)
             throw std::runtime_error("Invalid project file");
         }
 
-        m_project = NodeCreation.createNode(gen_Project, nullptr);
+        m_project = NodeCreation.createNode(gen_Project, nullptr).first;
 
         createProjectNode(object, m_project.get());
 
@@ -158,10 +158,14 @@ void FormBuilder::createProjectNode(pugi::xml_node& xml_obj, Node* new_node)
                         m_language |= GEN_LANG_PYTHON;
                     else if (tt::contains(xml_prop.text().as_view(), "C++"))
                         m_language |= GEN_LANG_CPLUSPLUS;
+                    else if (tt::contains(xml_prop.text().as_view(), "Rust"))
+                        m_language |= GEN_LANG_RUST;
+                    else if (tt::contains(xml_prop.text().as_view(), "Lua"))
+                        m_language |= GEN_LANG_LUA;
                     else if (tt::contains(xml_prop.text().as_view(), "XRC"))
                         m_language |= GEN_LANG_XRC;
 
-                    // wxFormBuilder also generates PHP code, but wxUiEditor currently doesn't support that since
+                    // wxFormBuilder also generates Rust code, but wxUiEditor currently doesn't support that since
                     // wxPHP is not being actively maintained.
                 }
             }
@@ -243,12 +247,12 @@ NodeSharedPtr FormBuilder::CreateFbpNode(pugi::xml_node& xml_obj, Node* parent, 
         getGenName = gen_auitool;
     }
 
-    auto newobject = NodeCreation.createNode(getGenName, parent);
+    auto newobject = NodeCreation.createNode(getGenName, parent).first;
     if (!newobject && parent && tt::contains(map_GenTypes[parent->getGenType()], "book"))
     {
-        if (auto page_ctrl = NodeCreation.createNode(gen_PageCtrl, parent); page_ctrl)
+        if (auto page_ctrl = NodeCreation.createNode(gen_PageCtrl, parent).first; page_ctrl)
         {
-            if (newobject = NodeCreation.createNode(getGenName, page_ctrl.get()); newobject)
+            if (newobject = NodeCreation.createNode(getGenName, page_ctrl.get()).first; newobject)
             {
                 page_ctrl->adoptChild(newobject);
                 parent->adoptChild(page_ctrl);
@@ -577,17 +581,18 @@ NodeSharedPtr FormBuilder::CreateFbpNode(pugi::xml_node& xml_obj, Node* parent, 
                     continue;
                 }
 
-#if defined(INTERNAL_TESTING)
-                if (parent && parent->getForm())
+                if (wxGetApp().isTestingMenuEnabled())
                 {
-                    MSG_INFO(tt_string() << "Event " << event_name
-                                         << " not supported. Form: " << parent->getForm()->as_string(prop_class_name));
+                    if (parent && parent->getForm())
+                    {
+                        MSG_INFO(tt_string() << "Event " << event_name
+                                             << " not supported. Form: " << parent->getForm()->as_string(prop_class_name));
+                    }
+                    else
+                    {
+                        MSG_INFO(tt_string() << "Event " << event_name << " not supported");
+                    }
                 }
-                else
-                {
-                    MSG_INFO(tt_string() << "Event " << event_name << " not supported");
-                }
-#endif  // _DEBUG
 
                 xml_event = xml_event.next_sibling("event");
                 continue;
@@ -686,14 +691,7 @@ NodeSharedPtr FormBuilder::CreateFbpNode(pugi::xml_node& xml_obj, Node* parent, 
 }
 
 void FormBuilder::ProcessPropValue(pugi::xml_node& xml_prop, tt_string_view prop_name, tt_string_view class_name,
-                                   Node* newobject,
-                                   Node*
-#if defined(INTERNAL_TESTING)
-                                       parent
-#else
-/* parent is only used in internal builds */
-#endif
-)
+                                   Node* newobject, Node* parent)
 {
     if (set_ignore_flags.contains(prop_name))
     {
@@ -892,12 +890,12 @@ void FormBuilder::ProcessPropValue(pugi::xml_node& xml_prop, tt_string_view prop
         tt_string_vector parts(xml_prop.text().as_view(), ';', tt::TRIM::both);
         if (parts[0].empty())
             return;
-        if (auto prop = newobject->getPropPtr(prop_derived_class); prop)
+        if (auto prop = newobject->getPropPtr(prop_subclass); prop)
         {
             prop->set_value(parts[0]);
             if (parts.size() > 0 && !parts[1].contains("forward_declare"))
             {
-                prop = newobject->getPropPtr(prop_derived_header);
+                prop = newobject->getPropPtr(prop_subclass_header);
                 if (prop)
                 {
                     prop->set_value(parts[1]);
@@ -953,19 +951,20 @@ void FormBuilder::ProcessPropValue(pugi::xml_node& xml_prop, tt_string_view prop
             else if (xml_prop.text().as_view() == "wxWS_EX_VALIDATE_RECURSIVELY")
                 return;
 
-#if defined(INTERNAL_TESTING)
-            if (parent && parent->getForm())
+            if (wxGetApp().isTestingMenuEnabled())
             {
-                MSG_INFO(tt_string("Unsupported ")
-                         << prop_name << "(" << xml_prop.text().as_view() << ") property in " << class_name
-                         << ". Form: " << parent->getForm()->as_string(prop_class_name));
+                if (parent && parent->getForm())
+                {
+                    MSG_INFO(tt_string("Unsupported ")
+                             << prop_name << "(" << xml_prop.text().as_view() << ") property in " << class_name
+                             << ". Form: " << parent->getForm()->as_string(prop_class_name));
+                }
+                else
+                {
+                    MSG_INFO(tt_string("Unsupported ")
+                             << prop_name << "(" << xml_prop.text().as_view() << ") property in " << class_name);
+                }
             }
-            else
-            {
-                MSG_INFO(tt_string("Unsupported ")
-                         << prop_name << "(" << xml_prop.text().as_view() << ") property in " << class_name);
-            }
-#endif
         }
     }
 }

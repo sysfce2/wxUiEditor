@@ -17,8 +17,8 @@ using namespace code;
 
 wxObject* ListBoxGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxListBox(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                DlgSize(parent, node, prop_size), 0, nullptr, node->as_int(prop_type) | GetStyleInt(node));
+    auto widget = new wxListBox(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos), DlgSize(node, prop_size),
+                                0, nullptr, node->as_int(prop_type) | GetStyleInt(node));
 
     if (node->hasValue(prop_contents))
     {
@@ -106,7 +106,7 @@ bool ListBoxGenerator::SettingsCode(Code& code)
 }
 
 bool ListBoxGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                   int /* language */)
+                                   GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/listbox.h>", set_src, set_hdr);
     if (node->hasValue(prop_validator_variable))

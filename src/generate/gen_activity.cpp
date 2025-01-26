@@ -18,8 +18,8 @@
 
 wxObject* ActivityIndicatorGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxActivityIndicator(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                                          DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget = new wxActivityIndicator(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos),
+                                          DlgSize(node, prop_size), GetStyleInt(node));
 
     widget->Bind(wxEVT_LEFT_DOWN, &BaseGenerator::OnLeftClick, this);
     if (node->as_bool(prop_auto_start))
@@ -47,7 +47,7 @@ bool ActivityIndicatorGenerator::SettingsCode(Code& code)
 }
 
 bool ActivityIndicatorGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                             int /* language */)
+                                             GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/activityindicator.h>", set_src, set_hdr);
     return true;

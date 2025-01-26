@@ -38,6 +38,7 @@ inline const GenType lst_form_types[] =
     type_frame_form,
     type_images,
     type_menubar_form,
+    type_panel_form,
     type_popup_menu,
     type_propsheetform,
     type_ribbonbar_form,
@@ -498,10 +499,55 @@ const tt_string& Node::getNodeName() const
         return tt_empty_cstr;
 }
 
+tt_string_view Node::getNodeName(GenLang lang) const
+{
+    tt_string_view name = getNodeName();
+    if (name.empty())
+        return "unknown node";
+    if (lang == GEN_LANG_CPLUSPLUS)
+    {
+        // Valid for Ruby, but not for C++
+        if (name[0] == '@')
+            name.remove_prefix(1);
+        else if (name[0] == '$')  // commonly used for Perl variables
+            name.remove_prefix(1);
+        // Used for local Python variables, but non-standard for C++ where '_' is typically used for
+        // member variables
+        else if (name[0] == '_' && isLocal())
+            name.remove_prefix(1);
+        return name;
+    }
+
+    if (name[0] == '@' && lang != GEN_LANG_RUBY)
+    {
+        name.remove_prefix(1);
+        return name;
+    }
+    else if (name[0] == '$' && lang != GEN_LANG_PERL)
+    {
+        name.remove_prefix(1);
+        return name;
+    }
+
+    // GEN_LANG_CPLUSPLUS is handled above
+    ASSERT(lang != GEN_LANG_CPLUSPLUS);
+    if (name.starts_with("m_"))
+        name.remove_prefix(2);
+    return name;
+}
+
 const tt_string& Node::getParentName() const
 {
     if (m_parent)
         return m_parent->getNodeName();
+
+    return tt_empty_cstr;
+}
+
+tt_string_view Node::getParentName(GenLang lang) const
+{
+    if (m_parent)
+        return m_parent->getNodeName(lang);
 
     return tt_empty_cstr;
 }
@@ -580,23 +626,32 @@ wxSizerFlags Node::getSizerFlags() const
     return flags;
 }
 
-Node* Node::createChildNode(GenName name)
+std::pair<NodeSharedPtr, int> Node::createChildNode(GenName name, bool verify_language_support, int pos)
 {
     auto& frame = wxGetFrame();
 
-    auto new_node = NodeCreation.createNode(name, this);
+    auto result = NodeCreation.createNode(name, this, verify_language_support);
+    if (!result.first || result.second < 0)
+    {
+        return { nullptr, result.second };
+    }
+    auto new_node = result.first;
 
     Node* parent = this;
 
     if (!new_node)
     {
+        new_node = NodeCreation.createNode(name, this).first;
         if ((isForm() || isContainer()) && getChildCount())
         {
             if (getChild(0)->getGenType() == type_sizer || getChild(0)->getGenType() == type_gbsizer)
             {
-                new_node = NodeCreation.createNode(name, getChild(0));
-                if (!new_node)
-                    return nullptr;
+                result = NodeCreation.createNode(name, getChild(0), verify_language_support);
+                if (!result.first || result.second < 0)
+                {
+                    return { nullptr, result.second };
+                }
+                new_node = result.first;
                 parent = getChild(0);
             }
 
@@ -604,10 +659,10 @@ Node* Node::createChildNode(GenName name)
             {
                 GridBag grid_bag(parent);
                 if (grid_bag.InsertNode(parent, new_node.get()))
-                    return new_node.get();
+                    return { new_node, Node::valid_node };
                 else
                 {
-                    return nullptr;
+                    return { nullptr, Node::gridbag_insert_error };
                 }
             }
         }
@@ -619,10 +674,10 @@ Node* Node::createChildNode(GenName name)
         {
             GridBag grid_bag(this);
             if (grid_bag.InsertNode(this, new_node.get()))
-                return new_node.get();
+                return { new_node, Node::valid_node };
             else
             {
-                return nullptr;
+                return { nullptr, Node::gridbag_insert_error };
             }
         }
 
@@ -652,23 +707,21 @@ Node* Node::createChildNode(GenName name)
 
         tt_string undo_str;
         undo_str << "insert " << map_GenNames[name];
-        frame.PushUndoAction(std::make_shared<InsertNodeAction>(new_node.get(), parent, undo_str));
+        frame.PushUndoAction(std::make_shared<InsertNodeAction>(new_node.get(), parent, undo_str, pos));
     }
 
     // A "ribbonButton" component is used for both wxRibbonButtonBar and wxRibbonToolBar. If creating the node failed,
     // then assume the parent is wxRibbonToolBar and retry with "ribbonTool"
     else if (name == gen_ribbonButton)
     {
-        new_node = NodeCreation.createNode(gen_ribbonTool, this);
-        if (new_node)
+        result = NodeCreation.createNode(gen_ribbonTool, this);
+        if (!result.first || result.second < 0)
         {
-            tt_string undo_str = "insert ribbon tool";
-            frame.PushUndoAction(std::make_shared<InsertNodeAction>(new_node.get(), this, undo_str));
+            return { nullptr, result.second };
         }
-        else
-        {
-            return nullptr;
-        }
+        new_node = result.first;
+        tt_string undo_str = "insert ribbon tool";
+        frame.PushUndoAction(std::make_shared<InsertNodeAction>(new_node.get(), this, undo_str, pos));
     }
     else
     {
@@ -696,33 +749,33 @@ Node* Node::createChildNode(GenName name)
                                              << " as a child of " << declName());
                 }
 
-                return nullptr;
+                return { nullptr, Node::invalid_child_count };
             }
 
-            new_node = NodeCreation.createNode(name, parent);
+            new_node = NodeCreation.createNode(name, parent).first;
             if (new_node)
             {
                 if (parent->isGen(gen_wxGridBagSizer))
                 {
                     GridBag grid_bag(parent);
                     if (grid_bag.InsertNode(parent, new_node.get()))
-                        return new_node.get();
+                        return { new_node, Node::valid_node };
                     else
                     {
-                        return nullptr;
+                        return { nullptr, Node::gridbag_insert_error };
                     }
                 }
 
-                auto pos = parent->findInsertionPos(this);
+                auto insert_pos = parent->findInsertionPos(this);
                 tt_string undo_str;
                 undo_str << "insert " << map_GenNames[name];
-                frame.PushUndoAction(std::make_shared<InsertNodeAction>(new_node.get(), parent, undo_str, pos));
+                frame.PushUndoAction(std::make_shared<InsertNodeAction>(new_node.get(), parent, undo_str, insert_pos));
             }
         }
         else
         {
             wxMessageBox(tt_string() << "You cannot add " << map_GenNames[name] << " as a child of " << declName());
-            return nullptr;
+            return { nullptr, Node::invalid_child };
         }
     }
 
@@ -731,7 +784,7 @@ Node* Node::createChildNode(GenName name)
         bool is_name_changed = false;
         if (Project.getCodePreference(this) == GEN_LANG_CPLUSPLUS)
         {
-            if (UserPrefs.is_CppSnakeCase())
+            if (new_node->hasProp(prop_var_name) && UserPrefs.is_CppSnakeCase())
             {
                 auto member_name = ConvertToSnakeCase(new_node->as_string(prop_var_name));
                 new_node->set_value(prop_var_name, member_name);
@@ -790,7 +843,7 @@ Node* Node::createChildNode(GenName name)
         frame.FireCreatedEvent(new_node.get());
         frame.SelectNode(new_node.get(), evt_flags::fire_event | evt_flags::force_selection);
     }
-    return new_node.get();
+    return { new_node, Node::valid_node };
 }
 
 Node* Node::createNode(GenName name)
@@ -802,7 +855,7 @@ Node* Node::createNode(GenName name)
         wxMessageBox("You need to select something first in order to properly place this widget.");
         return nullptr;
     }
-    return cur_selection->createChildNode(name);
+    return cur_selection->createChildNode(name).first.get();
 }
 
 void Node::modifyProperty(PropName name, tt_string_view value)
@@ -930,8 +983,8 @@ static const PropName s_var_names[] = {
 bool Node::fixDuplicateName()
 {
     if (isType(type_form) || isType(type_frame_form) || isType(type_menubar_form) || isType(type_ribbonbar_form) ||
-        isType(type_toolbar_form) || isType(type_aui_toolbar_form) || isType(type_wizard) || isType(type_popup_menu) ||
-        isType(type_project))
+        isType(type_toolbar_form) || isType(type_aui_toolbar_form) || isType(type_panel_form) || isType(type_wizard) ||
+        isType(type_popup_menu) || isType(type_project))
     {
         return false;
     }

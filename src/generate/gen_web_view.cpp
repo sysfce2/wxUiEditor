@@ -29,18 +29,18 @@ wxObject* WebViewGenerator::CreateMockup(Node* node, wxObject* parent)
             msg += "XRC";
         auto* widget = new wxStaticText(wxStaticCast(parent, wxWindow), wxID_ANY, msg.make_wxString(), wxDefaultPosition,
                                         wxDefaultSize, wxALIGN_CENTER_HORIZONTAL | wxBORDER_RAISED);
-        widget->Wrap(DlgPoint(parent, 150));
+        widget->Wrap(DlgPoint(150));
         return widget;
     }
 #if defined(WIN32)
-    auto widget = wxWebView::New(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_url),
-                                 DlgPoint(parent, node, prop_pos), DlgSize(parent, node, prop_size), wxWebViewBackendDefault,
-                                 GetStyleInt(node));
+    auto widget =
+        wxWebView::New(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_wxString(prop_url), DlgPoint(node, prop_pos),
+                       DlgSize(node, prop_size), wxWebViewBackendDefault, GetStyleInt(node));
 #else
     auto* widget =
         new wxStaticText(wxStaticCast(parent, wxWindow), wxID_ANY, "wxWebView mockup currently only available for Windows",
                          wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL | wxBORDER_RAISED);
-    widget->Wrap(DlgPoint(parent, 150));
+    widget->Wrap(DlgPoint(150));
 #endif
 
     return widget;
@@ -87,13 +87,13 @@ void WebViewGenerator::GenEvent(Code& code, NodeEvent* event, const std::string&
 }
 
 bool WebViewGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                   int /* language */)
+                                   GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/webview.h>", set_src, set_hdr);
     return true;
 }
 
-std::optional<tt_string> WebViewGenerator::GetWarning(Node* node, int language)
+std::optional<tt_string> WebViewGenerator::GetWarning(Node* node, GenLang language)
 {
     switch (language)
     {

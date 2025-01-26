@@ -19,9 +19,9 @@
 
 wxObject* SliderGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto widget = new wxSlider(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_int(prop_value),
-                               node->as_int(prop_minValue), node->as_int(prop_maxValue), DlgPoint(parent, node, prop_pos),
-                               DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto widget =
+        new wxSlider(wxStaticCast(parent, wxWindow), wxID_ANY, node->as_int(prop_value), node->as_int(prop_minValue),
+                     node->as_int(prop_maxValue), DlgPoint(node, prop_pos), DlgSize(node, prop_size), GetStyleInt(node));
 
     widget->SetValue(node->as_int(prop_position));
     if (node->as_int(prop_line_size) > 0)
@@ -60,7 +60,7 @@ bool SliderGenerator::ConstructionCode(Code& code)
     code.AddAuto().NodeName().CreateClass();
     code.ValidParentName().Comma().as_string(prop_id).Comma();
     code.as_string(prop_position).Comma().as_string(prop_minValue).Comma().as_string(prop_maxValue);
-    code.PosSizeFlags(true);
+    code.PosSizeFlags(code::allow_scaling, true);
 
     return true;
 }
@@ -131,7 +131,7 @@ bool SliderGenerator::AllowPropertyChange(wxPropertyGridEvent* event, NodeProper
 }
 
 bool SliderGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                  int /* language */)
+                                  GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/slider.h>", set_src, set_hdr);
     if (node->as_string(prop_validator_variable).size())

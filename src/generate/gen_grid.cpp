@@ -18,8 +18,8 @@
 
 wxObject* GridGenerator::CreateMockup(Node* node, wxObject* parent)
 {
-    auto grid = new wxGrid(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(parent, node, prop_pos),
-                           DlgSize(parent, node, prop_size), GetStyleInt(node));
+    auto grid = new wxGrid(wxStaticCast(parent, wxWindow), wxID_ANY, DlgPoint(node, prop_pos), DlgSize(node, prop_size),
+                           GetStyleInt(node));
 
     wxGridUpdateLocker prevent_updates(grid);
 
@@ -159,7 +159,7 @@ wxObject* GridGenerator::CreateMockup(Node* node, wxObject* parent)
 bool GridGenerator::ConstructionCode(Code& code)
 {
     code.AddAuto().NodeName().CreateClass().ValidParentName().Comma().as_string(prop_id);
-    code.PosSizeFlags(false, "wxWANTS_CHARS");
+    code.PosSizeFlags(code::allow_scaling, false, "wxWANTS_CHARS");
 
     return true;
 }
@@ -395,7 +395,7 @@ int GridGenerator::GetRequiredVersion(Node* node)
 }
 
 bool GridGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                int /* language */)
+                                GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/grid.h>", set_src, set_hdr);
 
@@ -429,8 +429,15 @@ void GridGenerator::RequiredHandlers(Node* /* node */, std::set<std::string>& ha
     handlers.emplace("wxGridXmlHandler");
 }
 
-bool GridGenerator::GetRubyImports(Node*, std::set<std::string>& set_imports)
+bool GridGenerator::GetImports(Node*, std::set<std::string>& set_imports, GenLang language)
 {
-    set_imports.insert("require 'wx/grid'");
-    return true;
+    if (language == GEN_LANG_RUBY)
+    {
+        set_imports.insert("require 'wx/grid'");
+        return true;
+    }
+    else
+    {
+    }
+    return false;
 }

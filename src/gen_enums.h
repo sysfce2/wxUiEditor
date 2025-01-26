@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Purpose:   Enumerations for generators
 // Author:    Ralph Walden
-// Copyright: Copyright (c) 2021-2023 KeyWorks Software (Ralph Walden)
+// Copyright: Copyright (c) 2021-2024 KeyWorks Software (Ralph Walden)
 // License:   Apache License -- see ../LICENSE
 /////////////////////////////////////////////////////////////////////////////
 
@@ -242,6 +242,7 @@ namespace GenEnum
         prop_foreground_colour,
         prop_generate_cmake,
         prop_generate_ids,
+        prop_generate_languages,
         prop_generate_translation_unit,
         prop_get_function,
         prop_grid_line_color,
@@ -355,7 +356,6 @@ namespace GenEnum
         prop_paste_multiple,
         prop_persist,
         prop_persist_name,
-        prop_php_file,
         prop_pin_button,
         prop_platforms,
         prop_play,
@@ -430,6 +430,9 @@ namespace GenEnum
         prop_stc_wrap_visual_location,
         prop_stock_id,
         prop_style,
+        prop_subclass,
+        prop_subclass_header,
+        prop_subclass_params,
         prop_symbol_margin,
         prop_symbol_mouse_sensitive,
         prop_sync_hover_colour,
@@ -522,6 +525,57 @@ namespace GenEnum
         prop_ruby_project_preamble,
         prop_wxRuby_version,
 
+        prop_folder_fortran_output_folder,
+        prop_fortran_conditional,
+        prop_fortran_file,
+        prop_fortran_inherit_name,
+        prop_fortran_insert,
+        prop_fortran_line_length,
+        prop_fortran_output_folder,
+        prop_fortran_project_preamble,
+        prop_wxFortran_version,
+
+        prop_folder_haskell_output_folder,
+        prop_haskell_conditional,
+        prop_haskell_file,
+        prop_haskell_inherit_name,
+        prop_haskell_insert,
+        prop_haskell_line_length,
+        prop_haskell_output_folder,
+        prop_haskell_project_preamble,
+        prop_wxHaskell_version,
+
+        prop_folder_lua_output_folder,
+        prop_lua_conditional,
+        prop_lua_file,
+        prop_lua_inherit_name,
+        prop_lua_insert,
+        prop_lua_line_length,
+        prop_lua_output_folder,
+        prop_lua_project_preamble,
+        prop_wxLua_version,
+
+        prop_folder_perl_combined_file,
+        prop_folder_perl_output_folder,
+        prop_perl_conditional,
+        prop_perl_file,
+        prop_perl_inherit_name,
+        prop_perl_insert,
+        prop_perl_line_length,
+        prop_perl_output_folder,
+        prop_perl_project_preamble,
+        prop_wxPerl_version,
+
+        prop_folder_rust_output_folder,
+        prop_rust_conditional,
+        prop_rust_file,
+        prop_rust_inherit_name,
+        prop_rust_insert,
+        prop_rust_line_length,
+        prop_rust_output_folder,
+        prop_rust_project_preamble,
+        prop_wxRust_version,
+
         // This must always be the last item as it is used to calculate the array size needed to store all items
         prop_name_array_size,
         prop_unknown = prop_name_array_size,
@@ -582,6 +636,8 @@ namespace GenEnum
         type_notebook,
         type_oldbookpage,
         type_page,
+        type_panel,
+        type_panel_form,
         type_popup_menu,
         type_project,
         type_propgrid,
@@ -658,12 +714,11 @@ namespace GenEnum
         gen_flexgridsizerbase,
         gen_folder_Code,
         gen_folder_XRC,
-        gen_folder_wxPHP,
+        gen_folder_wxPerl,
         gen_folder_wxPython,
         gen_folder_wxRuby,
         gen_sizer_child,
         gen_sizeritem_settings,
-        gen_wxMdiWindow,
         gen_wxTopLevelWindow,
         gen_wxTreeCtrlBase,
         gen_wxWindow,
@@ -674,12 +729,22 @@ namespace GenEnum
         gen_wxPython,
         gen_wxRuby,
         gen_XRC,
+        gen_wxFortran,
+        gen_wxHaskell,
+        gen_wxLua,
+        gen_wxPerl,
+        gen_wxRust,
 
         gen_LanguageSettings,  // Using this will pull in all the language settings
 
         gen_CPlusSettings,
         gen_DerivedCPlusSettings,
         gen_CPlusHeaderSettings,
+        gen_FortranSettings,
+        gen_HaskellSettings,
+        gen_LuaSettings,
+        gen_PerlSettings,
+        gen_RustSettings,
         gen_PythonSettings,
         gen_RubySettings,
 
@@ -695,8 +760,12 @@ namespace GenEnum
         gen_folder,
         gen_sub_folder,
 
+        // Note all gen_ values from gen_wxMdiWindow gen_name_array_size are bound to the Add menu
+        // items.
+
         // These are for DocViewApp
 
+        gen_wxMdiWindow,
         gen_DocViewApp,
         gen_MdiFrameMenuBar,
         gen_MdiDocMenuBar,
@@ -798,6 +867,7 @@ namespace GenEnum
         gen_wxNotebook,
         gen_wxPanel,
         gen_wxPopupTransientWindow,
+        gen_wxPopupWindow,
         gen_wxPropertyGrid,
         gen_wxPropertyGridManager,
         gen_wxPropertySheetDialog,

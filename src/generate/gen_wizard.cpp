@@ -90,7 +90,7 @@ bool WizardFormGenerator::ConstructionCode(Code& code)
     }
     else
     {
-        code.AddComment("Unknown language");
+        code.AddComment("Unknown language", true);
     }
 
     return true;
@@ -102,15 +102,18 @@ bool WizardFormGenerator::SettingsCode(Code& code)
     {
         code.Str("super(parent, id, title, bitmap, pos, style)\n");
     }
-    const auto min_size = code.node()->as_wxSize(prop_minimum_size);
-    const auto max_size = code.node()->as_wxSize(prop_maximum_size);
-    if (min_size != wxDefaultSize)
+
+    if (!code.node()->isPropValue(prop_variant, "normal"))
     {
-        code.Eol().FormFunction("SetMinSize(").WxSize(prop_minimum_size).EndFunction();
-    }
-    if (max_size != wxDefaultSize)
-    {
-        code.Eol().FormFunction("SetMaxSize(").WxSize(prop_maximum_size).EndFunction();
+        code.Eol(eol_if_empty).FormFunction("SetWindowVariant(");
+        if (code.node()->isPropValue(prop_variant, "small"))
+            code.Add("wxWINDOW_VARIANT_SMALL");
+        else if (code.node()->isPropValue(prop_variant, "mini"))
+            code.Add("wxWINDOW_VARIANT_MINI");
+        else
+            code.Add("wxWINDOW_VARIANT_LARGE");
+
+        code.EndFunction();
     }
 
     if (code.hasValue(prop_extra_style))
@@ -245,9 +248,9 @@ bool WizardFormGenerator::AfterChildrenCode(Code& code)
 
 bool WizardFormGenerator::BaseClassNameCode(Code& code)
 {
-    if (code.hasValue(prop_derived_class))
+    if (code.hasValue(prop_subclass))
     {
-        code.as_string(prop_derived_class);
+        code.as_string(prop_subclass);
     }
     else
     {
@@ -277,7 +280,7 @@ bool WizardFormGenerator::HeaderCode(Code& code)
     if (position == wxDefaultPosition)
         code.Str("wxDefaultPosition");
     else
-        code.Pos(prop_pos, no_dlg_units);
+        code.Pos(prop_pos, no_dpi_scaling);
 
     auto& style = node->as_string(prop_style);
     auto& win_style = node->as_string(prop_window_style);
@@ -311,7 +314,7 @@ bool WizardFormGenerator::HeaderCode(Code& code)
 }
 
 bool WizardFormGenerator::GetIncludes(Node* node, std::set<std::string>& set_src, std::set<std::string>& set_hdr,
-                                      int /* language */)
+                                      GenLang /* language */)
 {
     InsertGeneratorInclude(node, "#include <wx/wizard.h>", set_src, set_hdr);
 
